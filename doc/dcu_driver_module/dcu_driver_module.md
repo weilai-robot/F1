@@ -63,11 +63,11 @@ float64[] damping
 
 /joint_cmd uses joint names as indices and employs a data type specifically for `hybrid force/position control`. All rotary joints support this control type.
 
-***Note: For push rod and gripper joints, only the fields "position" and "effort" are valid, while other fields must be 0.***
+***Note: For gripper joints, only the fields "position" and "effort" are valid, while other fields must be 0.***
 
-- For push rod joints: "position" is in `meters`, ranging from 0 to 0.0254 m, where 0 represents "fully retracted"; "effort" indicates the maximum current, ranging from 0 to 2.5 A.
+- for /joint_cmd: "position" is in `percentages`, ranging from 0 to 1.0, where 0 represents "fully gripped"; "effort" indicates the percentage of maximum current, ranging from 0 to 1, with the maximum value configured in the gripper.
 
-- For gripper joints: "position" is in `percentages`, ranging from 0 to 1.0, where 0 represents "fully gripped"; "effort" indicates the percentage of maximum current, ranging from 0 to 1, with the maximum value configured in the gripper.
+- for /joint_states: The meanings of "position" and "effort" remain unchanged. "velocity" is the percentage of maximum speed, with a numerical range of 0-1.0.
 
 ## Parameter Configuration
 

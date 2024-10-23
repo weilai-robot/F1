@@ -24,3 +24,5 @@ The default mapping is usually as shown below, with red indicating buttons and g
 | Button 2             | /walk_mode     | std_msgs/msg/Float32     | Press to publish a topic for controlling the state machine                                         |
 | Button 3             | /reset_world   | std_srvs/srv/Empty       | Press to send an srv request for resetting models in gazebo                                        |
 | Button 4 + Joystick  | /cmd_vel       | geometry_msgs/msg/Twist  | Publishing robot movement commands, left joystick for translation and right joystick for rotation  |
+
+![joy_teleop](joy_teleop.gif "joy_teleop")

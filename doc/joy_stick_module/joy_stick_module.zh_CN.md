@@ -25,3 +25,5 @@ jstest-gtk
 | 按键 2        | /walk_mode     | std_msgs/msg/Float32    | 按下按键发布 topic，用于控制状态机                 |
 | 按键 3        | /reset_world   | std_srvs/srv/Empty      | 按下按键发布 srv 请求，用于重置 gazebo 中的模型    |
 | 按键 4 + 摇杆 | /cmd_vel       | geometry_msgs/msg/Twist | 用于发布机器人运动指令，左摇杆平面移动，右摇杆旋转 |
+
+![joy_teleop](joy_teleop.gif "joy_teleop")
