@@ -140,6 +140,6 @@ The code provided in this project runs on the [AimRT](https://aimrt.org/) framew
 
 ## Usage Instructions
 
-If you have any questions or issues with this repository, please use the [issue tracker](https://github.com/xxxxxxx/issues).
+If you have any questions or issues with this repository, please use the `Issues`.
 
 Please do not contact us via email as we may not be able to respond. If you would like to contribute code, simply fork the repository (or if you are a collaborator, create a branch), make your changes, and submit a pull request to us.

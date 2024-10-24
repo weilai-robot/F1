@@ -138,6 +138,6 @@ cd build/
 
 ## 使用说明
 
-如果您对该仓库有任何疑问或问题，请使用 [issue tracker](https://github.com/xxxxxxx/issues)。
+如果您对该仓库有任何疑问或问题，请使用 `Issues`。
 
 请不要通过电子邮件联系我们，因为可能无法回复。如果您想贡献代码，请简单地 fork 该仓库（或如果您是协作者，可以创建一个分支），然后进行更改并提交 pull request 给我们。
