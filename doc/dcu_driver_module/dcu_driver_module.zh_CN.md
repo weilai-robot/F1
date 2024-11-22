@@ -71,7 +71,7 @@ float64[] damping
 
 ## 参数配置
 
-DCU Driver Module 的参数在 [配置文件](/src/install/linux/bin/cfg/x1_cfg.yaml) 中的 `DCUDriverModule`字段中，并且配有详细的注释说明。
+DCU Driver Module 的参数位于 [配置文件](/src/module/dcu_driver_module/cfg/dcu_x1.yaml) 中，并且配有详细的注释说明。
 
 开发者需要根据机器实际的关节连接情况，正确的配置 `dcu_network` 字段。
 

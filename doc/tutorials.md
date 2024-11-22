@@ -6,7 +6,7 @@
 
 ## Parameter Configuration
 
-The [configuration file](/src/install/linux/bin/cfg/x1_cfg.yaml) contains all the parameter configurations for AimRT and three modules.
+The [configuration file](/src/install/linux/bin/cfg/x1_cfg.yaml) contains all the parameter configurations for AimRT.
 For details, please refer to the [AimRT Configuration Guide](https://docs.aimrt.org/tutorials/index.html#id3) as well as the detailed descriptions of each module.
 
 ## Module Descriptions

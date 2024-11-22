@@ -8,7 +8,7 @@ The simulation software package is in the `src/assistant/robot_description` dire
 
 ### Parameter Configuration
 
-For independent configuration parameters used in simulation mode, refer to the [simulation configuration file](/src/install/linux/bin/cfg/x1_cfg_sim.yaml).
+For independent configuration parameters used in simulation mode, refer to the [simulation configuration file](/src/module/rl_control_module/cfg/rl_x1_sim.yaml).
 
 | Field                   |  Description                         | Common Configurations and Descriptions                                                   |
 | -------------------- | ------------------------- | ---------------------------------------------------------------------- |
