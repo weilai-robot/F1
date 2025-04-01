@@ -1,0 +1,38 @@
+#!/bin/bash
+
+function aimrt_pack {
+    # 打包
+    tar zcvf x1_install.tar.gz install
+}
+
+function aimrt_unpack {
+    # 解包
+    tar zxvf x1_install.tar.gz
+}
+
+function aimrt_install {
+    # 安装到指定位置
+    cp -r install $1
+}
+
+function aimrt_upload {
+    # 上传
+    file_name="install_$(date "+%Y-%m-%d_%H-%M-%S").tar.gz"
+    curl -F file=@x1_install.tar.gz -F filename=$file_name https://file.agibot.com/x1
+}
+
+if [ -z "$1" ]; then
+    aimrt_pack
+elif [ "$1" == "unpack" ]; then
+    aimrt_unpack
+elif [ "$1" == "install" ] && [ ! -z "$2" ]; then
+    aimrt_install $2
+elif [ "$1" == "upload" ]; then
+    aimrt_upload
+else
+    echo -e "[\e[1;32mINFO\e[0m]                - Create tar.gz"
+    echo -e "[\e[1;32mINFO\e[0m] unpack         - Unpack tar.gz"
+    echo -e "[\e[1;32mINFO\e[0m] install <dir>  - Install to target dir"
+    echo -e "[\e[1;32mINFO\e[0m] upload         - Upload tar.gz"
+    echo -e "[\e[1;32mINFO\e[0m] help           - show this content"
+fi

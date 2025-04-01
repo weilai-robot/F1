@@ -1,0 +1,20 @@
+export DOWNLOAD_FLAGS="-Dboost_DOWNLOAD_URL=https://file.agibot.com/third_party/boost-1.82.0.tar.xz \
+      -Dfmt_DOWNLOAD_URL=https://file.agibot.com/third_party/fmt-10.2.1.tar.gz \
+      -Dgflags_DOWNLOAD_URL=https://file.agibot.com/third_party/gflags-2.2.2.tar.gz \
+      -Dgoogletest_DOWNLOAD_URL=https://file.agibot.com/third_party/googletest-1.13.0.tar.gz \
+      -Dprotobuf_DOWNLOAD_URL=https://file.agibot.com/third_party/protobuf-3.21.12.tar.gz \
+      -Dyaml-cpp_DOWNLOAD_URL=https://file.agibot.com/third_party/yaml-cpp-0.8.0.tar.gz \
+      -Djsoncpp_DOWNLOAD_URL=https://file.agibot.com/third_party/jsoncpp-1.9.5.tar.gz \
+      -Dsqlite_DOWNLOAD_URL=https://file.agibot.com/third_party/sqlite-amalgamation-3420000.zip \
+      -Dstdexec_DOWNLOAD_URL=https://file.agibot.com/third_party/stdexec-nvhpc-23.09.rc4.tar.gz \
+      -Dlibunifex_DOWNLOAD_URL=https://file.agibot.com/third_party/libunifex-591ec09e7d51858ad05be979d4034574215f5971.tar.gz \
+      -Dtbb_DOWNLOAD_URL=https://file.agibot.com/third_party/oneTBB-2021.13.0.tar.gz \
+      -Dpybind11_DOWNLOAD_URL=https://file.agibot.com/third_party/pybind11-2.13.1.tar.gz \
+      -Dpaho_mqtt_c_DOWNLOAD_URL=https://file.agibot.com/third_party/paho.mqtt.c-1.3.13.tar.gz \
+      -Dnlohmann_json_DOWNLOAD_URL=https://file.agibot.com/third_party/nlohmann-json-3.11.3.tar.gz \
+      -Dopentelemetry_proto_DOWNLOAD_URL=https://file.agibot.com/third_party/opentelemetry-proto-1.3.2.tar.gz \
+      -Dopentelemetry_cpp_DOWNLOAD_URL=https://file.agibot.com/third_party/opentelemetry-cpp-1.16.1.tar.gz \
+      -Dzenohc_DOWNLOAD_URL=https://file.agibot.com/third_party/zenoh-c-1.0.0.6.tar.gz \
+      -Dnghttp2_DOWNLOAD_URL=https://file.agibot.com/third_party/nghttp2-1.62.1.tar.gz \
+      -Diceoryx_DOWNLOAD_URL=https://file.agibot.com/third_party/iceoryx-2.0.6.tar.gz \
+      -Dcpptoml_DOWNLOAD_URL=https://file.agibot.com/third_party/cpptoml-0.1.0.tar.gz"

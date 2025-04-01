@@ -12,18 +12,24 @@
 jstest-gtk
 ```
 
-默认映射通常如下图，红色是按键，绿色是摇杆
+默认映射通常如下图，红色字符对应手柄按键。
+
+在 keep、stand、walk_leg状态下，按RB键可以挥手。所有状态下，都可以按START键直接切到idle状态。
+
+注：仿真时，先将机器人切换至ZERO状态，然后点击 reset 让机器人站立，再切换至行走模式。
 
 ![joy_map](joy_map.jpg "joy_map")
 
+状态说明：
 
-| 按键/摇杆     | topic/srv      | type                    | 功能                                               |
-| ------------- | -------------- | ----------------------- | -------------------------------------------------- |
-| 按键 7        | /start_control | std_msgs/msg/Float32    | 按下按键发布 topic，用于控制状态机                 |
-| 按键 1        | /zero_mode     | std_msgs/msg/Float32    | 按下按键发布 topic，用于控制状态机                 |
-| 按键 0        | /stand_mode    | std_msgs/msg/Float32    | 按下按键发布 topic，用于控制状态机                 |
-| 按键 2        | /walk_mode     | std_msgs/msg/Float32    | 按下按键发布 topic，用于控制状态机                 |
-| 按键 3        | /reset_world   | std_srvs/srv/Empty      | 按下按键发布 srv 请求，用于重置 gazebo 中的模型    |
-| 按键 4 + 摇杆 | /cmd_vel       | geometry_msgs/msg/Twist | 用于发布机器人运动指令，左摇杆平面移动，右摇杆旋转 |
+- idle：空闲状态，关节没有力矩输出
 
-![joy_teleop](joy_teleop.gif "joy_teleop")
+- keep：保持状态，关节保持当前位置
+
+- zero：归零状态，关节回到零位
+
+- stand：站立状态，关节回到站立位置
+
+- walk_leg：行走状态，上半身保持不动。此时按住LB，推动左摇杆可以控制机器人行走，推动右摇杆可以控制机器人转弯
+
+- walk_leg_arm：行走状态，肩部pitch跟随行走。此时按住LB，推动左摇杆可以控制机器人行走，推动右摇杆可以控制机器人转弯

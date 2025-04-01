@@ -12,17 +12,24 @@ To view the joystick mapping settings, please refer to [jstest-gtk](https://gith
 jstest-gtk
 ```
 
-The default mapping is usually as shown below, with red indicating buttons and green indicating joysticks.
+The default mapping is usually shown in the following figure, with red characters corresponding to the joystick buttons.
+
+Press the RB key to wave your hand while in keep, stand, or walk_1eg states. In all states, you can press the START button to directly switch to the idle state.
+
+Note: During simulation, first switch the robot to ZERO state, then click reset to make the robot stand, and then switch to walking mode.
 
 ![joy_map](joy_map.jpg "joy_map")
 
-| Button/Joystick      | topic/srv      | type                     | Function                                                                                           |
-| -------------------- | -------------- | ------------------------ | -------------------------------------------------------------------------------------------------- |
-| Button 7             | /start_control | std_msgs/msg/Float32     | Press to publish a topic for controlling the state machine                                         |
-| Button 1             | /zero_mode     | std_msgs/msg/Float32     | Press to publish a topic for controlling the state machine                                         |
-| Button 0             | /stand_mode    | std_msgs/msg/Float32     | Press to publish a topic for controlling the state machine                                         |
-| Button 2             | /walk_mode     | std_msgs/msg/Float32     | Press to publish a topic for controlling the state machine                                         |
-| Button 3             | /reset_world   | std_srvs/srv/Empty       | Press to send an srv request for resetting models in gazebo                                        |
-| Button 4 + Joystick  | /cmd_vel       | geometry_msgs/msg/Twist  | Publishing robot movement commands, left joystick for translation and right joystick for rotation  |
+Status description:
 
-![joy_teleop](joy_teleop.gif "joy_teleop")
+-Idle state, no torque output from the joint
+
+-Keep: Maintain the state, keep the joint in its current position
+
+-Zero: Return to zero state, the joint returns to zero position
+
+-Stand: In a standing position, the joints return to the standing position
+
+-Walk_leg: Walking state, keeping the upper body still. At this point, hold down LB and push the left joystick to control the robot's walking, and push the right joystick to control the robot's turning
+
+-Walk_leg_arm: Walking state, shoulder pitch follows the walking. At this point, hold down LB and push the left joystick to control the robot's walking, and push the right joystick to control the robot's turning

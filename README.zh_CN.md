@@ -1,7 +1,5 @@
 # Readme
 
-[English](README.md) | 中文
-
 ## 简介
 
 [智元灵犀X1](https://www.zhiyuan-robot.com/qzproduct/169.html) 是由智元研发并开源的模块化、高自由度人形机器人，X1的软件系统基于智元开源组件 `AimRT` 作为中间件实现，并且采用强化学习方法进行运动控制。
@@ -45,6 +43,8 @@
 
 ### 启动准备
 
+- 安装 [GCC-13](https://www.gnu.org/software/gcc/gcc-13/)。
+
 - 安装 [cmake](https://cmake.org/download/) 3.26 或以上版本。
 
 - 安装 [ONNX Runtime](https://github.com/microsoft/onnxruntime) 。
@@ -67,13 +67,14 @@ sudo make install
 - 安装仿真环境依赖。
 
 ```bash
-sudo apt install jstest-gtk \
-                 ros-humble-xacro \
+sudo apt install ros-humble-xacro \
                  ros-humble-gazebo-ros-pkgs \
+                 ros-humble-ros2-controllers \
                  ros-humble-gazebo-ros2-control \
                  ros-humble-joint-state-publisher \
-                 ros-humble-joint-state-broadcaster \
-                 
+                 ros-humble-joint-state-broadcaster
+
+sudo apt install jstest-gtk libglfw3-dev libdart-external-lodepng-dev
 ```
 
 - 若要启动实机调试，需要安装 Linux [实时内核补丁](https://wiki.linuxfoundation.org/realtime/start)。
@@ -95,16 +96,12 @@ source url.bashrc
 
 ### 启动仿真
 
-准备两个终端
+启动之前需要先插入手柄接收器
 
 ```bash
 cd build/
 
-# 终端1：以仿真模式启动推理模块 + 手柄控制模块
 ./run_sim.sh
-
-# 终端2：启动 Gazebo 仿真程序
-./run_gazebo.sh
 ```
 
 ### 启动真机

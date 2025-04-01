@@ -4,8 +4,9 @@ message(STATUS "get aimrt ...")
 
 FetchContent_Declare(
   aimrt #
-  GIT_REPOSITORY https://github.com/AimRT/AimRT.git
-  GIT_TAG v0.8.3)
+  GIT_REPOSITORY http://code.agibot.com/agibot_aima/aimrt
+#   GIT_REPOSITORY https://github.com/AimRT/AimRT.git
+  GIT_TAG v0.9.1)
 
 FetchContent_GetProperties(aimrt)
 if(NOT aimrt_POPULATED)

@@ -6,7 +6,7 @@
 
 ## 参数配置
 
-在 [配置文件](/src/install/linux/bin/cfg/x1_cfg.yaml) 中,包含了 AimRT 的全部参数配置。
+在 [配置文件](/src/install/linux/bin/cfg/x1_cfg.yaml) 中,包含了 AimRT 以及三个模块的全部参数配置。
 详细信息请参考 [AimRT配置说明](https://docs.aimrt.org/tutorials/index.html#id3) 以及各模块的详细说明。
 
 ## 模块说明

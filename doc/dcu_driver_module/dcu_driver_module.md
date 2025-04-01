@@ -71,7 +71,7 @@ float64[] damping
 
 ## Parameter Configuration
 
-The parameters of the DCU Driver Module are described in the [Configuration File](/src/module/dcu_driver_module/cfg/dcu_x1.yaml) with detailed comments.
+The parameters of the DCU Driver Module are described in the field `DCUDriverModule` of the [Configuration File](/src/install/linux/bin/cfg/x1_cfg.yaml) with detailed comments.
 
 Developers need to correctly configure the `dcu_network` field according to the actual joint connections of the robot.
 

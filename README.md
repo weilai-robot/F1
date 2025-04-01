@@ -45,6 +45,8 @@ For detailed annotations of modules, please refer to the [Development Guide](doc
 
 ### Preparation for Launch
 
+- Install [GCC-13](https://www.gnu.org/software/gcc/gcc-13/).
+
 - Install [cmake](https://cmake.org/download/) (version 3.26 or above).
 
 - Install [ONNX Runtime](https://github.com/microsoft/onnxruntime).
@@ -67,13 +69,14 @@ sudo make install
 - Install dependencies for the simulation environment.
 
 ```bash
-sudo apt install jstest-gtk \
-                 ros-humble-xacro \
+sudo apt install ros-humble-xacro \
                  ros-humble-gazebo-ros-pkgs \
+                 ros-humble-ros2-controllers \
                  ros-humble-gazebo-ros2-control \
                  ros-humble-joint-state-publisher \
-                 ros-humble-joint-state-broadcaster \
-                 
+                 ros-humble-joint-state-broadcaster
+
+sudo apt install jstest-gtk libglfw3-dev libdart-external-lodepng-dev
 ```
 
 - Install the Linux [realtime kernel patch](https://wiki.linuxfoundation.org/realtime/start) if real-robot debugging is needed.
@@ -95,16 +98,11 @@ source url.bashrc
 
 ### Launch Simulation
 
-Prepare two terminals:
+Before starting, it is necessary to connect the handle receiver.
 
 ```bash
 cd build/
-
-# Terminal 1: Launch the inference module and joystick control module in simulation mode.
 ./run_sim.sh
-
-# Terminal 2: Launch the Gazebo simulation program.
-./run_gazebo.sh
 ```
 
 ### Launch on Real Robot

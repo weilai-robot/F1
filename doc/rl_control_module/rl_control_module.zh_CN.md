@@ -4,11 +4,9 @@
 
 该模块为强化学习的模型推理部分。
 
-仿真软件包位于`src/assistant/robot_description`目录中。
-
 ### 参数配置
 
-仿真模式下使用的独立配置参数，参见[仿真配置文件](/src/module/rl_control_module/cfg/rl_x1_sim.yaml)。
+仿真模式下使用的独立配置参数，参见[仿真配置文件](/src/install/linux/bin/cfg/x1_cfg_sim.yaml)。
 
 | 字段                  |  含义                        | 常用配置及详解                                                   |
 | -------------------- | ------------------------- | ---------------------------------------------------------------------- |
@@ -27,12 +25,6 @@
 ### Channel handle
 
 根据Cfg yaml parse: 中设置的topic名称，生成相应的订阅和发布器。
-
-### State Machine
-
-![rl_control_img](rl_control_img.png)
-
-启动 rl_control_module 时，会进入`IDLE`状态。仿真模式下直接进入 `ZERO` 状态。
 
 ### ROS2 Topic 相关
 
