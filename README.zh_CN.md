@@ -79,13 +79,13 @@ sudo apt install jstest-gtk libglfw3-dev libdart-external-lodepng-dev
 
 - 若要启动实机调试，需要安装 Linux [实时内核补丁](https://wiki.linuxfoundation.org/realtime/start)。
 
-*由于 AimRT 的依赖较多，从默认的源下载依赖会非常慢甚至失败，我们提供了基于gitee源下载的环境变量 `DOWNLOAD_FLAGS` 在 `url.bashrc` 中，只需要在运行 `build.sh` 时，先 source 一下 `url.bashrc` 然后加上gitee源环境变量的参数即可。*
+*由于 AimRT 的依赖较多，从默认的源下载依赖会非常慢甚至失败，我们提供了基于gitee源下载的环境变量 `DOWNLOAD_FLAGS` 在 `url_gitee.bashrc` 中，只需要在运行 `build.sh` 时，先 source 一下 `url_gitee.bashrc` 然后加上gitee源环境变量的参数即可。*
 
 准备好以上步骤后，在终端中执行以下命令：
 
 ```bash
 source /opt/ros/humble/setup.bash
-source url.bashrc
+source url_gitee.bashrc
 
 # 编译
 ./build.sh $DOWNLOAD_FLAGS

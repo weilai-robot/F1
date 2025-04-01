@@ -81,13 +81,13 @@ sudo apt install jstest-gtk libglfw3-dev libdart-external-lodepng-dev
 
 - Install the Linux [realtime kernel patch](https://wiki.linuxfoundation.org/realtime/start) if real-robot debugging is needed.
 
-*It will be very slow or even fail to download AimRT's numerous dependencies from default sources. Therefore, we provide environment variables `DOWNLOAD_FLAGS` for the download based on the Gitee source in `url.bashrc`. Simply source `url.bashrc` before running `build.sh` and add environment variable parameters for the Gitee source.*
+*It will be very slow or even fail to download AimRT's numerous dependencies from default sources. Therefore, we provide environment variables `DOWNLOAD_FLAGS` for the download based on the Gitee source in `url_gitee.bashrc`. Simply source `url_gitee.bashrc` before running `build.sh` and add environment variable parameters for the Gitee source.*
 
 After completing the above steps, execute the following commands in the terminal:
 
 ```bash
 source /opt/ros/humble/setup.bash
-source url.bashrc
+source url_gitee.bashrc
 
 # Build
 ./build.sh $DOWNLOAD_FLAGS
