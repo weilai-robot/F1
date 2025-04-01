@@ -69,13 +69,6 @@ sudo make install
 - Install dependencies for the simulation environment.
 
 ```bash
-sudo apt install ros-humble-xacro \
-                 ros-humble-gazebo-ros-pkgs \
-                 ros-humble-ros2-controllers \
-                 ros-humble-gazebo-ros2-control \
-                 ros-humble-joint-state-publisher \
-                 ros-humble-joint-state-broadcaster
-
 sudo apt install jstest-gtk libglfw3-dev libdart-external-lodepng-dev
 ```
 
