@@ -33,3 +33,6 @@ Status description:
 -Walk_leg: Walking state, keeping the upper body still. At this point, hold down LB and push the left joystick to control the robot's walking, and push the right joystick to control the robot's turning
 
 -Walk_leg_arm: Walking state, shoulder pitch follows the walking. At this point, hold down LB and push the left joystick to control the robot's walking, and push the right joystick to control the robot's turning
+
+**Note: Due to the iterative update of the model, please use the walk_1eg_arm mode when controlling the movement of the real machine. Both modes can be used during simulation.**
+
