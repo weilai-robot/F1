@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-04-15T05:35:47.294Z",
+  "project_name": "agibot_x1_infer",
+  "seeds_per_config": 3,
+  "metric_higher_is_better": true,
+  "gradmotion": {
+    "projectId": null,
+    "goodsId": null,
+    "imageId": null,
+    "imageVersion": null
+  }
+}

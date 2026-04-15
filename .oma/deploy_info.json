@@ -1,0 +1,366 @@
+{
+  "schema_version": "1.0",
+  "generated_from": {
+    "policy_file_repo_path": "src/module/control_module/policy/rl_walk_leg.onnx",
+    "control_config_repo_path": "src/module/control_module/cfg/rl_x1.yaml",
+    "controller_source_repo_path": "src/module/control_module/src/rl_controller.cc",
+    "mjcf_repo_path": "src/module/sim_module/model/mjcf/robot/xyber_x1/xyber_x1_serial.xml"
+  },
+  "deployment_target": {
+    "controller_name": "rl_walk_leg",
+    "control_frequency_hz": 1000,
+    "use_sim_handles": false,
+    "subscribe_topics": {
+      "cmd_vel": "/cmd_vel_limiter",
+      "imu": "/imu/data",
+      "joint_states": "/joint_states"
+    },
+    "publish_topics": {
+      "joint_cmd": "/joint_cmd"
+    }
+  },
+  "model_contract": {
+    "policy_file": "cfg/control_module/policy/rl_walk_leg.onnx",
+    "actions_size": 12,
+    "observations_size": 47,
+    "num_hist": 66,
+    "stacked_observations_size": 3102,
+    "observations_clip": 100.0,
+    "actions_clip": 100.0
+  },
+  "joint_order": {
+    "description": "Action output order and rl_walk_leg joint_list order must match exactly.",
+    "action_joint_list": [
+      "left_hip_pitch_joint",
+      "left_hip_roll_joint",
+      "left_hip_yaw_joint",
+      "left_knee_pitch_joint",
+      "left_ankle_pitch_joint",
+      "left_ankle_roll_joint",
+      "right_hip_pitch_joint",
+      "right_hip_roll_joint",
+      "right_hip_yaw_joint",
+      "right_knee_pitch_joint",
+      "right_ankle_pitch_joint",
+      "right_ankle_roll_joint"
+    ],
+    "full_body_joint_list": [
+      "lumbar_yaw_joint",
+      "lumbar_roll_joint",
+      "lumbar_pitch_joint",
+      "left_shoulder_pitch_joint",
+      "left_shoulder_roll_joint",
+      "left_shoulder_yaw_joint",
+      "left_elbow_pitch_joint",
+      "left_elbow_yaw_joint",
+      "left_wrist_pitch_joint",
+      "left_wrist_roll_joint",
+      "right_shoulder_pitch_joint",
+      "right_shoulder_roll_joint",
+      "right_shoulder_yaw_joint",
+      "right_elbow_pitch_joint",
+      "right_elbow_yaw_joint",
+      "right_wrist_pitch_joint",
+      "right_wrist_roll_joint",
+      "left_hip_pitch_joint",
+      "left_hip_roll_joint",
+      "left_hip_yaw_joint",
+      "left_knee_pitch_joint",
+      "left_ankle_pitch_joint",
+      "left_ankle_roll_joint",
+      "right_hip_pitch_joint",
+      "right_hip_roll_joint",
+      "right_hip_yaw_joint",
+      "right_knee_pitch_joint",
+      "right_ankle_pitch_joint",
+      "right_ankle_roll_joint"
+    ]
+  },
+  "joint_chain_from_mjcf": {
+    "left_leg_chain": [
+      "left_hip_pitch_joint",
+      "left_hip_roll_joint",
+      "left_hip_yaw_joint",
+      "left_knee_pitch_joint",
+      "left_ankle_pitch_joint",
+      "left_ankle_roll_joint"
+    ],
+    "right_leg_chain": [
+      "right_hip_pitch_joint",
+      "right_hip_roll_joint",
+      "right_hip_yaw_joint",
+      "right_knee_pitch_joint",
+      "right_ankle_pitch_joint",
+      "right_ankle_roll_joint"
+    ]
+  },
+  "rl_walk_leg_params": {
+    "init_state": [
+      0.4,
+      0.05,
+      -0.31,
+      0.49,
+      -0.21,
+      0.0,
+      -0.4,
+      -0.05,
+      0.31,
+      0.49,
+      -0.21,
+      0.0
+    ],
+    "stiffness": [
+      30.0,
+      40.0,
+      35.0,
+      100.0,
+      35.0,
+      35.0,
+      30.0,
+      40.0,
+      35.0,
+      100.0,
+      35.0,
+      35.0
+    ],
+    "damping": [
+      3.0,
+      3.0,
+      4.0,
+      10.0,
+      0.5,
+      0.5,
+      3.0,
+      3.0,
+      4.0,
+      10.0,
+      0.5,
+      0.5
+    ],
+    "walk_step_conf": {
+      "action_scale": 0.5,
+      "decimation": 10,
+      "cycle_time": 0.7,
+      "sw_mode": true,
+      "cmd_threshold": 0.05
+    },
+    "obs_scales": {
+      "lin_vel": 2.0,
+      "ang_vel": 1.0,
+      "dof_pos": 1.0,
+      "dof_vel": 0.05,
+      "quat": 1.0
+    },
+    "lpf_conf": {
+      "wc": 100.0,
+      "ts": 0.001,
+      "paralle_list": [
+        "left_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "right_ankle_pitch_joint",
+        "right_ankle_roll_joint"
+      ]
+    }
+  },
+  "observation_contract": {
+    "description": "One frame observation is concatenated then stacked by num_hist before ONNX inference.",
+    "single_frame_layout": [
+      {
+        "name": "phase_sin",
+        "size": 1
+      },
+      {
+        "name": "phase_cos",
+        "size": 1
+      },
+      {
+        "name": "cmd_linear_x_scaled",
+        "size": 1
+      },
+      {
+        "name": "cmd_linear_y_scaled",
+        "size": 1
+      },
+      {
+        "name": "cmd_angular_z",
+        "size": 1
+      },
+      {
+        "name": "joint_pos_minus_init_scaled",
+        "size": 12
+      },
+      {
+        "name": "joint_vel_scaled",
+        "size": 12
+      },
+      {
+        "name": "last_actions",
+        "size": 12
+      },
+      {
+        "name": "base_ang_vel_scaled",
+        "size": 3
+      },
+      {
+        "name": "base_euler_xyz_scaled",
+        "size": 3
+      }
+    ],
+    "single_frame_total": 47,
+    "stack_rule": "history buffer size = observations_size * num_hist; newest frame appended to tail"
+  },
+  "action_to_command_mapping": {
+    "position_target_formula": "pos_des = action[i] * action_scale + init_state[i]",
+    "postprocess": [
+      "Clamp pos_des by joint_limits in rl_x1.yaml before low-pass filtering",
+      "Non-paralle_list joints publish position command with configured stiffness and damping",
+      "paralle_list joints convert to torque command tau_des = kp * (pos_des - q) + kd * (0 - dq)"
+    ]
+  },
+  "sim2real_focus": {
+    "goal": "Use staged real-robot tests to identify which deployment-side parameters need adaptation without changing the trained policy first.",
+    "recommended_test_sequence": [
+      {
+        "stage": "sensor_and_sign_check",
+        "purpose": "Verify IMU, joint order, joint sign, joystick direction, and zero offsets before enabling RL.",
+        "watch_items": [
+          "Joint position sign matches intended positive direction",
+          "IMU orientation and angular velocity axes are consistent with controller expectation",
+          "joint_offset and actuator zeroing are correct",
+          "Commanded forward, lateral, yaw inputs move in expected direction"
+        ],
+        "primary_tuning_targets": [
+          "joint_offset",
+          "joint_limits",
+          "ROS topic mapping or sensor frame alignment"
+        ]
+      },
+      {
+        "stage": "stand_transition",
+        "purpose": "Check zero -> stand and stand hold stability before RL walking.",
+        "watch_items": [
+          "Overshoot during transition",
+          "High-frequency oscillation in hips, knees, ankles",
+          "Steady-state pose bias relative to desired stand posture",
+          "Motor heating or sustained torque"
+        ],
+        "primary_tuning_targets": [
+          "pd_zero and pd_stand stiffness",
+          "pd_zero and pd_stand damping",
+          "joint_offset"
+        ]
+      },
+      {
+        "stage": "rl_idle_and_in_place_step",
+        "purpose": "Enable rl_walk_leg with zero or very small velocity command and observe whether policy remains calm.",
+        "watch_items": [
+          "Whether sw_mode and cmd_threshold cause unintended stepping at zero command",
+          "Ankle chatter caused by torque-mode parallel joints",
+          "Action saturation or repeated clipping",
+          "Low-pass delay versus responsiveness"
+        ],
+        "primary_tuning_targets": [
+          "walk_step_conf.cmd_threshold",
+          "walk_step_conf.sw_mode",
+          "lpf_conf.wc",
+          "stiffness and damping for ankle and knee joints",
+          "action_scale"
+        ]
+      },
+      {
+        "stage": "low_speed_walk",
+        "purpose": "Start with conservative forward speed on flat ground and compare tracking, cadence, and foot clearance against sim.",
+        "watch_items": [
+          "Step length too large or too small",
+          "Toe scuffing or insufficient foot clearance",
+          "Body pitch or roll drift",
+          "Velocity tracking lag",
+          "Asymmetry between left and right stance"
+        ],
+        "primary_tuning_targets": [
+          "action_scale",
+          "cycle_time",
+          "obs_scales.lin_vel",
+          "obs_scales.ang_vel",
+          "leg joint stiffness and damping"
+        ]
+      },
+      {
+        "stage": "lateral_and_yaw_commands",
+        "purpose": "Test y-axis and yaw commands separately after forward walking is stable.",
+        "watch_items": [
+          "Unexpected coupling between yaw and roll",
+          "Lateral slip or strong upper-body compensation",
+          "Turning overshoot or understeer"
+        ],
+        "primary_tuning_targets": [
+          "obs_scales.lin_vel",
+          "obs_scales.ang_vel",
+          "action_scale",
+          "cycle_time"
+        ]
+      },
+      {
+        "stage": "disturbance_and_contact_robustness",
+        "purpose": "Apply mild pushes and test on slightly different friction or floor stiffness after baseline walking is stable.",
+        "watch_items": [
+          "Recovery delay",
+          "Ankle saturation",
+          "Foot slap on landing",
+          "Instability after impact"
+        ],
+        "primary_tuning_targets": [
+          "ankle stiffness and damping",
+          "lpf_conf.wc",
+          "joint_limits",
+          "action_scale"
+        ]
+      }
+    ],
+    "symptom_to_parameter_hints": [
+      {
+        "symptom": "Robot reacts too aggressively or step amplitude is too large",
+        "check": [
+          "action_scale too high",
+          "stiffness too high",
+          "cycle_time too short"
+        ]
+      },
+      {
+        "symptom": "Robot is sluggish, drags feet, or fails to commit to step",
+        "check": [
+          "action_scale too low",
+          "stiffness too low",
+          "damping too high",
+          "lpf_conf.wc too low"
+        ]
+      },
+      {
+        "symptom": "High-frequency oscillation or audible chatter",
+        "check": [
+          "stiffness too high",
+          "damping too low",
+          "IMU noise or joint velocity noise",
+          "lpf_conf.wc too high"
+        ]
+      },
+      {
+        "symptom": "Ankle torque joints feel unstable or vibrate under load",
+        "check": [
+          "ankle stiffness or damping mismatch",
+          "lpf_conf.wc not suitable for torque-mode path",
+          "joint offset or sign error"
+        ]
+      },
+      {
+        "symptom": "Zero command still causes stepping",
+        "check": [
+          "walk_step_conf.cmd_threshold too small",
+          "joystick deadband mismatch",
+          "cmd topic has residual noise",
+          "sw_mode behavior not matching expectation"
+        ]
+      }
+    ]
+  }
+}

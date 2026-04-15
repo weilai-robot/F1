@@ -1,0 +1,6 @@
+{
+  "stage": "deploy",
+  "skill": "$deploy",
+  "enteredAt": "2026-04-15T05:37:27.432Z",
+  "reason": "团队已完成训练，以本项目代码，直接进行sim2real真机部署"
+}
