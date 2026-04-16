@@ -9,3 +9,12 @@ cmake-build*/
 .oma/leaderboard.json
 .oma/best.json
 .oma/trajectory.jsonl
+
+# oh-my-algorithm state
+.oma/experiments/
+.oma/leaderboard.json
+.oma/best.json
+.oma/trajectory.jsonl
+# oh-my-algorithm tooling (managed by oma setup, not project files)
+.oma/skills/
+.oma/templates/
