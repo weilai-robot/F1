@@ -8,7 +8,8 @@
 - 控制逻辑：[rl_controller.cc](/Users/yumx/code/X1/agibot_x1_infer/src/module/control_module/src/rl_controller.cc:58)
 - 辨识驱动配置：[x1_cfg_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/install/linux/bin/cfg/x1_cfg_identifier.yaml:1)
 - 辨识启动脚本：[run_identifier.sh](/Users/yumx/code/X1/agibot_x1_infer/src/install/linux/bin/run_identifier.sh:1)
-- 辨识节点：[native_ros2_ankle_identifier](/Users/yumx/code/X1/agibot_x1_infer/src/assistant/native_ros2_ankle_identifier/main.cc:1)
+- 辨识模块配置：[ankle_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/cfg/ankle_identifier.yaml:1)
+- 辨识模块实现：[ankle_identifier_module.cc](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/src/ankle_identifier_module.cc:1)
 
 ## 文档结构
 
@@ -33,7 +34,7 @@
 | `sensor_and_sign_check` | completed | 确认传感器、关节顺序、符号、零位无硬错误 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
 | `zero -> stand -> hold` | completed | 确认基础 PD 站立稳定 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
 | `rl_idle_and_in_place_step` | completed | 确认 RL 零速/小速度下基础行为 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
-| `ankle_kp_kd_identification` | in progress | 在改踝关节参数前做闭环辨识 | [ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/ankle_kp_kd_identification.md:1) | 待更新 |
+| `ankle_kp_kd_identification` | in progress | 在改踝关节参数前做闭环辨识 | [ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/ankle_kp_kd_identification.md:1) | `left pitch` 已在完全着地工况下收敛，当前候选 `kp=100, kd=0.8` |
 | `low_speed_walk` | pending | 在踝关节问题收敛后验证低速直行 | 待创建 | 待更新 |
 | `lateral_and_yaw` | pending | 验证横移与转向 | 待创建 | 待更新 |
 | `disturbance_and_contact` | pending | 验证扰动和接触鲁棒性 | 待创建 | 待更新 |
@@ -43,7 +44,7 @@
 | 轮次 | 状态 | 目标 | 结果文件 |
 |---|---|---|---|
 | `Round 1` | completed | 基础链路、站立、RL 小速度初测 | [round_01_field_test.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
-| `Round 2` | in progress | 踝关节 `kp/kd` 辨识 | 待生成 |
+| `Round 2` | in progress | 踝关节 `kp/kd` 辨识 | [round_02_ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_02_ankle_kp_kd_identification.md:1) |
 
 ## 当前结论
 
@@ -57,21 +58,54 @@
 - 当前不优先修改：
   - `action_scale`
   - `pd_zero/pd_stand`
+- `Round 2` 当前进展：
+  - 辨识链路已切换为 `run_identifier.sh -> DcuDriverModule + AnkleIdentifierModule`
+  - 不再依赖外部 `native_ros2_ankle_identifier` ROS2 topic bridge
+  - `left_ankle_pitch_joint` 已完成完全着地工况下的阶跃辨识
+- `left pitch` 当前结论：
+  - 以“脚完全着地”工况为最终判定依据
+  - `kp=100, kd=0.8` 为当前综合最优候选
+  - `kp=105, kd=0.8` 相比 `100/0.8` 收益有限，且末段迟滞更明显
+  - 当前没有证据支持优先增加 `kd`
 - 当前优先动作：
-  - 先完成踝关节 `kp/kd` 辨识
-  - 再决定优先调整 `kd`、`kp` 还是 `lpf_conf.wc`
+  - 继续完成 `left roll`、`right pitch`、`right roll` 的阶跃辨识
+  - 再决定是统一踝关节参数，还是区分 `pitch/roll` 分轴设置
+  - 四个自由度辨识完成后，再决定是否需要动 `lpf_conf.wc`
 
 ## 当前实机辨识启动方式
 
+- 工作流约束：
+  - 本地电脑只负责修改源码、配置、分析脚本和部署文档。
+  - 真正的编译与 `run_identifier.sh` 在实验室电脑执行。
+  - 推荐流程：本地改完后 `git push`，实验室电脑 `git pull` 后再编译和测试。
+
 - 编译：
-  - `./build.sh`
-- 启动驱动-only：
-  - `cd build && ./run_identifier.sh`
-- 启动辨识节点：
-  - `cd build && ./native_ros2_ankle_identifier --ros-args ...`
+  - 在实验室电脑执行 `./build.sh`
+- 启动辨识进程：
+  - 在实验室电脑执行 `cd build && ./run_identifier.sh`
+- 参数入口：
+  - 本地修改 [ankle_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/cfg/ankle_identifier.yaml:1) 中的 `test_side`、`test_axis`、`test_kp`、`test_kd`、`step_amplitude_rad`、`csv_path`
+  - 或使用 [set_ankle_identifier_config.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/set_ankle_identifier_config.py:1) 一次性切换源码配置与已生成运行配置
+- 结果分析：
+  - 实验室电脑产出 CSV 后，可在实验室电脑或同步回本地后执行 `python3 .oma/sim2real/analyze_ankle_identifier_csv.py build/log/<csv_name>.csv`
 - 约束：
   - 辨识时不运行 `run.sh`
-  - 辨识时不能有其他节点同时发布 `/joint_cmd`
+  - 辨识时不能有其他模块或节点同时发布 `/joint_cmd`
+
+## Round 2 下一步执行顺序
+
+- 建议先继续 `left roll`，与已完成的 `left pitch` 保持同一侧对照。
+- `left pitch` 当前候选参数为 `kp=100, kd=0.8`，先不继续扫描更高 `kp`，也不优先补 `kd`。
+- 若 `left roll` 在 `kp=90, kd=0.8, step_amplitude_rad=0.015` 下无明显振荡，再继续 `right pitch`、`right roll`。
+- 每次测试前建议执行：
+  - `python3 .oma/sim2real/set_ankle_identifier_config.py --side left --axis roll --kp 90 --kd 0.8 --step-amplitude 0.015`
+  - `git add .oma/sim2real_checklist.md .oma/sim2real/set_ankle_identifier_config.py src/module/ankle_identifier_module/cfg/ankle_identifier.yaml`
+  - `git commit -m "deploy: prepare left roll ankle identification"`
+  - `git push origin main`
+  - 实验室电脑执行 `git pull && ./build.sh && cd build && ./run_identifier.sh`
+  - 实验室电脑测试完成后，分析 `build/log/left_roll_step_kp90_kd0.8.csv`
+- 若 `left roll` 过冲明显或出现衰减振荡，优先保持 `kp=90` 不变，仅补测 `kd=1.0`。
+- 若 `left roll` 响应偏软且无抖动，再补测 `kp=100, kd=0.8`，不要同时增大 `kp` 和 `kd`。
 
 ## 维护规则
 
