@@ -24,7 +24,7 @@
 | OMA 阶段 | `deploy` |
 | 当前 sim2real 轮次 | `Round 2` |
 | 当前轮状态 | `in progress` |
-| 当前重点 | 踝关节 `kp/kd` 辨识 |
+| 当前重点 | 补悬空工况，并用 `tracking_ratio + damping quality` 重新收口踝关节辨识 |
 | 上一轮状态 | `Round 1 completed` |
 
 ## 阶段总览
@@ -34,8 +34,8 @@
 | `sensor_and_sign_check` | completed | 确认传感器、关节顺序、符号、零位无硬错误 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
 | `zero -> stand -> hold` | completed | 确认基础 PD 站立稳定 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
 | `rl_idle_and_in_place_step` | completed | 确认 RL 零速/小速度下基础行为 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
-| `ankle_kp_kd_identification` | in progress | 在改踝关节参数前做闭环辨识 | [ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/ankle_kp_kd_identification.md:1) | `left pitch` / `left roll` / `right pitch` 已收敛，当前候选分别为 `100/0.8`、`80/0.8`、`100/0.8` |
-| `low_speed_walk` | pending | 在踝关节问题收敛后验证低速直行 | 待创建 | 待更新 |
+| `ankle_kp_kd_identification` | in progress | 在改踝关节参数前做闭环辨识 | [ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/ankle_kp_kd_identification.md:1) | 触地首轮完成，但悬空工况缺失，且评价准则已修正 |
+| `low_speed_walk` | pending | 在候选踝关节参数下验证低速直行、连续性和抖动变化 | [round_03_low_speed_walk_with_ankle_candidates.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/round_03_low_speed_walk_with_ankle_candidates.md:1) | 等待 Round 2 真正收敛后执行 |
 | `lateral_and_yaw` | pending | 验证横移与转向 | 待创建 | 待更新 |
 | `disturbance_and_contact` | pending | 验证扰动和接触鲁棒性 | 待创建 | 待更新 |
 
@@ -44,7 +44,8 @@
 | 轮次 | 状态 | 目标 | 结果文件 |
 |---|---|---|---|
 | `Round 1` | completed | 基础链路、站立、RL 小速度初测 | [round_01_field_test.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
-| `Round 2` | in progress | 踝关节 `kp/kd` 辨识 | [round_02_ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_02_ankle_kp_kd_identification.md:1) |
+| `Round 2` | in progress | 踝关节 `kp/kd` 辨识补测与判据修正 | [round_02_ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_02_ankle_kp_kd_identification.md:1) |
+| `Round 3` | pending | 分轴踝关节参数下的低速步态验证 | 待生成 |
 
 ## 当前结论
 
@@ -61,28 +62,17 @@
 - `Round 2` 当前进展：
   - 辨识链路已切换为 `run_identifier.sh -> DcuDriverModule + AnkleIdentifierModule`
   - 不再依赖外部 `native_ros2_ankle_identifier` ROS2 topic bridge
-  - `left_ankle_pitch_joint` 已完成完全着地工况下的阶跃辨识
-  - `left_ankle_roll_joint` 已完成完全着地工况下的阶跃辨识
-  - `right_ankle_pitch_joint` 已完成完全着地工况下的阶跃辨识
-- `left pitch` 当前结论：
-  - 以“脚完全着地”工况为最终判定依据
-  - `kp=100, kd=0.8` 为当前综合最优候选
-  - `kp=105, kd=0.8` 相比 `100/0.8` 收益有限，且末段迟滞更明显
-  - 当前没有证据支持优先增加 `kd`
-- `left roll` 当前结论：
-  - 以“脚完全着地”工况为最终判定依据
-  - `kp=80, kd=0.8` 为当前采用的综合候选
-  - `kp=100, kd=0.8` 明显劣于 `80/0.8`，不再继续向上扫描
-  - 当前也没有证据支持优先增加 `kd`
-- `right pitch` 当前结论：
-  - 以“脚完全着地”工况为最终判定依据
-  - `kp=100, kd=0.8` 为当前综合最优候选
-  - `kp=105, kd=0.8` 主轴跟踪下降，不优于 `100/0.8`
-  - 当前也没有证据支持优先增加 `kd`
-- 当前优先动作：
-  - 继续完成 `right roll` 的阶跃辨识
-  - 再决定是统一踝关节参数，还是区分 `pitch/roll` 分轴设置
-  - 四个自由度辨识完成后，再决定是否需要动 `lpf_conf.wc`
+  - 四个自由度都只完成了“完全着地”工况的首轮阶跃辨识
+  - 悬空工况尚未补齐，因此 round2 不能关闭
+  - 数据分析判据已从“无超调优先”修正为“`tracking_ratio` 接近 `1.0` 且无振荡优先”
+- 当前判断：
+  - 仅凭 `no_overshoot + no_zero_crossing` 不能证明参数好
+  - 触地首轮里多个配置存在明显欠跟踪，属于“系统偏软”而非“阻尼优良”
+  - `right pitch 100/0.8` 与 `right roll 60/0.8` 目前只是相对较优，不是最终收敛结论
+  - `left pitch` 与 `left roll` 仍需要继续扫描或复核工况一致性
+- `Round 3` 当前策略：
+  - 暂缓
+  - 待 `Round 2` 在悬空和触地两类工况下都完成后，再决定是否进入低速步态验证
 
 ## 当前实机辨识启动方式
 
@@ -106,15 +96,20 @@
 
 ## Round 2 下一步执行顺序
 
-- `left pitch` 当前候选参数为 `kp=100, kd=0.8`，`left roll` 当前候选参数为 `kp=80, kd=0.8`。
-- `right pitch` 当前候选参数为 `kp=100, kd=0.8`。
-- 每次测试前建议执行：
-  - `python3 .oma/sim2real/set_ankle_identifier_config.py --side right --axis pitch --kp 100 --kd 0.8 --step-amplitude 0.015`
-  - `git add .oma/sim2real_checklist.md .oma/sim2real/set_ankle_identifier_config.py src/module/ankle_identifier_module/cfg/ankle_identifier.yaml`
-  - `git commit -m "deploy: prepare right pitch ankle identification"`
-  - `git push origin main`
-  - 实验室电脑执行 `git pull && ./build.sh && cd build && ./run_identifier.sh`
-  - 实验室电脑测试完成后，分析 `build/log/right_pitch_step_kp100_kd0.8.csv`
+- 先补四个自由度的悬空阶跃测试，沿用当前 `step_amplitude_rad = 0.015`
+- 对每个 CSV 用 [analyze_ankle_identifier_csv.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/analyze_ankle_identifier_csv.py:1) 输出：
+  - `command_step`
+  - `actual_step`
+  - `tracking_ratio`
+  - `peak_overshoot`
+  - `zero_crossing_count`
+  - `response_class`
+- 用同口径复查已有触地数据，按“先剔除振荡，再比较 tracking_ratio”重排
+- 若悬空跟踪已接近 `1.0` 而触地下明显变软或振荡：
+  - 转入接触耦合方向，重点看 `kd` 和 `lpf_conf.wc`
+- 若悬空和触地都持续欠跟踪：
+  - 继续向上扫描 `kp`
+  - 不提前进入 `Round 3`
 
 ## 维护规则
 
