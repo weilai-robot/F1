@@ -70,6 +70,10 @@
   - 触地首轮里多个配置存在明显欠跟踪，属于“系统偏软”而非“阻尼优良”
   - `right pitch 100/0.8` 与 `right roll 60/0.8` 目前只是相对较优，不是最终收敛结论
   - `right roll` 新补测的 `kp=20/35/50, kd=0.5` 也都表现为稳定但欠跟踪，其中 `35/0.5` 可作为当前触地工况下的相对最好对照点
+  - `right roll` 悬空工况下，`kp=35` 配合 `kd=0.5/0.8/1.0` 都不是可收口点：
+    - `0.5` 为持续振荡
+    - `0.8/1.0` 改善为单次过冲，但仍是过冲后回落
+  - 这说明 `right roll` 对接触条件高度敏感，当前更应关注悬空/触地等效动力学差异，而不是把 `kp/kd` 看成单调可调
   - `left pitch` 与 `left roll` 仍需要继续扫描或复核工况一致性
 - `Round 3` 当前策略：
   - 暂缓
@@ -97,7 +101,7 @@
 
 ## Round 2 下一步执行顺序
 
-- `right_ankle_roll_joint` 先补悬空工况，首个对照参数用 `kp=35, kd=0.5`
+- `right_ankle_pitch_joint` 先补悬空工况，首个对照参数用 `kp=100, kd=0.8`
 - 先补四个自由度的悬空阶跃测试，沿用当前 `step_amplitude_rad = 0.015`
 - 对每个 CSV 用 [analyze_ankle_identifier_csv.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/analyze_ankle_identifier_csv.py:1) 输出：
   - `command_step`
