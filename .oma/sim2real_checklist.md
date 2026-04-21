@@ -35,7 +35,7 @@
 | `zero -> stand -> hold` | completed | 确认基础 PD 站立稳定 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
 | `rl_idle_and_in_place_step` | completed | 确认 RL 零速/小速度下基础行为 | 本阶段按现场基础检查执行 | [Round 1](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/results/round_01_field_test.md:1) |
 | `ankle_kp_kd_identification` | in progress | 在改踝关节参数前做闭环辨识 | [ankle_kp_kd_identification.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/ankle_kp_kd_identification.md:1) | 触地首轮完成，但悬空工况缺失，且评价准则已修正 |
-| `low_speed_walk` | pending | 在候选踝关节参数下验证低速直行、连续性和抖动变化 | [round_03_low_speed_walk_with_ankle_candidates.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/round_03_low_speed_walk_with_ankle_candidates.md:1) | 等待 Round 2 真正收敛后执行 |
+| `low_speed_walk` | pending | 在候选踝关节参数下验证低速直行、连续性和抖动变化 | [round_03_low_speed_walk_with_ankle_candidates.md](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/plans/round_03_low_speed_walk_with_ankle_candidates.md:1) | 已有草案，但必须等待 Round 2 关闭后才能执行 |
 | `lateral_and_yaw` | pending | 验证横移与转向 | 待创建 | 待更新 |
 | `disturbance_and_contact` | pending | 验证扰动和接触鲁棒性 | 待创建 | 待更新 |
 
@@ -62,22 +62,29 @@
 - `Round 2` 当前进展：
   - 辨识链路已切换为 `run_identifier.sh -> DcuDriverModule + AnkleIdentifierModule`
   - 不再依赖外部 `native_ros2_ankle_identifier` ROS2 topic bridge
-  - 四个自由度都只完成了“完全着地”工况的首轮阶跃辨识
-  - 悬空工况尚未补齐，因此 round2 不能关闭
+  - 四个自由度都已完成“完全着地”工况首轮阶跃辨识
+  - `right roll` 已补悬空 `kp=35, kd=0.5/0.8/1.0`
+  - `right pitch` 已补悬空 `kp=35, kd=0.5`，并补完完全触地 `kd=0.5` 支路
+  - `left pitch` 与 `left roll` 仍缺悬空数据，`right pitch 100/0.8` 也仍缺悬空对照，因此 `Round 2` 不能关闭
   - 数据分析判据已从“无超调优先”修正为“`tracking_ratio` 接近 `1.0` 且无振荡优先”
 - 当前判断：
   - 仅凭 `no_overshoot + no_zero_crossing` 不能证明参数好
   - 触地首轮里多个配置存在明显欠跟踪，属于“系统偏软”而非“阻尼优良”
-  - `right pitch 100/0.8` 与 `right roll 60/0.8` 目前只是相对较优，不是最终收敛结论
-  - `right roll` 新补测的 `kp=20/35/50, kd=0.5` 也都表现为稳定但欠跟踪，其中 `35/0.5` 可作为当前触地工况下的相对最好对照点
+  - `right pitch 100/0.8` 与 `right roll 60/0.8` 目前只是触地下的相对较优点，不是最终收敛结论
+  - `right roll` 触地下 `35/0.5` 可作为相对最好对照点，但不能当成最终候选
   - `right roll` 悬空工况下，`kp=35` 配合 `kd=0.5/0.8/1.0` 都不是可收口点：
     - `0.5` 为持续振荡
     - `0.8/1.0` 改善为单次过冲，但仍是过冲后回落
   - 这说明 `right roll` 对接触条件高度敏感，当前更应关注悬空/触地等效动力学差异，而不是把 `kp/kd` 看成单调可调
+  - `right pitch` 悬空工况下，`kp=35, kd=0.5` 已接近可用区间：
+    - `peak/tail tracking` 接近 `1`
+    - 时间响应满足 walking 预算
+    - 但仍有轻度振荡和轮次分裂，属于接近可用但未收口
+  - `right pitch` 完全触地 `kd=0.5` 支路已可判定为无效方向，不应继续沿这条线加 `kp`
   - `left pitch` 与 `left roll` 仍需要继续扫描或复核工况一致性
 - `Round 3` 当前策略：
-  - 暂缓
-  - 待 `Round 2` 在悬空和触地两类工况下都完成后，再决定是否进入低速步态验证
+  - 已形成草案，但继续暂缓
+  - 待 `Round 2` 在悬空和触地两类工况下都形成闭环结论后，再决定是否进入低速步态验证
 
 ## 当前实机辨识启动方式
 
@@ -101,8 +108,8 @@
 
 ## Round 2 下一步执行顺序
 
-- `right_ankle_pitch_joint` 先补悬空工况，首个对照参数用 `kp=100, kd=0.8`
-- 先补四个自由度的悬空阶跃测试，沿用当前 `step_amplitude_rad = 0.015`
+- 先补 `left_ankle_pitch_joint` 与 `left_ankle_roll_joint` 的悬空阶跃测试，沿用当前 `step_amplitude_rad = 0.015`
+- `right_ankle_pitch_joint` 再补悬空对照，首个参数用 `kp=100, kd=0.8`
 - 对每个 CSV 用 [analyze_ankle_identifier_csv.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/analyze_ankle_identifier_csv.py:1) 输出：
   - `command_step`
   - `actual_step`
