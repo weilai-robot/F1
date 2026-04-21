@@ -8,7 +8,8 @@
 - 控制逻辑：[rl_controller.cc](/Users/yumx/code/X1/agibot_x1_infer/src/module/control_module/src/rl_controller.cc:58)
 - 辨识驱动配置：[x1_cfg_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/install/linux/bin/cfg/x1_cfg_identifier.yaml:1)
 - 辨识启动脚本：[run_identifier.sh](/Users/yumx/code/X1/agibot_x1_infer/src/install/linux/bin/run_identifier.sh:1)
-- 辨识模块配置：[ankle_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/cfg/ankle_identifier.yaml:1)
+- 辨识模块源码配置：[ankle_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/cfg/ankle_identifier.yaml:1)
+- 辨识模块运行时配置：`build/cfg/ankle_identifier.yaml`（仅在实验室电脑编译后生成，不纳入仓库）
 - 辨识模块实现：[ankle_identifier_module.cc](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/src/ankle_identifier_module.cc:1)
 
 ## 文档结构
@@ -99,7 +100,7 @@
   - 在实验室电脑执行 `cd build && ./run_identifier.sh`
 - 参数入口：
   - 本地修改 [ankle_identifier.yaml](/Users/yumx/code/X1/agibot_x1_infer/src/module/ankle_identifier_module/cfg/ankle_identifier.yaml:1) 中的 `test_side`、`test_axis`、`test_kp`、`test_kd`、`step_amplitude_rad`、`csv_path`
-  - 或使用 [set_ankle_identifier_config.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/set_ankle_identifier_config.py:1) 一次性切换源码配置与已生成运行配置
+  - 或使用 [set_ankle_identifier_config.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/set_ankle_identifier_config.py:1) 一次性切换源码配置，并在本地已有 `build/` 时同步切换运行时配置
 - 结果分析：
   - 实验室电脑产出 CSV 后，可在实验室电脑或同步回本地后执行 `python3 .oma/sim2real/analyze_ankle_identifier_csv.py build/log/<csv_name>.csv`
 - 约束：
@@ -108,6 +109,11 @@
 
 ## Round 2 下一步执行顺序
 
+- 当前源码配置已预置到第 1 条待测点：
+  - `left_ankle_pitch_joint`
+  - 悬空 `step`
+  - `kp=100, kd=0.8`
+  - `csv_path=./log/left_pitch_step_air_kp100_kd0.8_r2a.csv`
 - 先补 `left_ankle_pitch_joint` 与 `left_ankle_roll_joint` 的悬空阶跃测试，沿用当前 `step_amplitude_rad = 0.015`
 - `right_ankle_pitch_joint` 再补悬空对照，首个参数用 `kp=100, kd=0.8`
 - 对每个 CSV 用 [analyze_ankle_identifier_csv.py](/Users/yumx/code/X1/agibot_x1_infer/.oma/sim2real/analyze_ankle_identifier_csv.py:1) 输出：
@@ -123,6 +129,11 @@
 - 若悬空和触地都持续欠跟踪：
   - 继续向上扫描 `kp`
   - 不提前进入 `Round 3`
+- `Round 2` 关闭条件：
+  - 左脚两轴悬空数据补齐
+  - `right pitch 100/0.8` 悬空对照补齐
+  - 触地与悬空结果按统一判据完成重排
+  - 至少为四个自由度分别写出“继续扫 `kp` / 改 `kd` / 转接触耦合`”三选一结论
 
 ## 维护规则
 
