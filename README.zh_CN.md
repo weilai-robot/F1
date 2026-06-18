@@ -1,123 +1,205 @@
-# Readme
+# F1 — 智元 X1 人形机器人系统
 
 ## 简介
 
-[智元灵犀X1](https://www.zhiyuan-robot.com/qzproduct/169.html) 是由智元研发并开源的模块化、高自由度人形机器人，X1的软件系统基于智元开源组件 `AimRT` 作为中间件实现，并且采用强化学习方法进行运动控制。
+本项目是智元灵犀 X1 人形机器人的完整软件系统，包含 **运动控制** 和 **导航避障** 两大子系统，通过 ROS2 话题在运行时解耦通信。
 
-本工程为 智元灵犀X1 的配套使用软件，包含了 模型推理、平台驱动、软件仿真 等多个功能模块。
+- **运动控制** (`motion_control/`)：基于 AimRT 中间件，使用强化学习策略进行 locomotion 控制，包含 RL 策略推理、PD 控制器、状态机、硬件驱动等模块。
+- **导航避障** (`navigation/`)：基于 ROS2 Nav2 导航栈，使用 Livox MID-360 激光雷达 + FastLIO2 进行 SLAM，结合 MPPI 控制器实现自主导航与避障。
 
-关于`AimRT`组件的详细教程可参考 [AimRT官方网站](https://aimrt.org/)。
+关于 `AimRT` 组件的详细教程可参考 [AimRT 官方网站](https://aimrt.org/)。
 
 ![x1](doc/x1.jpg)
 
-## 软件架构图
+## 软件架构
 
 ![sw_arch](doc/sw_arch.png)
 
-更多模块详细注解，请见 [开发指南](doc/tutorials.zh_CN.md)。
+```
+┌─────────── Navigation (ROS2 colcon) ──────────────┐     ┌── Motion Control (CMake + AimRT) ──┐
+│                                                     │     │                                      │
+│  Livox Driver ──→ FastLIO2 ──→ /Odometry ──────┐   │     │  joy_stick_module                     │
+│                                    /cloud_reg..  │   │     │    └── /cmd_vel ──┐                    │
+│                       ↓                         │   │     │    └── /walk_mode │                    │
+│                 odom_bridge.py                   │   │     │                   ↓                    │
+│                       ↓                         │   │     │  control_module                      │
+│  Nav2 (AMCL + MPPI + Costmap)                    │   │     │    sub: /cmd_vel_limiter ◄── /cmd_vel │
+│    controller_server ──→ /cmd_vel ───────────────┼───┼─────┼──→  (Nav2 或 摇杆)                    │
+│                                                     │     │    → RL Policy (ONNX) → 电机指令       │
+└─────────────────────────────────────────────────────┘     └──────────────────────────────────────┘
+```
+
+详细架构说明请参考 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 ## 目录结构
 
 ```bash
-.
-├── build.sh              # 编译脚本
-├── cmake                 # 编译依赖的cmake脚本
-│   ├── GetAimRT.cmake
-│   ├── GetGTest.cmake
-│   └── NamespaceTool.cmake
-├── CMakeLists.txt        # 顶层 CMakeLists.txt
-├── format.sh             # 格式化脚本
-├── README.md             # 说明文档
-├── doc                   # 开发指南目录
-├── src                   # 源码目录
-│   ├── CMakeLists.txt    # 源码目录的 CMakeLists.txt
-│   ├── assistant         # ROS2仿真与示例工程目录
-│   ├── install           # 配置脚本目录
-│   ├── module            # 模块目录
-│   ├── pkg               # 部署目录
-│   └── protocols         # 协议目录
-└── test.sh               # 测试脚本
+F1/
+├── motion_control/             # 运动控制子系统 (CMake + AimRT)
+│   ├── CMakeLists.txt
+│   ├── assistant/             # ROS2 辅助工具
+│   ├── install/linux/bin/     # 启动脚本与配置
+│   │   ├── run.sh             #   真机入口
+│   │   ├── run_sim.sh         #   仿真入口
+│   │   └── cfg/               #   x1_cfg.yaml / x1_cfg_sim.yaml
+│   ├── module/                # 核心模块
+│   │   ├── control_module/        # RL 策略推理 + PD 控制器 + 状态机
+│   │   ├── dcu_driver_module/     # 真机 DCU 硬件通信
+│   │   ├── joy_stick_module/      # 手柄遥控
+│   │   ├── sim_module/            # MuJoCo 仿真
+│   │   └── ankle_identifier_module/
+│   ├── pkg/                  # 动态库打包 → libpkg1.so
+│   └── protocols/            # 消息协议定义
+│
+├── navigation/                 # 导航避障子系统 (ROS2 colcon)
+│   ├── livox_ros_driver2/        # MID-360 激光雷达驱动
+│   ├── fast_lio2/                # LIO 里程计 (SLAM)
+│   ├── humanoid_sim/             # Gazebo 仿真 + Nav2 配置 + odom_bridge
+│   ├── open3d_loc/               # Open3D 3D 全局定位
+│   ├── livox_laser_simulation_ros2/  # Gazebo LiDAR 仿真插件
+│   ├── MuJoCo-LiDAR/             # MuJoCo LiDAR 传感器仿真 (pip)
+│   └── agibot_x1_train/          # RL 策略训练代码 (Isaac Gym, 独立使用)
+│
+├── cmake/                     # CMake 模块 (GetAimRT, NamespaceTool 等)
+├── CMakeLists.txt             # 顶层 CMake (构建 motion_control)
+├── build.sh                   # 构建 motion_control
+├── build_nav.sh               # 构建 navigation (colcon)
+├── run_nav_sim.sh             # 仿真导航一键启动
+├── run_nav_real.sh            # 真机导航一键启动
+├── format.sh                  # 代码格式化
+├── ARCHITECTURE.md            # 架构文档
+├── doc/                       # 开发文档
+└── test.sh                    # 测试脚本
 ```
 
-## 运行方式
+## 环境准备
 
-### 启动准备
+### 通用依赖
 
-- 安装 [GCC-13](https://www.gnu.org/software/gcc/gcc-13/)。
-
-- 安装 [cmake](https://cmake.org/download/) 3.26 或以上版本。
-
-- 安装 [ONNX Runtime](https://github.com/microsoft/onnxruntime) 。
+- **[GCC-13](https://www.gnu.org/software/gcc/gcc-13/)**
+- **[CMake](https://cmake.org/download/)** ≥ 3.24
+- **[ROS2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html)**
+- **[ONNX Runtime](https://github.com/microsoft/onnxruntime)**
 
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake git libprotobuf-dev protobuf-compiler
 
 git clone --recursive https://github.com/microsoft/onnxruntime
-
 cd onnxruntime
 ./build.sh --config Release --build_shared_lib --parallel
-
 cd build/Linux/Release/
 sudo make install
 ```
 
-- 安装`ROS2 Humble`，并且配置好环境变量，具体可以参考 [ROS2 官网](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html)。
-
-- 安装仿真环境依赖。
+### 运动控制额外依赖
 
 ```bash
+# 仿真环境依赖
 sudo apt install jstest-gtk libglfw3-dev libdart-external-lodepng-dev
+
+# AimRT 加速源 (国内)
+source url_gitee.bashrc
 ```
 
 - 若要启动实机调试，需要安装 Linux [实时内核补丁](https://wiki.linuxfoundation.org/realtime/start)。
 
-*由于 AimRT 的依赖较多，从默认的源下载依赖会非常慢甚至失败，我们提供了基于gitee源下载的环境变量 `DOWNLOAD_FLAGS` 在 `url_gitee.bashrc` 中，只需要在运行 `build.sh` 时，先 source 一下 `url_gitee.bashrc` 然后加上gitee源环境变量的参数即可。*
+### 导航额外依赖
 
-准备好以上步骤后，在终端中执行以下命令：
+```bash
+# Nav2 导航栈
+sudo apt install -y \
+    ros-humble-nav2-bringup \
+    ros-humble-nav2-costmap-2d \
+    ros-humble-nav2-controller \
+    ros-humble-nav2-planner \
+    ros-humble-tf2-tools \
+    ros-humble-octomap-server
+
+# Gazebo 仿真 (可选)
+sudo apt install -y ros-humble-gazebo-ros-pkgs
+
+# Livox SDK2 (MID-360 驱动依赖)
+# 参考 livox_ros_driver2 文档安装
+```
+
+## 构建
+
+### 构建运动控制
 
 ```bash
 source /opt/ros/humble/setup.bash
 source url_gitee.bashrc
 
-# 编译
 ./build.sh $DOWNLOAD_FLAGS
-
-# 测试
-./test.sh $DOWNLOAD_FLAGS
 ```
 
-### 启动仿真
+### 构建导航
 
-启动之前需要先插入手柄接收器
+```bash
+source /opt/ros/humble/setup.bash
+
+./build_nav.sh
+```
+
+> MuJoCo-LiDAR 和 agibot_x1_train 为可选的 pip 包，按需手动安装：
+> ```bash
+> cd navigation && pip install -e MuJoCo-LiDAR    # MuJoCo LiDAR 仿真
+> cd navigation && pip install -e agibot_x1_train  # RL 训练 (需 Isaac Gym)
+> ```
+
+## 启动
+
+### 入口总览
+
+| 场景 | 运动控制 | 导航 | 说明 |
+|------|---------|------|------|
+| 仿真遥控行走 | `run_sim.sh` | — | 手柄控制行走 |
+| 真机遥控行走 | `run.sh` | — | 手柄控制行走 |
+| 仿真导航 (sim_module) | `run_sim.sh` | `run_sim_nav.sh` | 真机一致控制链路 + MuJoCo LiDAR 桥接 |
+| 仿真导航 (Gazebo) | `run_sim.sh` | `run_nav_sim.sh` | Gazebo 物理仿真 + Nav2 |
+| 真机导航 + 行走 | `run.sh` | `run_nav_real.sh` | 导航栈 + 运动控制 |
+
+### 1. 运动控制
+
+**仿真：**（先插入手柄接收器）
 
 ```bash
 cd build/
-
 ./run_sim.sh
 ```
 
-### 启动真机
-
-首先导出当前动态库路径, **此操作只需要执行一次即可**.
+**真机：**（首次需配置动态库路径）
 
 ```bash
-# 以root权限打开 “/etc/ld.so.conf”
+# 首次配置 (仅需执行一次)
 sudo vi /etc/ld.so.conf
-
-# 将以下路径添加到该文件的末尾
-/opt/ros/humble/lib
-{你的工程绝对路径}/build/install/lib
-
-# 刷新环境变量
+# 添加:
+#   /opt/ros/humble/lib
+#   {你的工程绝对路径}/build/install/lib
 sudo ldconfig
-```
 
-准备启动.
-
-```bash
+# 启动
 cd build/
 ./run.sh
+```
+
+### 2. 导航
+
+**仿真导航（一键启动，tmux 多窗口）：**
+
+```bash
+source navigation/install/setup.bash
+./run_nav_sim.sh
+# 窗口: [0] Gazebo  [1] FastLIO2  [2] Nav2  [3] OctoMap
+```
+
+**真机导航（一键启动，tmux 多窗口）：**
+
+```bash
+source navigation/install/setup.bash
+./run_nav_real.sh
+# 窗口: [0] Livox 驱动  [1] FastLIO2  [2] Nav2
 ```
 
 ### 手柄控制
@@ -126,10 +208,8 @@ cd build/
 
 ## 许可协议
 
-本工程提供的代码运行于 [AimRT](https://aimrt.org/) 框架之上。这是研究代码，预计会经常更改，并且不对特定用途的适用性做出任何保证。源代码根据[MULAN](https://spdx.org/licenses/MulanPSL-2.0.html)许可协议发布。
+本工程提供的代码运行于 [AimRT](https://aimrt.org/) 框架之上。源代码根据 [MULAN](https://spdx.org/licenses/MulanPSL-2.0.html) 许可协议发布。
 
 ## 使用说明
 
-如果您对该仓库有任何疑问或问题，请使用 `Issues`。
-
-请不要通过电子邮件联系我们，因为可能无法回复。如果您想贡献代码，请简单地 fork 该仓库（或如果您是协作者，可以创建一个分支），然后进行更改并提交 pull request 给我们。
+如果您对该仓库有任何疑问或问题，请使用 `Issues`。如需贡献代码，请 fork 该仓库并提交 pull request。

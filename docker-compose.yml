@@ -1,0 +1,52 @@
+# ════════════════════════════════════════════════════════════════════
+# F1 Navigation Sim — docker-compose.yml
+#
+# 用法:
+#   docker-compose up          # 启动交互式容器
+#   docker-compose run f1 bash # 进入容器手动操作
+#
+# 前提:
+#   - 服务器有 Docker + docker-compose
+#   - 有显示器: DISPLAY 环境变量已设置
+#   - 无显示器: 自动用 Xvfb
+# ════════════════════════════════════════════════════════════════════
+
+services:
+  f1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: f1-nav-sim:latest
+    container_name: f1-nav-sim
+    network_mode: host            # ROS2 DDS 需要 host 网络
+    ipc: host                      # MuJoCo + ROS2 共享内存
+    privileged: false
+    stdin_open: true
+    tty: true
+
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - ROS_DOMAIN_ID=0
+      # CycloneDDS 在 Docker 中比默认的 FastRTPS 更稳定
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - MUJOCO_LIDAR_SRC=/workspace/navigation/MuJoCo-LiDAR/src
+
+    volumes:
+      # X11 socket (有显示器时)
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      # 测试报告持久化
+      - ./reports:/workspace/reports
+      # 日志持久化 (可选)
+      - ./docker/logs:/workspace/build/log
+      # 手柄设备 (可选, 真机调试时取消注释)
+      # - /dev/input:/dev/input
+
+    # 默认进入 bash, 手动选启动脚本
+    command: bash
+
+    # 资源限制 (可选)
+    deploy:
+      resources:
+        limits:
+          cpus: "8"              # 限制 8 核
+          memory: 16G            # 限制 16GB 内存

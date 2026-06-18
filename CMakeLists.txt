@@ -53,7 +53,7 @@ include(GetAimRT)
 find_package(rclcpp REQUIRED)
 
 # Add subdirectory
-add_subdirectory(src)
+add_subdirectory(motion_control)
 
 # Install
 install(

@@ -1,0 +1,45 @@
+# ============================================================
+# .dockerignore — 排除不需要的文件, 减小构建上下文
+# ============================================================
+
+# Git
+.git
+.gitignore
+
+# Build artifacts
+build/
+build_local/
+cmake-build*/
+navigation/install/
+navigation/log/
+navigation/build/
+
+# Test reports
+reports/
+test_logs/
+
+# OMA state
+.oma/
+
+# Meta-agent
+.meta-agent/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Large binary files (optional: exclude if you want smaller context,
+# but these ARE needed for build — comment out if context too large)
+# navigation/agibot_x1_train/resources/
+
+# Docker itself
+Dockerfile
+docker-compose.yml
+docker/

@@ -3,6 +3,7 @@
 .idea/
 _deps/
 build/
+build_local/
 cmake-build*/
 # oh-my-algorithm state
 .oma/experiments/

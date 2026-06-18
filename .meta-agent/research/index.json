@@ -1,0 +1,13 @@
+[
+  {
+    "taskId": "subtask-7e3d586e",
+    "question": "What are the state-of-the-art navigation and obstacle avoidance approaches for humanoid robots in 2023-2025? Compare Nav2-based methods vs learning-based methods (RL navigation, end-to-end). Focus on…",
+    "status": "success",
+    "conclusion": "End-to-end RL policies with raw LiDAR point cloud processing (P3O-CBF, Omni-Perception) are the SOTA for humanoid navigation in 2024-2025, outperforming Nav2+MPPI stacks for 3D obstacle avoidance; Super-LIO (OctVox) is the most efficient LIO alternative to FAST-LIO2 for compute-constrained platform…",
+    "reportPath": ".meta-agent/research/subtask-7e3d586e/report.md",
+    "sourcesPath": ".meta-agent/research/subtask-7e3d586e/sources.md",
+    "papersCovered": 12,
+    "sessionId": "e497300d-42e6-4e3f-bc76-be3ac8fc4327",
+    "createdAt": 1781504861468
+  }
+]
