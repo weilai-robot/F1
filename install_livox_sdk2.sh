@@ -22,7 +22,7 @@ cd Livox-SDK2
 
 # 构建
 mkdir -p build && cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 make -j$(nproc)
 sudo make install
 
