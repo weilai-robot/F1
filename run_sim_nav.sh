@@ -80,6 +80,15 @@ for pkg in fast_lio humanoid_sim; do
     fi
 done
 
+HUMANOID_SIM_PREFIX="$(ros2 pkg prefix humanoid_sim)"
+ODOM_BRIDGE_EXE="${HUMANOID_SIM_PREFIX}/lib/humanoid_sim/odom_bridge.py"
+if [ ! -x "${ODOM_BRIDGE_EXE}" ]; then
+    echo -e "${RED}[ERROR] odom_bridge.py 未安装或不可执行: ${ODOM_BRIDGE_EXE}${NC}"
+    echo -e "  请重新构建 navigation:"
+    echo -e "    ./build_nav.sh"
+    exit 1
+fi
+
 if ! ros_pkg_exists nav2_bringup; then
     print_missing_ros_pkg_help "nav2_bringup"
     exit 1

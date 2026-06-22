@@ -79,6 +79,14 @@ ${COLCON} build --symlink-install \
     --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble \
     "$@"
 
+source "${NAV_DIR}/install/setup.bash"
+HUMANOID_SIM_PREFIX="$(ros2 pkg prefix humanoid_sim)"
+ODOM_BRIDGE_EXE="${HUMANOID_SIM_PREFIX}/lib/humanoid_sim/odom_bridge.py"
+if [ ! -x "${ODOM_BRIDGE_EXE}" ]; then
+    echo -e "\033[0;31m[ERROR] odom_bridge.py 未正确安装: ${ODOM_BRIDGE_EXE}\033[0m"
+    exit 1
+fi
+
 echo -e "\033[0;32m✓ Navigation ROS2 packages 构建成功\033[0m"
 
 # ── 2. MuJoCo-LiDAR (pip package, 仅仿真用) ──────────────
