@@ -92,7 +92,7 @@ TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
 tmux new-session -d -s "${SESSION_NAME}" -n "aimrt"
 echo -e "${GREEN}  [0] aimrt_main (sim_x1_nav.yaml)${NC}"
 tmux send-keys -t "${SESSION_NAME}:0" \
-    "cd ${BUILD_DIR} && source install/share/ros2_plugin_proto/local_setup.bash 2>/dev/null; sudo setcap cap_net_raw=ep ./aimrt_main 2>/dev/null; ./aimrt_main --cfg_file_path=./cfg/x1_cfg_sim_nav.yaml" Enter
+    "cd ${BUILD_DIR} && source install/share/ros2_plugin_proto/local_setup.bash 2>/dev/null; ./aimrt_main --cfg_file_path=./cfg/x1_cfg_sim_nav.yaml" Enter
 
 echo -e "${YELLOW}  等待 aimrt_main + MuJoCo 渲染窗口启动 (5s)...${NC}"
 sleep 5
