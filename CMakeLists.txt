@@ -27,8 +27,8 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(BUILD_SHARED_LIBS OFF)
 
   if(UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -Wno-pedantic")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -g -Wno-pedantic")
 
     if(XYBER_X1_INFER_BUILD_TESTS)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")

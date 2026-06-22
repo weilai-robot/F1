@@ -53,4 +53,18 @@ if(NOT aimrt_POPULATED)
       CACHE BOOL "")
 
   FetchContent_MakeAvailable(aimrt)
+
+  # libunifex (AimRT dependency) uses directory-level:
+  #   add_compile_options(-Wall -Wextra -pedantic -Werror)
+  # in cmake/unifex_env.cmake. On systems with newer liburing headers that use
+  # anonymous structs and zero-size arrays (valid in C, not C++ pedantic),
+  # this breaks compilation.
+  #
+  # Fix: target_compile_options are appended AFTER directory-level options in
+  # GCC's command line. -Wno-error=pedantic overrides -Werror for pedantic
+  # warnings specifically. -Wno-pedantic suppresses the warning entirely.
+  # Both flags together guarantee the fix regardless of GCC flag precedence.
+  if(TARGET unifex)
+    target_compile_options(unifex PRIVATE -Wno-pedantic -Wno-error=pedantic)
+  endif()
 endif()
