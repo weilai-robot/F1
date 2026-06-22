@@ -24,6 +24,40 @@ NC='\033[0m'
 
 echo -e "${GREEN}[run_sim_nav] 启动 sim_module 导航链路...${NC}"
 
+# ── 自动检测 ROS2 setup.bash 路径 ──────────────────────────
+# 优先级: $ROS_SETUP_BASH > /opt/ros/humble > conda 环境 > AMENT_PREFIX_PATH
+if [ -z "${ROS_SETUP_BASH}" ]; then
+    if [ -f /opt/ros/humble/setup.bash ]; then
+        ROS_SETUP_BASH="/opt/ros/humble/setup.bash"
+    elif [ -f "${CONDA_PREFIX:-}/setup.bash" ]; then
+        ROS_SETUP_BASH="${CONDA_PREFIX}/setup.bash"
+    elif [ -f "${CONDA_PREFIX:-}/ros_humble/setup.bash" ]; then
+        ROS_SETUP_BASH="${CONDA_PREFIX}/ros_humble/setup.bash"
+    elif [ -n "${AMENT_PREFIX_PATH:-}" ]; then
+        # 从 AMENT_PREFIX_PATH 推断 (最后一个路径通常是 ros2 base)
+        ROS_BASE=$(echo "${AMENT_PREFIX_PATH}" | tr ':' '\n' | tail -1)
+        if [ -f "${ROS_BASE}/setup.bash" ]; then
+            ROS_SETUP_BASH="${ROS_BASE}/setup.bash"
+        fi
+    fi
+fi
+
+if [ -z "${ROS_SETUP_BASH}" ] || [ ! -f "${ROS_SETUP_BASH}" ]; then
+    echo -e "${RED}[ERROR] 未找到 ROS2 setup.bash${NC}"
+    echo -e "  尝试过的路径:"
+    echo -e "    /opt/ros/humble/setup.bash"
+    echo -e "    \${CONDA_PREFIX}/setup.bash"
+    echo -e "    \${CONDA_PREFIX}/ros_humble/setup.bash"
+    echo -e "  请手动设置: export ROS_SETUP_BASH=/path/to/setup.bash"
+    exit 1
+fi
+
+echo -e "${GREEN}  ROS2: ${ROS_SETUP_BASH}${NC}"
+
+# --- source ---
+source "${ROS_SETUP_BASH}"
+source "${NAV_DIR}/install/setup.bash"
+
 # --- 检查构建产物 ---
 if [ ! -f "${BUILD_DIR}/aimrt_main" ]; then
     echo -e "${RED}[ERROR] motion_control 未构建: ${BUILD_DIR}/aimrt_main 不存在${NC}"
@@ -44,16 +78,15 @@ if [ ! -f "$MODEL_PATH" ]; then
     exit 1
 fi
 
-# --- source ---
-source /opt/ros/humble/setup.bash
-source "${NAV_DIR}/install/setup.bash"
-
 # --- 检查是否已有同名 session ---
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     echo -e "${YELLOW}[WARN] 已存在 tmux session: ${SESSION_NAME}${NC}"
     echo -e "  关闭: tmux kill-session -t ${SESSION_NAME}"
     exit 1
 fi
+
+# --- 每个窗口的 source 前缀 ---
+TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
 
 # --- [窗口 0] aimrt_main (运动控制 + 物理仿真) ---
 tmux new-session -d -s "${SESSION_NAME}" -n "aimrt"
@@ -67,8 +100,7 @@ sleep 5
 # --- [窗口 1] MuJoCo LiDAR Bridge ---
 tmux new-window -t "${SESSION_NAME}" -n "lidar_bridge"
 echo -e "${GREEN}  [1] MuJoCo LiDAR Bridge${NC}"
-tmux send-keys -t "${SESSION_NAME}:1" \
-    "source /opt/ros/humble/setup.bash && source ${NAV_DIR}/install/setup.bash" Enter
+tmux send-keys -t "${SESSION_NAME}:1" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
     "export MUJOCO_LIDAR_SRC=${NAV_DIR}/MuJoCo-LiDAR/src" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
@@ -79,8 +111,7 @@ sleep 2
 # --- [窗口 2] FastLIO2 ---
 tmux new-window -t "${SESSION_NAME}" -n "fastlio"
 echo -e "${GREEN}  [2] FastLIO2 (sim_module_mid360.yaml)${NC}"
-tmux send-keys -t "${SESSION_NAME}:2" \
-    "source /opt/ros/humble/setup.bash && source ${NAV_DIR}/install/setup.bash" Enter
+tmux send-keys -t "${SESSION_NAME}:2" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:2" \
     "ros2 launch fast_lio mapping_sim_module.launch.py" Enter
 
@@ -89,8 +120,7 @@ sleep 2
 # --- [窗口 3] Nav2 ---
 tmux new-window -t "${SESSION_NAME}" -n "nav2"
 echo -e "${GREEN}  [3] Nav2 导航${NC}"
-tmux send-keys -t "${SESSION_NAME}:3" \
-    "source /opt/ros/humble/setup.bash && source ${NAV_DIR}/install/setup.bash" Enter
+tmux send-keys -t "${SESSION_NAME}:3" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:3" \
     "ros2 launch humanoid_sim navigation.launch.py" Enter
 
@@ -99,16 +129,14 @@ sleep 2
 # --- [窗口 4] OctoMap ---
 tmux new-window -t "${SESSION_NAME}" -n "octomap"
 echo -e "${GREEN}  [4] OctoMap 3D 地图${NC}"
-tmux send-keys -t "${SESSION_NAME}:4" \
-    "source /opt/ros/humble/setup.bash && source ${NAV_DIR}/install/setup.bash" Enter
+tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:4" \
     "ros2 launch humanoid_sim octomap_mapping.launch.py" Enter
 
 # --- [窗口 5] 测试数据采集 (rosbag + pidstat) ---
 tmux new-window -t "${SESSION_NAME}" -n "record"
 echo -e "${GREEN}  [5] 测试数据采集 (手动启动)${NC}"
-tmux send-keys -t "${SESSION_NAME}:5" \
-    "source /opt/ros/humble/setup.bash" Enter
+tmux send-keys -t "${SESSION_NAME}:5" "source ${ROS_SETUP_BASH}" Enter
 tmux send-keys -t "${SESSION_NAME}:5" \
     "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel_limiter /Odometry /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
 
@@ -126,7 +154,7 @@ echo "   [3] nav2         - Nav2 导航栈"
 echo "   [4] octomap      - OctoMap 3D 地图"
 echo "   [5] record       - 测试数据采集 (rosbag + pidstat)"
 echo ""
-echo " 切换窗口: Ctrl+B 然后 数字键 (0-4)"
+echo " 切换窗口: Ctrl+B 然后 数字键 (0-5)"
 echo " 附加终端: tmux attach -t ${SESSION_NAME}"
 echo " 关闭全部: tmux kill-session -t ${SESSION_NAME}"
 echo ""
