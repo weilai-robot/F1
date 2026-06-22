@@ -25,14 +25,14 @@ NC='\033[0m'
 echo -e "${GREEN}[run_sim_nav] 启动 sim_module 导航链路...${NC}"
 
 # ── 自动检测 ROS2 setup.bash 路径 ──────────────────────────
-# 优先级: $ROS_SETUP_BASH > /opt/ros/humble > conda 环境 > AMENT_PREFIX_PATH
+# 优先级: $ROS_SETUP_BASH > 当前 conda 环境 > /opt/ros/humble > AMENT_PREFIX_PATH
 if [ -z "${ROS_SETUP_BASH}" ]; then
-    if [ -f /opt/ros/humble/setup.bash ]; then
-        ROS_SETUP_BASH="/opt/ros/humble/setup.bash"
+    if [ -f "${CONDA_PREFIX:-}/ros_humble/setup.bash" ]; then
+        ROS_SETUP_BASH="${CONDA_PREFIX}/ros_humble/setup.bash"
     elif [ -f "${CONDA_PREFIX:-}/setup.bash" ]; then
         ROS_SETUP_BASH="${CONDA_PREFIX}/setup.bash"
-    elif [ -f "${CONDA_PREFIX:-}/ros_humble/setup.bash" ]; then
-        ROS_SETUP_BASH="${CONDA_PREFIX}/ros_humble/setup.bash"
+    elif [ -f /opt/ros/humble/setup.bash ]; then
+        ROS_SETUP_BASH="/opt/ros/humble/setup.bash"
     elif [ -n "${AMENT_PREFIX_PATH:-}" ]; then
         # 从 AMENT_PREFIX_PATH 推断 (最后一个路径通常是 ros2 base)
         ROS_BASE=$(echo "${AMENT_PREFIX_PATH}" | tr ':' '\n' | tail -1)
@@ -57,6 +57,40 @@ echo -e "${GREEN}  ROS2: ${ROS_SETUP_BASH}${NC}"
 # --- source ---
 source "${ROS_SETUP_BASH}"
 source "${NAV_DIR}/install/setup.bash"
+
+ros_pkg_exists() {
+    ros2 pkg prefix "$1" >/dev/null 2>&1
+}
+
+print_missing_ros_pkg_help() {
+    local pkg="$1"
+    echo -e "${RED}[ERROR] 缺少 ROS2 package: ${pkg}${NC}"
+    echo -e "  当前 ROS2: ${ROS_SETUP_BASH}"
+    echo -e "  如果使用 apt ROS Humble:"
+    echo -e "    sudo apt install ros-humble-nav2-bringup ros-humble-octomap-server"
+    echo -e "  如果使用 conda/robostack ROS Humble:"
+    echo -e "    mamba install -c robostack-staging -c conda-forge ros-humble-nav2-bringup ros-humble-octomap-server"
+}
+
+for pkg in fast_lio humanoid_sim; do
+    if ! ros_pkg_exists "${pkg}"; then
+        print_missing_ros_pkg_help "${pkg}"
+        echo -e "  请先运行: ./build_nav.sh"
+        exit 1
+    fi
+done
+
+if ! ros_pkg_exists nav2_bringup; then
+    print_missing_ros_pkg_help "nav2_bringup"
+    exit 1
+fi
+
+ENABLE_OCTOMAP=true
+if ! ros_pkg_exists octomap_server; then
+    ENABLE_OCTOMAP=false
+    echo -e "${YELLOW}[WARN] 缺少 octomap_server，将跳过 [4] OctoMap 窗口。${NC}"
+    echo -e "       安装后可恢复: sudo apt install ros-humble-octomap-server"
+fi
 
 # --- 检查构建产物 ---
 if [ ! -f "${BUILD_DIR}/aimrt_main" ]; then
@@ -104,7 +138,7 @@ tmux send-keys -t "${SESSION_NAME}:1" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
     "export MUJOCO_LIDAR_SRC=${NAV_DIR}/MuJoCo-LiDAR/src" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
-    "python3 ${NAV_DIR}/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}'" Enter
+    "python3 ${NAV_DIR}/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=pointcloud2" Enter
 
 sleep 2
 
@@ -127,17 +161,25 @@ tmux send-keys -t "${SESSION_NAME}:3" \
 sleep 2
 
 # --- [窗口 4] OctoMap ---
-tmux new-window -t "${SESSION_NAME}" -n "octomap"
-echo -e "${GREEN}  [4] OctoMap 3D 地图${NC}"
-tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
-tmux send-keys -t "${SESSION_NAME}:4" \
-    "ros2 launch humanoid_sim octomap_mapping.launch.py" Enter
+if [ "${ENABLE_OCTOMAP}" = true ]; then
+    tmux new-window -t "${SESSION_NAME}" -n "octomap"
+    echo -e "${GREEN}  [4] OctoMap 3D 地图${NC}"
+    tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
+    tmux send-keys -t "${SESSION_NAME}:4" \
+        "ros2 launch humanoid_sim octomap_mapping.launch.py" Enter
+fi
 
 # --- [窗口 5] 测试数据采集 (rosbag + pidstat) ---
 tmux new-window -t "${SESSION_NAME}" -n "record"
-echo -e "${GREEN}  [5] 测试数据采集 (手动启动)${NC}"
-tmux send-keys -t "${SESSION_NAME}:5" "source ${ROS_SETUP_BASH}" Enter
-tmux send-keys -t "${SESSION_NAME}:5" \
+if [ "${ENABLE_OCTOMAP}" = true ]; then
+    RECORD_WINDOW=5
+    echo -e "${GREEN}  [5] 测试数据采集 (手动启动)${NC}"
+else
+    RECORD_WINDOW=4
+    echo -e "${GREEN}  [4] 测试数据采集 (手动启动)${NC}"
+fi
+tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" "source ${ROS_SETUP_BASH}" Enter
+tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" \
     "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel_limiter /Odometry /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
 
 # --- 完成 ---
@@ -151,10 +193,14 @@ echo "   [0] aimrt        - aimrt_main (ONNX RL + MuJoCo 物理)"
 echo "   [1] lidar_bridge - MuJoCo LiDAR 射线追踪 + /clock"
 echo "   [2] fastlio      - FastLIO2 里程计"
 echo "   [3] nav2         - Nav2 导航栈"
-echo "   [4] octomap      - OctoMap 3D 地图"
-echo "   [5] record       - 测试数据采集 (rosbag + pidstat)"
+if [ "${ENABLE_OCTOMAP}" = true ]; then
+    echo "   [4] octomap      - OctoMap 3D 地图"
+    echo "   [5] record       - 测试数据采集 (rosbag + pidstat)"
+else
+    echo "   [4] record       - 测试数据采集 (rosbag + pidstat)"
+fi
 echo ""
-echo " 切换窗口: Ctrl+B 然后 数字键 (0-5)"
+echo " 切换窗口: Ctrl+B 然后 数字键"
 echo " 附加终端: tmux attach -t ${SESSION_NAME}"
 echo " 关闭全部: tmux kill-session -t ${SESSION_NAME}"
 echo ""

@@ -16,9 +16,24 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 NAV_DIR="${SCRIPT_DIR}/navigation"
 
 # ── source 环境 ──────────────────────────────────────────
-if [ -f /opt/ros/humble/setup.bash ]; then
-    source /opt/ros/humble/setup.bash
+if [ -z "${ROS_SETUP_BASH}" ]; then
+    if [ -f "${CONDA_PREFIX:-}/ros_humble/setup.bash" ]; then
+        ROS_SETUP_BASH="${CONDA_PREFIX}/ros_humble/setup.bash"
+    elif [ -f "${CONDA_PREFIX:-}/setup.bash" ]; then
+        ROS_SETUP_BASH="${CONDA_PREFIX}/setup.bash"
+    elif [ -f /opt/ros/humble/setup.bash ]; then
+        ROS_SETUP_BASH="/opt/ros/humble/setup.bash"
+    fi
 fi
+
+if [ -z "${ROS_SETUP_BASH}" ] || [ ! -f "${ROS_SETUP_BASH}" ]; then
+    echo -e "\033[0;31m[ERROR] 未找到 ROS2 setup.bash\033[0m"
+    echo -e "  请设置: export ROS_SETUP_BASH=/path/to/setup.bash"
+    exit 1
+fi
+
+echo -e "\033[0;32m[build_nav] ROS2: ${ROS_SETUP_BASH}\033[0m"
+source "${ROS_SETUP_BASH}"
 
 # ── 选择 colcon ──────────────────────────────────────────
 # 优先使用 conda 内的 colcon, 回退到系统 colcon
