@@ -147,7 +147,7 @@ tmux send-keys -t "${SESSION_NAME}:1" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
     "export MUJOCO_LIDAR_SRC=${NAV_DIR}/MuJoCo-LiDAR/src" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
-    "python3 ${NAV_DIR}/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=pointcloud2" Enter
+    "python3 ${NAV_DIR}/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=pointcloud2 -p downsample:=1 -p lidar_hz:=10" Enter
 
 sleep 2
 
