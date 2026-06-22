@@ -41,12 +41,18 @@ source "${ROS_SETUP_BASH}"
 [ -f "${NAV_DIR}/install/setup.bash" ] && source "${NAV_DIR}/install/setup.bash"
 
 # ── 切 walk_mode ──
-# 初始状态是 stand, 只会原地站立、忽略 /cmd_vel_limiter; 发一次 /walk_mode 进入行走。
+# 初始状态是 stand, 只会原地站立、忽略 /cmd_vel_limiter; 触发 /walk_mode 进入行走。
+# 注意: 不能用 `--once`! 它发完立刻销毁 publisher, ROS2 discovery 还没完成消息就丢了。
+# 这里用常驻 publisher 持续发 ~2s, 确保控制模块订上并收到 (控制端有 1s 节流, 多发无害)。
 switch_walk_mode() {
     echo -e "${GREEN}[1/2] 切换 walk_mode (机器人应开始原地踏步)...${NC}"
-    ros2 topic pub --once /walk_mode std_msgs/msg/Float32 "data: 1.0" >/dev/null
-    echo -e "${YELLOW}      等待行走控制器稳定 (3s)...${NC}"
-    sleep 3
+    ros2 topic pub -r 5 /walk_mode std_msgs/msg/Float32 "data: 0.0" >/dev/null 2>&1 &
+    local pub_pid=$!
+    sleep 2
+    kill "${pub_pid}" 2>/dev/null || true
+    wait "${pub_pid}" 2>/dev/null || true
+    echo -e "${YELLOW}      等待行走控制器稳定 (2s)...${NC}"
+    sleep 2
 }
 
 # ── 参数解析 ──
