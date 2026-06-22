@@ -298,7 +298,7 @@ class NavTestNode(Node):
         cy = math.cos(self.goal_yaw * 0.5)
         sy = math.sin(self.goal_yaw * 0.5)
         goal_msg.pose.pose.orientation.w = cy
-        goal_msg.pose.orientation.x = 0.0
+        goal_msg.pose.pose.orientation.x = 0.0
         goal_msg.pose.pose.orientation.y = 0.0
         goal_msg.pose.pose.orientation.z = sy
 
