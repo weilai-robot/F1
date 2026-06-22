@@ -20,7 +20,6 @@ colcon build --symlink-install \
     --packages-select \
         livox_ros_driver2 \
         fast_lio \
-        open3d_loc \
         ros2_livox_simulation \
         humanoid_sim \
     "$@"
