@@ -61,6 +61,7 @@ fi
 echo -e "\033[0;32m[build_nav] 构建包: ${PACKAGES}\033[0m"
 ${COLCON} build --symlink-install \
     --packages-select ${PACKAGES} \
+    --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble \
     "$@"
 
 echo -e "\033[0;32m✓ Navigation ROS2 packages 构建成功\033[0m"
