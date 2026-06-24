@@ -150,63 +150,131 @@ source /opt/ros/humble/setup.bash
 > cd navigation && pip install -e agibot_x1_train  # RL training (requires Isaac Gym)
 > ```
 
-## Launch
+## How to Use
 
-### Entry Points
+The F1 system supports four deployment scenarios. Each scenario has its own build and launch steps.
 
-| Scenario | Motion Control | Navigation | Description |
-|----------|---------------|------------|-------------|
-| Sim walking (joystick) | `run_sim.sh` | — | Joystick-controlled walking |
-| Real robot walking | `run.sh` | — | Joystick-controlled walking |
-| Sim navigation (sim_module) | `run_sim.sh` | `run_sim_nav.sh` | Production control chain + MuJoCo LiDAR bridge |
-| Sim navigation (Gazebo) | `run_sim.sh` | `run_nav_sim.sh` | Gazebo physics + Nav2 |
-| Real robot navigation | `run.sh` | `run_nav_real.sh` | Navigation stack + locomotion |
+> **ROS2 source:** All scripts auto-detect `ROS_SETUP_BASH` (conda, `/opt/ros`, or `AMENT_PREFIX_PATH`). To override: `export ROS_SETUP_BASH=/your/ros/setup.bash`
 
-### 1. Motion Control
+---
 
-**Simulation:** (connect joystick receiver first)
+### Scenario 1 — Motion Control Simulation (Walking only, no navigation)
+
+Use this when testing RL locomotion policies, gait tuning, or joystick control in MuJoCo.
 
 ```bash
+# 1. Build motion_control (if not already built)
+./build.sh
+
+# 2. Launch sim (opens MuJoCo viewer + joystick control)
 cd build/
-./run_sim.sh
+./run_sim.sh                # loads x1_cfg_sim.yaml, joystick input
 ```
 
-**Real Robot:** (configure library path on first run)
+**Joystick operations:** Stand → press `walk_mode` button to start walking → use joystick to steer. See [Joystick docs](doc/joy_stick_module/joy_stick_module.md).
+
+---
+
+### Scenario 2 — Motion Control Real Robot (Walking only, no navigation)
+
+Use this for deploying the RL policy on the physical X1 robot with joystick teleoperation.
 
 ```bash
-# First-time setup (only once)
+# 1. Build motion_control
+./build.sh
+
+# 2. One-time: configure shared library path
 sudo vi /etc/ld.so.conf
-# Add:
-#   /opt/ros/humble/lib
-#   {your_project_path}/build/install/lib
+#   Add these lines:
+#     /opt/ros/humble/lib
+#     {your_project_path}/build/install/lib
 sudo ldconfig
 
-# Launch
+# 3. Launch real robot control
 cd build/
+sudo setcap cap_net_raw=ep ./aimrt_main    # grant raw socket for DCU
+./run.sh                                     # loads x1_cfg.yaml, connects to real hardware
+```
+
+**Requirements:** Realtime kernel patch, DCU module connected, joystick receiver paired.
+
+---
+
+### Scenario 3 — Navigation Simulation (Nav2 + MuJoCo, no real hardware)
+
+Use this to test the full navigation stack (SLAM + path planning + obstacle avoidance) against a simulated lab environment. Motion control runs inside the same sim.
+
+```bash
+# 1. Build motion_control (provides aimrt_main + MuJoCo physics)
+./build.sh
+
+# 2. Build navigation stack (FastLIO2 + Nav2 + humanoid_sim)
+./build_nav.sh
+
+# 3. One-time: compile libruckig from source if GLIBC < 2.32
+./build_ruckig.sh && rm -rf build/ && ./build.sh
+
+# 4. Launch full sim navigation pipeline (tmux, 6 windows)
+./run_sim_nav.sh
+#    [0] aimrt_main      — ONNX RL policy + MuJoCo physics simulation
+#    [1] lidar_bridge    — MuJoCo LiDAR ray-tracing + /clock publisher
+#    [2] fastlio         — FastLIO2 SLAM odometry
+#    [3] nav2            — Nav2 stack (MPPI + Costmap + Planner) + RViz
+#    [4] octomap         — OctoMap 3D mapping (optional)
+#    [5] record          — Data recording (manual start)
+
+# 5. In another terminal, send a navigation goal
+./send_nav_goal.sh 5.0 0.0          # navigate to (5.0, 0.0)
+#    or: ./send_nav_goal.sh --walk-only   # just enter walking mode
+#    or: ./send_nav_goal.sh --batch       # run automated test scenarios
+
+# 6. (Optional) Check SLAM drift
+python3 drift_check.py 5.0 0.0
+```
+
+**RViz shows:** Static map, global/local costmap, global path (green), MPPI local path (yellow), goal pose (red arrow), registered point cloud.
+
+---
+
+### Scenario 4 — Navigation + Motion Control Real Robot (Full autonomous navigation)
+
+Use this to run autonomous navigation on the physical X1 robot. The navigation stack provides velocity commands; the RL policy converts them to joint-level motor commands.
+
+```bash
+# 1. Build both subsystems
+./build.sh
+./build_nav.sh
+
+# 2. Configure real robot library path (one-time, see Scenario 2)
+
+# 3. Start motion control (robot stands up, waits for walk_mode)
+cd build/
+sudo setcap cap_net_raw=ep ./aimrt_main
 ./run.sh
+
+# 4. In another terminal, start the navigation stack
+./run_nav_real.sh                 # or: ./run_nav_real.sh --no-rviz
+#    [0] Livox driver   — MID-360 LiDAR data acquisition
+#    [1] FastLIO2       — Real robot LIO odometry
+#    [2] Nav2            — Navigation stack + odom_bridge + RViz
+
+# 5. In a third terminal, send navigation goal (also triggers walk_mode)
+./send_nav_goal.sh 3.0 0.0
+#    or publish goal via RViz "2D Goal Pose" tool
 ```
 
-### 2. Navigation
+**Important:** The robot must be standing and stable before `run_nav_real.sh` is started. Use the joystick to confirm the robot has entered `stand` mode first.
 
-**Simulation navigation (one-click, tmux multi-window):**
+---
 
-```bash
-source navigation/install/setup.bash
-./run_nav_sim.sh
-# Windows: [0] Gazebo  [1] FastLIO2  [2] Nav2  [3] OctoMap
-```
+### Quick Reference
 
-**Real robot navigation (one-click, tmux multi-window):**
-
-```bash
-source navigation/install/setup.bash
-./run_nav_real.sh
-# Windows: [0] Livox driver  [1] FastLIO2  [2] Nav2
-```
-
-### Joystick Control
-
-For control instructions, see [Joystick Control Module](doc/joy_stick_module/joy_stick_module.md).
+| Scenario | Build | Launch Command | Joystick Required |
+|----------|-------|---------------|:-:|
+| 1. Sim walking | `./build.sh` | `cd build/ && ./run_sim.sh` | ✓ |
+| 2. Real walking | `./build.sh` | `cd build/ && ./run.sh` | ✓ |
+| 3. Sim navigation | `./build.sh && ./build_nav.sh` | `./run_sim_nav.sh` + `./send_nav_goal.sh` | ✗ |
+| 4. Real navigation | `./build.sh && ./build_nav.sh` | `./run.sh` + `./run_nav_real.sh` + `./send_nav_goal.sh` | ✓ (stand-up) |
 
 ## License Agreement
 
