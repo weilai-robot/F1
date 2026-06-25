@@ -178,18 +178,20 @@ if [ "${ENABLE_OCTOMAP}" = true ]; then
         "ros2 launch humanoid_sim octomap_mapping.launch.py" Enter
 fi
 
-# --- [窗口 5] 测试数据采集 (rosbag + pidstat) ---
+# --- [窗口 5] 腿里程计 (Leg Odometry 前馈) ---
+tmux new-window -t "${SESSION_NAME}" -n "leg_odom"
+echo -e "${GREEN}  [5] 腿里程计 (Leg Odometry)${NC}"
+tmux send-keys -t "${SESSION_NAME}:5" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:5" \
+    "ros2 run humanoid_sim leg_odom_node.py --ros-args -p model_path:='${MODEL_PATH}'" Enter
+
+# --- [窗口 6] 测试数据采集 (rosbag + pidstat) ---
 tmux new-window -t "${SESSION_NAME}" -n "record"
-if [ "${ENABLE_OCTOMAP}" = true ]; then
-    RECORD_WINDOW=5
-    echo -e "${GREEN}  [5] 测试数据采集 (手动启动)${NC}"
-else
-    RECORD_WINDOW=4
-    echo -e "${GREEN}  [4] 测试数据采集 (手动启动)${NC}"
-fi
+RECORD_WINDOW=6
+echo -e "${GREEN}  [6] 测试数据采集 (手动启动)${NC}"
 tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" "source ${ROS_SETUP_BASH}" Enter
 tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" \
-    "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel_limiter /Odometry /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
+    "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel_limiter /Odometry /leg_odom /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
 
 # --- 完成 ---
 echo ""
@@ -202,12 +204,9 @@ echo "   [0] aimrt        - aimrt_main (ONNX RL + MuJoCo 物理)"
 echo "   [1] lidar_bridge - MuJoCo LiDAR 射线追踪 + /clock"
 echo "   [2] fastlio      - FastLIO2 里程计"
 echo "   [3] nav2         - Nav2 导航栈"
-if [ "${ENABLE_OCTOMAP}" = true ]; then
-    echo "   [4] octomap      - OctoMap 3D 地图"
-    echo "   [5] record       - 测试数据采集 (rosbag + pidstat)"
-else
-    echo "   [4] record       - 测试数据采集 (rosbag + pidstat)"
-fi
+echo "   [4] octomap      - OctoMap 3D 地图 (可选)"
+echo "   [5] leg_odom     - 腿里程计前馈"
+echo "   [6] record       - 测试数据采集 (rosbag + pidstat)"
 echo ""
 echo " 切换窗口: Ctrl+B 然后 数字键"
 echo " 附加终端: tmux attach -t ${SESSION_NAME}"
