@@ -13,7 +13,8 @@
 set -ex
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-NAV_DIR="${SCRIPT_DIR}/navigation"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+NAV_DIR="${ROOT_DIR}/navigation"
 
 # ── source 环境 ──────────────────────────────────────────
 if [ -z "${ROS_SETUP_BASH}" ]; then

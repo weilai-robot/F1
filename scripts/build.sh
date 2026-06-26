@@ -8,6 +8,8 @@ if [ -f /opt/ros/humble/setup.bash ]; then
     source /opt/ros/humble/setup.bash
 fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT_DIR"
 if [ -f "${SCRIPT_DIR}/url_gitee.bashrc" ]; then
     source "${SCRIPT_DIR}/url_gitee.bashrc"
 fi

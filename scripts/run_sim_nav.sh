@@ -12,8 +12,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-NAV_DIR="${SCRIPT_DIR}/navigation"
-BUILD_DIR="${SCRIPT_DIR}/build"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+NAV_DIR="${ROOT_DIR}/navigation"
+BUILD_DIR="${ROOT_DIR}/build"
 SESSION_NAME="f1_sim_nav"
 
 # --- 颜色 ---

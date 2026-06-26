@@ -167,9 +167,7 @@ COPY --from=builder /usr/local/lib/python3.10/dist-packages/ /usr/local/lib/pyth
 COPY --from=builder /workspace/src/navigation/MuJoCo-LiDAR/ ./navigation/MuJoCo-LiDAR/
 
 # --- Copy scripts and configs ---
-COPY --from=builder /workspace/src/run_sim_nav.sh /workspace/src/run_sim.sh /workspace/src/run_nav_sim.sh /workspace/src/run_nav_real.sh ./
-COPY --from=builder /workspace/src/nav_test_runner.py ./
-COPY --from=builder /workspace/src/build.sh /workspace/src/build_nav.sh ./
+COPY --from=builder /workspace/src/scripts/ ./scripts/
 
 # --- Copy source (for colcon symlink-install to work at runtime) ---
 COPY --from=builder /workspace/src/navigation/humanoid_sim/ ./navigation/humanoid_sim/

@@ -11,7 +11,8 @@
 set -ex
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-RUCKIG_DIR="${SCRIPT_DIR}/motion_control/module/control_module/third_party"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+RUCKIG_DIR="${ROOT_DIR}/motion_control/module/control_module/third_party"
 
 echo "=== 编译 ruckig (源码) ==="
 
@@ -45,4 +46,4 @@ echo "   库: ${RUCKIG_DIR}/lib/libruckig.so"
 echo "   头文件: ${RUCKIG_DIR}/include/ruckig/"
 echo ""
 echo "现在需要重新编译 motion_control:"
-echo "  cd ${SCRIPT_DIR} && rm -rf build/ && ./build.sh"
+echo "  cd ${ROOT_DIR} && rm -rf build/ && scripts/build.sh"

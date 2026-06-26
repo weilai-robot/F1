@@ -17,7 +17,8 @@
 set -ex
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT_DIR"
 
 # ── 颜色 ──────────────────────────────────────────────────
 GREEN='\033[0;32m'

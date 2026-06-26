@@ -1,21 +1,28 @@
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- IDE ---
 .vscode/
 .cache/
 .idea/
+
+# --- Build ---
 _deps/
 build/
 build_local/
 cmake-build*/
-# oh-my-algorithm state
-.oma/experiments/
-.oma/leaderboard.json
-.oma/best.json
-.oma/trajectory.jsonl
 
-# oh-my-algorithm state
-.oma/experiments/
-.oma/leaderboard.json
-.oma/best.json
-.oma/trajectory.jsonl
-# oh-my-algorithm tooling (managed by oma setup, not project files)
-.oma/skills/
-.oma/templates/
+# --- AI tooling state (not project code) ---
+.oma/
+.meta-agent/
+AGENTS.md
+
+# --- Test data ---
+test_logs/data_csv/

@@ -19,7 +19,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-NAV_DIR="${SCRIPT_DIR}/navigation"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+NAV_DIR="${ROOT_DIR}/navigation"
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 

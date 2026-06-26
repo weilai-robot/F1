@@ -11,7 +11,11 @@ weilai-robot/F1                    ← 你当前所在的集成仓库
 ├── motion_control/                ← submodule → weilai-robot/Humanoid_motion
 ├── cmake/                         ← 公共 CMake 模块（集成仓库管理）
 ├── docker/                        ← 环境定义（集成仓库管理）
-├── build_all.sh / run_*.sh        ← 构建/运行脚本（集成仓库管理）
+├── scripts/                     ← 统一构建/运行脚本（集成仓库管理）
+│   ├── build_all.sh            ←   全量构建
+│   ├── build.sh / build_nav.sh ←   单模块构建
+│   ├── run_sim_nav.sh          ←   仿真导航启动
+│   └── send_nav_goal.sh        ←   导航目标发送
 └── doc/                           ← 跨模块文档
 ```
 
@@ -138,7 +142,7 @@ cd F1
 git submodule status    # 查看当前锁定的版本
 
 # 2. 全量构建
-./build_all.sh
+scripts/build_all.sh
 
 # 3. 如需测试某模块的最新开发版
 cd navigation/ && git checkout devel && git pull && cd ..

@@ -3,6 +3,10 @@
 # exit on error and print each command
 set -ex
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$ROOT_DIR"
+
 # cmake
 cmake -B build \
     -DCMAKE_BUILD_TYPE=Release \
