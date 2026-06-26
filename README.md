@@ -9,6 +9,13 @@ This project is the complete software system for the AgiBot X1 humanoid robot, c
 - **Motion Control** (`motion_control/`): Built on AimRT middleware with reinforcement learning policies for locomotion control. Includes RL policy inference, PD controllers, state machines, and hardware drivers.
 - **Navigation** (`navigation/`): Built on ROS2 Nav2 stack using Livox MID-360 LiDAR + FastLIO2 for SLAM, with MPPI controller for autonomous navigation and obstacle avoidance.
 
+> **Repository Architecture**: This is a **thin integration repo** — `navigation/` and `motion_control/` are [Git submodules](doc/SUBMODULE_GUIDE.md), independently developed and version-locked here. Clone with `--recursive` to get everything.
+
+| Submodule | Repository | Build System |
+|-----------|-----------|--------------|
+| `navigation/` | [weilai-robot/Humanoid_navigation](https://github.com/weilai-robot/Humanoid_navigation) | ROS2 colcon |
+| `motion_control/` | [weilai-robot/Humanoid_motion](https://github.com/weilai-robot/Humanoid_motion) | CMake + AimRT |
+
 For detailed `AimRT` tutorials, visit the [AimRT official website](https://aimrt.org/).
 
 ![x1](doc/x1.jpg)
@@ -36,8 +43,8 @@ For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
 ## Directory Structure
 
 ```bash
-F1/
-├── motion_control/             # Motion Control subsystem (CMake + AimRT)
+F1/                              # Thin integration repo (this repo)
+├── motion_control/             # [submodule] Motion Control subsystem (CMake + AimRT)
 │   ├── CMakeLists.txt
 │   ├── assistant/             # ROS2 auxiliary tools
 │   ├── install/linux/bin/     # Launch scripts & configs
@@ -53,7 +60,7 @@ F1/
 │   ├── pkg/                  # Shared library packaging → libpkg1.so
 │   └── protocols/            # Message protocol definitions
 │
-├── navigation/                 # Navigation subsystem (ROS2 colcon)
+├── navigation/                 # [submodule] Navigation subsystem (ROS2 colcon)
 │   ├── livox_ros_driver2/        # MID-360 LiDAR driver
 │   ├── fast_lio2/                # LIO odometry (SLAM)
 │   ├── humanoid_sim/             # Gazebo simulation + Nav2 config + odom_bridge
@@ -62,7 +69,7 @@ F1/
 │   ├── MuJoCo-LiDAR/             # MuJoCo LiDAR sensor simulation (pip)
 │   └── agibot_x1_train/          # RL policy training code (Isaac Gym, standalone)
 │
-├── cmake/                     # CMake modules (GetAimRT, NamespaceTool, etc.)
+├── cmake/                     # CMake modules (GetAimRT, NamespaceTool, etc.) — integration repo
 ├── CMakeLists.txt             # Top-level CMake (builds motion_control)
 ├── build.sh                   # Build motion_control
 ├── build_nav.sh               # Build navigation (colcon)
@@ -73,6 +80,20 @@ F1/
 ├── doc/                       # Development docs
 └── test.sh                    # Test scripts
 ```
+
+## Quick Start (Clone with Submodules)
+
+```bash
+git clone --recursive https://github.com/weilai-robot/F1.git
+```
+
+If already cloned without `--recursive`:
+```bash
+cd F1
+git submodule update --init --recursive
+```
+
+> 📖 **New to submodules?** Read the [Submodule Guide](doc/SUBMODULE_GUIDE.md) for daily workflows, branching strategy, and common pitfalls.
 
 ## Prerequisites
 
