@@ -62,8 +62,12 @@ class MetricsCalculator:
         self.cmd_vel_data = []   # [(wall_time, vx, vy, wz)]
         # SLAM odom 数据
         self.odom_data = []      # [(sim_time, x, y)]
+        # odom-GT 逐帧配对数据 (用于漂移统计)
+        self.odom_paired_data = []  # [(sim_t, gt_x, gt_y, odom_x, odom_y, drift_xy)]
 
-        self.start_time = None
+        self.start_time = None     # goal 发出时刻 (wall clock)
+        self.goal_sent_time = None  # goal 发出时刻 (wall clock, 用于 plan_time)
+        self.first_motion_time = None  # 首次检测到非零 cmd_vel 的时刻
         self.end_time = None
         self.fall_detected = False
         self.collision_total = 0
@@ -93,8 +97,21 @@ class MetricsCalculator:
     def add_cmd_vel(self, wall_time: float, vx: float, vy: float, wz: float):
         self.cmd_vel_data.append((wall_time, vx, vy, wz))
 
+    def check_first_motion(self, wall_time: float, vx: float, wz: float):
+        """检测 goal 发出后首次有速度输出 (用于计算 plan_time)"""
+        if self.goal_sent_time and self.first_motion_time is None:
+            if abs(vx) > 0.01 or abs(wz) > 0.01:
+                self.first_motion_time = wall_time
+
     def add_odom(self, sim_time: float, x: float, y: float):
         self.odom_data.append((sim_time, x, y))
+        # 逐帧配对 GT vs odom (时间最近邻, 窗口 0.1s)
+        if self.gt_data:
+            best_gt = min(self.gt_data, key=lambda g: abs(g[0] - sim_time))
+            if abs(best_gt[0] - sim_time) < 0.1:
+                drift = math.sqrt((x - best_gt[1])**2 + (y - best_gt[2])**2)
+                self.odom_paired_data.append(
+                    (sim_time, best_gt[1], best_gt[2], x, y, drift))
 
     def compute_metrics(self, goal_x: float, goal_y: float, timeout_sec: float) -> dict:
         """计算全部指标"""
@@ -117,16 +134,29 @@ class MetricsCalculator:
         m["position_error_m"] = round(goal_dist, 3)
         m["success"] = (not self.fall_detected) and (m["collisions"] == 0) and (goal_dist < 0.35)
 
-        # SLAM 漂移: 取最后可配准的 odom vs gt
-        slam_drift = None
-        if len(self.odom_data) > 0:
-            # 找时间最接近的 GT 帧
-            last_odom = self.odom_data[-1]
-            odom_sim_t = last_odom[0]
-            best_gt = min(self.gt_data, key=lambda g: abs(g[0] - odom_sim_t))
-            drift = math.sqrt((last_odom[1] - best_gt[1])**2 + (last_odom[2] - best_gt[2])**2)
-            slam_drift = round(drift, 3)
-        m["slam_drift_m"] = slam_drift
+        # === 规划时间: goal发出 → 首次有速度输出 ===
+        if self.goal_sent_time and self.first_motion_time:
+            m["plan_time_s"] = round(self.first_motion_time - self.goal_sent_time, 2)
+        else:
+            m["plan_time_s"] = None
+
+        # === 定位精度: 逐帧 GT vs odom 漂移统计 ===
+        if len(self.odom_paired_data) > 0:
+            import numpy as np
+            drifts = np.array([d[5] for d in self.odom_paired_data])
+            m["drift_mean_m"] = round(float(drifts.mean()), 4)
+            m["drift_rms_m"] = round(float(np.sqrt((drifts**2).mean())), 4)
+            m["drift_max_m"] = round(float(drifts.max()), 4)
+            sorted_d = np.sort(drifts)
+            m["drift_p95_m"] = round(float(sorted_d[int(len(sorted_d)*0.95)]), 4)
+        else:
+            m["drift_mean_m"] = None
+            m["drift_rms_m"] = None
+            m["drift_max_m"] = None
+            m["drift_p95_m"] = None
+
+        # 兼容旧字段名 (仅末帧)
+        m["slam_drift_m"] = m["drift_max_m"]
 
         # === P2: 完成时间/路径效率/jerk ===
         if self.start_time and self.end_time:
@@ -150,6 +180,13 @@ class MetricsCalculator:
         m["angular_jerk_rms"] = jerk_stats["angular_rms"]
         m["direction_reversals_per_sec"] = jerk_stats["reversal_rate"]
 
+        # === 速度统计: 从 GT 轨迹差分 ===
+        v_stats = self._compute_velocity_stats()
+        m.update(v_stats)
+
+        # === 转弯半径: 从 GT 轨迹曲率 ===
+        m["turning_radius_min_m"] = self._compute_min_turning_radius()
+
         # === 性能 ===
         if self.gt_data:
             rtfs = [g[7] for g in self.gt_data if g[7] > 0]
@@ -167,6 +204,69 @@ class MetricsCalculator:
         m["timed_out"] = (m.get("completion_time_s") or 0) >= timeout_sec * 0.95
 
         return m
+
+    def _compute_velocity_stats(self) -> dict:
+        """从 GT 轨迹逐帧差分计算实际线速度统计"""
+        if len(self.gt_data) < 3:
+            return {"vmax_m_s": None, "vmin_m_s": None,
+                    "vmean_m_s": None, "vstd_m_s": None}
+
+        velocities = []
+        for i in range(1, len(self.gt_data)):
+            dt = self.gt_data[i][0] - self.gt_data[i-1][0]
+            if dt < 1e-6:
+                continue
+            dx = self.gt_data[i][1] - self.gt_data[i-1][1]
+            dy = self.gt_data[i][2] - self.gt_data[i-1][2]
+            v = math.sqrt(dx*dx + dy*dy) / dt
+            velocities.append(v)
+
+        if not velocities:
+            return {"vmax_m_s": None, "vmin_m_s": None,
+                    "vmean_m_s": None, "vstd_m_s": None}
+
+        import numpy as np
+        v_arr = np.array(velocities)
+        return {
+            "vmax_m_s": round(float(v_arr.max()), 3),
+            "vmin_m_s": round(float(v_arr.min()), 3),
+            "vmean_m_s": round(float(v_arr.mean()), 3),
+            "vstd_m_s": round(float(v_arr.std()), 3),
+        }
+
+    def _compute_min_turning_radius(self):
+        """从 GT 轨迹三点法计算最小转弯半径 (外接圆法)"""
+        if len(self.gt_data) < 3:
+            return None
+
+        min_radius = float('inf')
+        for i in range(1, len(self.gt_data) - 1):
+            x1, y1 = self.gt_data[i-1][1], self.gt_data[i-1][2]
+            x2, y2 = self.gt_data[i][1],   self.gt_data[i][2]
+            x3, y3 = self.gt_data[i+1][1], self.gt_data[i+1][2]
+
+            # 三角形边长
+            a = math.sqrt((x2-x3)**2 + (y2-y3)**2)
+            b = math.sqrt((x1-x3)**2 + (y1-y3)**2)
+            c = math.sqrt((x1-x2)**2 + (y1-y2)**2)
+
+            # 半周长
+            s = (a + b + c) / 2
+
+            # 三角形面积 (海伦公式)
+            area_sq = s * (s-a) * (s-b) * (s-c)
+            if area_sq < 1e-8:  # 近似共线, 跳过
+                continue
+
+            area = math.sqrt(area_sq)
+
+            # 外接圆半径: R = abc / (4 * Area)
+            radius = (a * b * c) / (4 * area)
+
+            if radius < min_radius:
+                min_radius = radius
+
+        return round(min_radius, 2) if min_radius != float('inf') else None
 
     def _compute_jerk(self) -> dict:
         """从 cmd_vel 时间序列计算 jerk"""
@@ -232,6 +332,7 @@ class NavTestNode(Node):
         self.metrics = MetricsCalculator()
         self.finished = False
         self.result_status = None
+        self._cmd_vel_received = False
 
         # QoS
         sensor_qos = QoSProfile(
@@ -265,6 +366,7 @@ class NavTestNode(Node):
     def _cmd_vel_cb(self, msg: Twist):
         wall_t = time.monotonic()
         self.metrics.add_cmd_vel(wall_t, msg.linear.x, msg.linear.y, msg.angular.z)
+        self.metrics.check_first_motion(wall_t, msg.linear.x, msg.angular.z)
 
     def _odom_cb(self, msg: Odometry):
         sim_t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
@@ -304,6 +406,7 @@ class NavTestNode(Node):
 
         self.get_logger().info(f"发送导航目标: ({self.goal_x:.2f}, {self.goal_y:.2f})")
         self.metrics.start_time = time.monotonic()
+        self.metrics.goal_sent_time = self.metrics.start_time
 
         send_future = self._action_client.send_goal_async(
             goal_msg, feedback_callback=self._feedback_cb
@@ -409,12 +512,15 @@ def format_report(scenario_name: str, scenario_desc: str, params: dict,
         f"| **碰撞** | {metrics.get('collisions', '?')} 次 | {collision_icon} | robot vs environment (排除地面) |",
         f"| **导航成功** | {'是' if metrics.get('success') else '否'} | {status_icon} | 未摔未撞且距离<0.35m |",
         f"| **位置误差** | {metrics.get('position_error_m', '?')} m | {PASS if (metrics.get('position_error_m') is not None and metrics['position_error_m'] < 0.35) else FAIL} | 真实位置 vs 目标 |",
-        f"| **SLAM漂移** | {metrics.get('slam_drift_m', 'N/A')} m | {WARN if metrics.get('slam_drift_m', 0) and metrics.get('slam_drift_m', 0) > 0.5 else PASS} | FastLIO2 估计 vs ground truth |",
+        f"| **SLAM漂移** | mean={metrics.get('drift_mean_m', 'N/A')}m max={metrics.get('drift_max_m', 'N/A')}m p95={metrics.get('drift_p95_m', 'N/A')}m | {WARN if metrics.get('drift_mean_m', 0) and metrics.get('drift_mean_m', 0) > 0.3 else PASS} | FastLIO2 估计 vs ground truth (逐帧) |",
+        f"| **规划时间** | {metrics.get('plan_time_s', 'N/A')} s | — | goal发出 → 首次有速度输出 |",
         f"| **完成时间** | {metrics.get('completion_time_s', '?')} s | — | sim_time |",
         f"| **路径效率** | {metrics.get('path_efficiency', 'N/A')} | {PASS if metrics.get('path_efficiency', 0) and metrics.get('path_efficiency', 0) > 0.6 else WARN} | 直线/实际 (1.0=完美) |",
         f"| **线速度Jerk** | {metrics.get('linear_jerk_rms', 'N/A')} m/s³ | {PASS if (metrics.get('linear_jerk_rms') is not None and metrics['linear_jerk_rms'] < 2.0) else WARN} | RMS, <2.0 为平滑 |",
         f"| **角速度Jerk** | {metrics.get('angular_jerk_rms', 'N/A')} rad/s³ | — | RMS |",
         f"| **方向反转** | {metrics.get('direction_reversals_per_sec', 'N/A')} /s | {PASS if (metrics.get('direction_reversals_per_sec') is not None and metrics['direction_reversals_per_sec'] < 2.0) else WARN} | <2.0/s 为稳定 |",
+        f"| **速度范围** | vmax={metrics.get('vmax_m_s', 'N/A')} vmin={metrics.get('vmin_m_s', 'N/A')} vmean={metrics.get('vmean_m_s', 'N/A')} m/s | — | GT 轨迹差分 |",
+        f"| **最小转弯半径** | {metrics.get('turning_radius_min_m', 'N/A')} m | — | GT 轨迹外接圆法 |",
         f"| **RTF** | {rtf} (min: {metrics.get('rtf_min', '?')}) | {rtf_icon} | ≥0.95 为实时 |",
         f"",
         f"## 测试参数",
@@ -594,8 +700,11 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
     print(f"  摔倒: {'是' if metrics.get('fall') else '否'}")
     print(f"  碰撞: {metrics.get('collisions', '?')} 次")
     print(f"  位置误差: {metrics.get('position_error_m', '?')} m")
-    print(f"  SLAM漂移: {metrics.get('slam_drift_m', 'N/A')} m")
+    print(f"  SLAM漂移: mean={metrics.get('drift_mean_m', 'N/A')}m max={metrics.get('drift_max_m', 'N/A')}m")
+    print(f"  规划时间: {metrics.get('plan_time_s', 'N/A')}s")
     print(f"  路径效率: {metrics.get('path_efficiency', 'N/A')}")
+    print(f"  速度范围: vmax={metrics.get('vmax_m_s', 'N/A')} vmin={metrics.get('vmin_m_s', 'N/A')} vmean={metrics.get('vmean_m_s', 'N/A')} m/s")
+    print(f"  最小转弯半径: {metrics.get('turning_radius_min_m', 'N/A')}m")
     print(f"  线Jerk: {metrics.get('linear_jerk_rms', 'N/A')} m/s³")
     print(f"  RTF: {metrics.get('rtf_mean', 'N/A')} (min: {metrics.get('rtf_min', 'N/A')})")
     print(f"  完成时间: {metrics.get('completion_time_s', '?')} s")
@@ -651,19 +760,21 @@ def main():
         print(f"\n{'='*80}")
         print(f"  批量测试汇总 ({len(all_results)} 个场景)")
         print(f"{'='*80}")
-        print(f"{'场景':<25} {'成功':<6} {'摔倒':<6} {'碰撞':<6} {'误差(m)':<10} {'RTF':<8} {'时间(s)':<8}")
-        print(f"{'─'*80}")
+        print(f"{'场景':<25} {'成功':<6} {'摔倒':<6} {'碰撞':<6} {'规划(s)':<8} {'漂移(m)':<10} {'vmax':<8} {'vmin':<8} {'R_min':<8}")
+        print(f"{'─'*90}")
         for r in all_results:
             m = r.get("metrics", {})
             name = r["scenario"]
             succ = "✅" if m.get("success") else "❌"
             fall = "是" if m.get("fall") else "否"
             col = str(m.get("collisions", "?"))
-            err = str(m.get("position_error_m", "?"))
-            rtf = str(m.get("rtf_mean", "?"))
-            t = str(m.get("completion_time_s", "?"))
-            print(f"{name:<25} {succ:<6} {fall:<6} {col:<6} {err:<10} {rtf:<8} {t:<8}")
-        print(f"{'─'*80}")
+            pt = str(m.get("plan_time_s", "?"))
+            drift = str(m.get("drift_mean_m", "?"))
+            vmax = str(m.get("vmax_m_s", "?"))
+            vmin = str(m.get("vmin_m_s", "?"))
+            rmin = str(m.get("turning_radius_min_m", "?"))
+            print(f"{name:<25} {succ:<6} {fall:<6} {col:<6} {pt:<8} {drift:<10} {vmax:<8} {vmin:<8} {rmin:<8}")
+        print(f"{'─'*90}")
         print(f"  汇总: {summary_path}\n")
 
     elif args.scenario:
