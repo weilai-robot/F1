@@ -1,6 +1,8 @@
 #!/bin/bash
 # ============================================================
-# 仿真导航一键启动 (sim_module 链路) — run_sim_nav.sh
+# 仿真导航一键启动 (MuJoCo + sim_module 联合链路) — run_mujoco_nav.sh
+# 注意: 本路线联合 aimrt_main/sim_module (MuJoCo 物理 + ONNX RL 控制), 与真机一致。
+#       若需 Gazebo 路线 (不联合 sim_module), 请用 run_gazebo_nav.sh
 #
 # 全部在 tmux 中启动, 无需额外终端:
 #   [0] aimrt_main       — ONNX RL + sim_module 物理仿真 (真机一致)
@@ -146,9 +148,9 @@ tmux new-window -t "${SESSION_NAME}" -n "lidar_bridge"
 echo -e "${GREEN}  [1] MuJoCo LiDAR Bridge${NC}"
 tmux send-keys -t "${SESSION_NAME}:1" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
-    "export MUJOCO_LIDAR_SRC=${NAV_DIR}/MuJoCo-LiDAR/src" Enter
+    "export MUJOCO_LIDAR_SRC=${NAV_DIR}/sim/MuJoCo-LiDAR/src" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
-    "python3 ${NAV_DIR}/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=pointcloud2 -p downsample:=1 -p lidar_hz:=10" Enter
+    "python3 ${NAV_DIR}/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=pointcloud2 -p downsample:=1 -p lidar_hz:=10" Enter
 
 sleep 2
 

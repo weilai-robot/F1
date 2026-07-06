@@ -1,6 +1,8 @@
 #!/bin/bash
 # ============================================================
-# 仿真导航一键启动 — run_nav_sim.sh
+# 仿真导航一键启动 (Gazebo 路线, 不联合 sim_module) — run_gazebo_nav.sh
+# 注意: 本路线使用 Gazebo 物理引擎, 不启动 aimrt_main/sim_module。
+#       若需 MuJoCo + sim_module 联合仿真 (真机一致), 请用 run_mujoco_nav.sh
 # 启动内容 (4 个 tmux 窗口):
 #   [0] Gazebo 仿真环境 + 机器人模型
 #   [1] FastLIO2 里程计 (SLAM)
@@ -8,8 +10,8 @@
 #   [3] OctoMap 3D 地图 (可选，用于 VoxelLayer)
 #
 # 使用方式:
-#   ./run_nav_sim.sh          # 完整导航链路
-#   ./run_nav_sim.sh --no-gui  # 无头模式 (不弹 RViz/Gazebo GUI)
+#   ./run_gazebo_nav.sh          # 完整导航链路
+#   ./run_gazebo_nav.sh --no-gui  # 无头模式 (不弹 RViz/Gazebo GUI)
 #
 # 前置条件:
 #   1. cd navigation && colcon build --symlink-install

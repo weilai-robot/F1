@@ -14,7 +14,7 @@ weilai-robot/F1                    ← 你当前所在的集成仓库
 ├── scripts/                     ← 统一构建/运行脚本（集成仓库管理）
 │   ├── build_all.sh            ←   全量构建
 │   ├── build.sh / build_nav.sh ←   单模块构建
-│   ├── run_sim_nav.sh          ←   仿真导航启动
+│   ├── run_mujoco_nav.sh       ←   MuJoCo+sim_module 仿真导航启动
 │   └── send_nav_goal.sh        ←   导航目标发送
 └── doc/                           ← 跨模块文档
 ```

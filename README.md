@@ -45,7 +45,7 @@ F1/                              # This repo — thin integration layer
 │   ├── build_all.sh            #   Build both subsystems
 │   ├── build.sh                #   Build motion_control only
 │   ├── build_nav.sh            #   Build navigation only
-│   ├── run_sim_nav.sh          #   Launch full sim navigation (6 tmux panes)
+│   ├── run_mujoco_nav.sh       #   MuJoCo + sim_module joint sim nav (6 tmux panes)
 │   ├── run_nav_real.sh         #   Launch real robot navigation
 │   ├── send_nav_goal.sh        #   Send navigation goal + trigger walk mode
 │   ├── drift_check.py          #   SLAM drift diagnostics
@@ -120,7 +120,7 @@ scripts/build_all.sh
 |----------|---------|
 | Sim walking only | `cd build/ && ./run_sim.sh` |
 | Real robot walking | `cd build/ && sudo setcap cap_net_raw=ep ./aimrt_main && ./run.sh` |
-| Full sim navigation | `scripts/run_sim_nav.sh` then `scripts/send_nav_goal.sh 5.0 0.0` |
+| Full sim navigation | `scripts/run_mujoco_nav.sh` then `scripts/send_nav_goal.sh 5.0 0.0` |
 | Real robot navigation | `cd build/ && ./run.sh` then `scripts/run_nav_real.sh` then `scripts/send_nav_goal.sh 3.0 0.0` |
 
 ---

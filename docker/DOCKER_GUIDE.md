@@ -51,8 +51,8 @@ cd /workspace
 # 纯行走仿真
 ./build/run_sim.sh
 
-# 导航仿真 (5 个 tmux 窗口)
-./run_sim_nav.sh
+# 导航仿真 (MuJoCo + sim_module 联合, 6 个 tmux 窗口)
+./run_mujoco_nav.sh
 
 # 跑导航测试
 python3 nav_test_runner.py --scenario A_straight_5m

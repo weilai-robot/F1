@@ -121,9 +121,9 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     sleep 2
 fi
 
-echo -e "${YELLOW}  → Starting run_sim_nav.sh (aimrt + lidar + fastlio + nav2 + octomap + leg_odom)...${NC}"
+echo -e "${YELLOW}  → Starting run_mujoco_nav.sh (aimrt + lidar + fastlio + nav2 + octomap + leg_odom)...${NC}"
 cd "$ROOT_DIR"
-bash scripts/run_sim_nav.sh &
+bash scripts/run_mujoco_nav.sh &
 LAUNCH_PID=$!
 
 echo -e "${YELLOW}  → Waiting for sim stack to initialize...${NC}"

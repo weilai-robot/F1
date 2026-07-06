@@ -91,9 +91,9 @@ fi
 echo -e "\033[0;32m✓ Navigation ROS2 packages 构建成功\033[0m"
 
 # ── 2. MuJoCo-LiDAR (pip package, 仅仿真用) ──────────────
-if [ -d MuJoCo-LiDAR ]; then
+if [ -d sim/MuJoCo-LiDAR ]; then
     echo -e "\033[0;32m[build_nav] 安装 MuJoCo-LiDAR (pip)...\033[0m"
-    pip install -e MuJoCo-LiDAR 2>/dev/null || \
+    pip install -e sim/MuJoCo-LiDAR 2>/dev/null || \
         echo -e "\033[0;33m  ⚠ MuJoCo-LiDAR pip install 跳过\033[0m"
 fi
 

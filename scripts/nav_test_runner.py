@@ -3,7 +3,7 @@
 nav_test_runner.py — 导航仿真自动化测试 + 指标计算
 
 用法:
-  # 前提: run_sim_nav.sh 已启动, 机器人已切到 walk_mode
+  # 前提: run_mujoco_nav.sh 已启动, 机器人已切到 walk_mode
   python3 nav_test_runner.py --goal-x 5.0 --goal-y 0.0 --timeout 60
 
   # 批量跑多个场景

@@ -2,7 +2,7 @@
 # ============================================================
 # 一键导航: 切 walk_mode + 发导航目标 — send_nav_goal.sh
 #
-# 前提: run_sim_nav.sh 已启动 (aimrt + lidar + fastlio + nav2 都在跑)
+# 前提: run_mujoco_nav.sh 已启动 (aimrt + lidar + fastlio + nav2 都在跑)
 #
 # 用法:
 #   ./send_nav_goal.sh 5.0 0.0            # 走到 (5.0, 0.0)
@@ -24,7 +24,7 @@ NAV_DIR="${ROOT_DIR}/navigation"
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 
-# ── 自动检测 ROS2 setup.bash (与 run_sim_nav.sh 一致) ──
+# ── 自动检测 ROS2 setup.bash (与 run_mujoco_nav.sh 一致) ──
 if [ -z "${ROS_SETUP_BASH}" ]; then
     if   [ -f "${CONDA_PREFIX:-}/ros_humble/setup.bash" ]; then ROS_SETUP_BASH="${CONDA_PREFIX}/ros_humble/setup.bash"
     elif [ -f "${CONDA_PREFIX:-}/setup.bash" ];            then ROS_SETUP_BASH="${CONDA_PREFIX}/setup.bash"

@@ -45,7 +45,7 @@ F1/                              # 本仓库 — 薄集成层
 │   ├── build_all.sh            #   构建两个子系统
 │   ├── build.sh                #   仅构建 motion_control
 │   ├── build_nav.sh            #   仅构建 navigation
-│   ├── run_sim_nav.sh          #   一键启动仿真导航 (6 个 tmux 窗口)
+│   ├── run_mujoco_nav.sh       #   MuJoCo+sim_module 联合仿真导航 (6 个 tmux 窗口)
 │   ├── run_nav_real.sh         #   真机导航一键启动
 │   ├── send_nav_goal.sh        #   发送导航目标 + 切换行走模式
 │   ├── drift_check.py          #   SLAM 漂移诊断
@@ -120,7 +120,7 @@ scripts/build_all.sh
 |------|------|
 | 仿真行走（仅控制） | `cd build/ && ./run_sim.sh` |
 | 真机行走（仅控制） | `cd build/ && sudo setcap cap_net_raw=ep ./aimrt_main && ./run.sh` |
-| 仿真全栈导航 | `scripts/run_sim_nav.sh` 然后 `scripts/send_nav_goal.sh 5.0 0.0` |
+| 仿真全栈导航 | `scripts/run_mujoco_nav.sh` 然后 `scripts/send_nav_goal.sh 5.0 0.0` |
 | 真机自主导航 | `cd build/ && ./run.sh` 然后 `scripts/run_nav_real.sh` 然后 `scripts/send_nav_goal.sh 3.0 0.0` |
 
 ---

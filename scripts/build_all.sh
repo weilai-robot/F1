@@ -185,8 +185,8 @@ if [ "$DO_PACK" = true ]; then
     # --- 顶层启动脚本 ---
     echo "  打包启动脚本..."
     cp run_sim.sh "${PKG_DIR}/" 2>/dev/null || true
-    cp run_sim_nav.sh "${PKG_DIR}/" 2>/dev/null || true
-    cp run_nav_sim.sh "${PKG_DIR}/" 2>/dev/null || true
+    cp run_mujoco_nav.sh "${PKG_DIR}/" 2>/dev/null || true
+    cp run_gazebo_nav.sh "${PKG_DIR}/" 2>/dev/null || true
     cp run_nav_real.sh "${PKG_DIR}/" 2>/dev/null || true
     cp nav_test_runner.py "${PKG_DIR}/" 2>/dev/null || true
     cp build_nav.sh "${PKG_DIR}/" 2>/dev/null || true
@@ -206,7 +206,7 @@ Usage:
   cd motion_control && ./aimrt_main --cfg_file_path=./cfg/x1_cfg_sim.yaml
   # 导航仿真
   source navigation/install/setup.bash
-  ./run_sim_nav.sh
+  ./run_mujoco_nav.sh
 EOF
 
     # --- 打 tar ---
