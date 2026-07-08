@@ -8,8 +8,9 @@
 #   [0] aimrt_main       — ONNX RL + sim_module 物理仿真 (真机一致)
 #   [1] lidar_bridge     — MuJoCo LiDAR 射线追踪 + /clock
 #   [2] fast_lio2        — SLAM 里程计
-#   [3] nav2             — 导航栈 (AMCL + MPPI + Costmap)
-#   [4] octomap          — 3D 地图 (可选)
+#   [3] open3d_loc       — ICP 全局定位 (发布 map->odom / map->camera_init TF)
+#   [4] nav2             — 导航栈 (MPPI + Costmap)
+#   [5] octomap          — 3D 地图 (可选)
 # ============================================================
 set -e
 
@@ -75,7 +76,7 @@ print_missing_ros_pkg_help() {
     echo -e "    mamba install -c robostack-staging -c conda-forge ros-humble-nav2-bringup ros-humble-octomap-server"
 }
 
-for pkg in fast_lio humanoid_sim; do
+for pkg in fast_lio humanoid_sim open3d_loc; do
     if ! ros_pkg_exists "${pkg}"; then
         print_missing_ros_pkg_help "${pkg}"
         echo -e "  请先运行: ./build_nav.sh"
@@ -100,7 +101,7 @@ fi
 ENABLE_OCTOMAP=true
 if ! ros_pkg_exists octomap_server; then
     ENABLE_OCTOMAP=false
-    echo -e "${YELLOW}[WARN] 缺少 octomap_server，将跳过 [4] OctoMap 窗口。${NC}"
+    echo -e "${YELLOW}[WARN] 缺少 octomap_server，将跳过 [5] OctoMap 窗口。${NC}"
     echo -e "       安装后可恢复: sudo apt install ros-humble-octomap-server"
 fi
 
@@ -132,7 +133,8 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
 fi
 
 # --- 每个窗口的 source 前缀 ---
-TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+# TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+TMUX_SOURCE="source ~/miniconda3/etc/profile.d/conda.sh && conda activate nav && source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
 
 # --- [窗口 0] aimrt_main (运动控制 + 物理仿真) ---
 tmux new-session -d -s "${SESSION_NAME}" -n "aimrt"
@@ -163,38 +165,47 @@ tmux send-keys -t "${SESSION_NAME}:2" \
 
 sleep 2
 
-# --- [窗口 3] Nav2 ---
-tmux new-window -t "${SESSION_NAME}" -n "nav2"
-echo -e "${GREEN}  [3] Nav2 导航${NC}"
+# --- [窗口 3] open3d_loc (ICP) ---
+tmux new-window -t "${SESSION_NAME}" -n "icp"
+echo -e "${GREEN}  [3] open3d_loc (ICP)${NC}"
 tmux send-keys -t "${SESSION_NAME}:3" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:3" \
+    "ros2 launch open3d_loc open3d_loc_x1.launch.py use_sim_time:=true" Enter
+
+sleep 2
+
+# --- [窗口 4] Nav2 ---
+tmux new-window -t "${SESSION_NAME}" -n "nav2"
+echo -e "${GREEN}  [4] Nav2 导航${NC}"
+tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:4" \
     "ros2 launch humanoid_sim navigation.launch.py" Enter
 
 sleep 2
 
-# --- [窗口 4] OctoMap ---
+# --- [窗口 5] OctoMap ---
 if [ "${ENABLE_OCTOMAP}" = true ]; then
     tmux new-window -t "${SESSION_NAME}" -n "octomap"
-    echo -e "${GREEN}  [4] OctoMap 3D 地图${NC}"
-    tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
-    tmux send-keys -t "${SESSION_NAME}:4" \
+    echo -e "${GREEN}  [5] OctoMap 3D 地图${NC}"
+    tmux send-keys -t "${SESSION_NAME}:5" "${TMUX_SOURCE}" Enter
+    tmux send-keys -t "${SESSION_NAME}:5" \
         "ros2 launch humanoid_sim octomap_mapping.launch.py" Enter
 fi
 
-# --- [窗口 5] 腿里程计 (Leg Odometry 前馈) ---
+# --- [窗口 6] 腿里程计 (Leg Odometry 前馈) ---
 tmux new-window -t "${SESSION_NAME}" -n "leg_odom"
-echo -e "${GREEN}  [5] 腿里程计 (Leg Odometry)${NC}"
-tmux send-keys -t "${SESSION_NAME}:5" "${TMUX_SOURCE}" Enter
-tmux send-keys -t "${SESSION_NAME}:5" \
+echo -e "${GREEN}  [6] 腿里程计 (Leg Odometry)${NC}"
+tmux send-keys -t "${SESSION_NAME}:6" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:6" \
     "ros2 run humanoid_sim leg_odom_node.py --ros-args -p model_path:='${MODEL_PATH}'" Enter
 
-# --- [窗口 6] 测试数据采集 (rosbag + pidstat) ---
+# --- [窗口 7] 测试数据采集 (rosbag + pidstat) ---
 tmux new-window -t "${SESSION_NAME}" -n "record"
-RECORD_WINDOW=6
-echo -e "${GREEN}  [6] 测试数据采集 (手动启动)${NC}"
+RECORD_WINDOW=7
+echo -e "${GREEN}  [7] 测试数据采集 (手动启动)${NC}"
 tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" "source ${ROS_SETUP_BASH}" Enter
 tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" \
-    "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel_limiter /Odometry /leg_odom /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
+    "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel_limiter /Odometry /leg_odom /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|open3d_loc|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
 
 # --- 完成 ---
 echo ""
@@ -206,10 +217,11 @@ echo " tmux 窗口布局:"
 echo "   [0] aimrt        - aimrt_main (ONNX RL + MuJoCo 物理)"
 echo "   [1] lidar_bridge - MuJoCo LiDAR 射线追踪 + /clock"
 echo "   [2] fastlio      - FastLIO2 里程计"
-echo "   [3] nav2         - Nav2 导航栈"
-echo "   [4] octomap      - OctoMap 3D 地图 (可选)"
-echo "   [5] leg_odom     - 腿里程计前馈"
-echo "   [6] record       - 测试数据采集 (rosbag + pidstat)"
+echo "   [3] icp          - open3d_loc (ICP 全局定位)"
+echo "   [4] nav2         - Nav2 导航栈"
+echo "   [5] octomap      - OctoMap 3D 地图 (可选)"
+echo "   [6] leg_odom     - 腿里程计前馈"
+echo "   [7] record       - 测试数据采集 (rosbag + pidstat)"
 echo ""
 echo " 切换窗口: Ctrl+B 然后 数字键"
 echo " 附加终端: tmux attach -t ${SESSION_NAME}"

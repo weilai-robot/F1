@@ -69,9 +69,9 @@ cd "$NAV_DIR"
 # ── 1. 构建 ROS2 C++ / Python packages ──────────────────
 PACKAGES=""
 if [ "$BUILD_LIVOX" = true ]; then
-    PACKAGES="livox_ros_driver2 fast_lio humanoid_sim"
+    PACKAGES="livox_ros_driver2 fast_lio humanoid_sim open3d_loc"
 else
-    PACKAGES="fast_lio humanoid_sim"
+    PACKAGES="fast_lio humanoid_sim open3d_loc"
 fi
 
 echo -e "\033[0;32m[build_nav] 构建包: ${PACKAGES}\033[0m"
