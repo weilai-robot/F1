@@ -68,7 +68,12 @@ fi
 
 # ── source 或报错 ─────────────────────────────────────────
 if [ -n "$ROS2_FOUND" ]; then
+    # ROS2 setup.bash 引用了 AMENT_TRACE_SETUP_FILES 等未初始化变量，
+    # 在 set -u 下会报错，临时关闭 nounset
+    _prev_opts="$(set +o)"
+    set +u
     source "$ROS2_FOUND"
+    eval "$_prev_opts"
     export ROS2_FOUND
     echo -e "${_GREEN}[ros2]${_NC} ${ROS2_FOUND}"
 else
