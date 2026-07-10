@@ -46,11 +46,7 @@ done
 # ── 环境检查 ──────────────────────────────────────────────
 echo -e "${GREEN}[build_all] 开始统一构建${NC}"
 
-if [ ! -f /opt/ros/humble/setup.bash ]; then
-    echo -e "${RED}[ERROR] 未找到 ROS2 Humble, 请先安装${NC}"
-    exit 1
-fi
-source /opt/ros/humble/setup.bash
+source "${SCRIPT_DIR}/ros2_source.sh"
 
 if [ -f "${SCRIPT_DIR}/url_gitee.bashrc" ]; then
     source "${SCRIPT_DIR}/url_gitee.bashrc"

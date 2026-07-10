@@ -35,12 +35,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-# ── source 环境 ──────────────────────────────────────────
-if [ ! -f /opt/ros/humble/setup.bash ]; then
-    echo -e "${RED}[ERROR] 未找到 ROS2 Humble (/opt/ros/humble/setup.bash)${NC}"
-    exit 1
-fi
-source /opt/ros/humble/setup.bash
+# ── source ROS2 环境 ──────────────────────────────────────
+source "${SCRIPT_DIR}/ros2_source.sh"
 
 if [ -f "${SCRIPT_DIR}/url_gitee.bashrc" ]; then
     source "${SCRIPT_DIR}/url_gitee.bashrc"
