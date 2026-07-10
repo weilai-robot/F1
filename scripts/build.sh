@@ -75,7 +75,7 @@ echo -e "${GREEN}[build] 验证产物 ...${NC}"
 MISSING=0
 
 check() {
-    if [ -e "build/install/bin/$1" ]; then
+    if [ -e "build/$1" ]; then
         echo -e "  ${GREEN}✓${NC}  $1"
     else
         echo -e "  ${RED}✗${NC}  $1  (缺失!)"
@@ -83,17 +83,16 @@ check() {
     fi
 }
 
-# 核心二进制（install/bin/ 下）
-cd build/install/bin
+# 核心产物（编译 + custom_target + install to CMAKE_BINARY_DIR）
 check aimrt_main
 check libpkg1.so
 check run.sh
+check run_with_recording.sh
 check cfg/x1_cfg.yaml
 check cfg/control_module/rl_x1.yaml
 check cfg/control_module/policy/rl_walk_leg.onnx
 check cfg/control_module/policy/rl_walk_leg_shoulder.onnx
 check cfg/dcu_driver_module/dcu_x1.yaml
-cd "$ROOT_DIR"
 
 if [ "$MISSING" -gt 0 ]; then
     echo ""
@@ -106,14 +105,14 @@ echo ""
 echo -e "${GREEN}══════════════════════════════════════════${NC}"
 echo -e "${GREEN} motion_control 构建成功${NC}"
 echo -e "${GREEN}══════════════════════════════════════════${NC}"
-echo    " aimrt_main:   $(ls -lh build/install/bin/aimrt_main 2>/dev/null | awk '{print $5}')"
-echo    " libpkg1.so:   $(ls -lh build/install/bin/libpkg1.so 2>/dev/null | awk '{print $5}')"
-echo    " cfg:          $(find build/install/bin/cfg -name '*.yaml' | wc -l) yamls"
-echo    " onnx:         $(find build/install/bin/cfg -name '*.onnx' | wc -l) models"
+echo    " aimrt_main:   $(ls -lh build/aimrt_main 2>/dev/null | awk '{print $5}')"
+echo    " libpkg1.so:   $(ls -lh build/libpkg1.so 2>/dev/null | awk '{print $5}')"
+echo    " cfg:          $(find build/cfg -name '*.yaml' | wc -l) yamls"
+echo    " onnx:         $(find build/cfg -name '*.onnx' | wc -l) models"
 echo -e " 耗时:         ${BUILD_DURATION}s"
 echo ""
 echo -e "${YELLOW} 真机运行:${NC}"
-echo    "   cd build/install/bin"
+echo    "   cd build"
 echo    "   sudo setcap cap_net_raw=ep ./aimrt_main"
 echo    "   bash run.sh"
 echo ""

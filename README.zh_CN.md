@@ -116,7 +116,7 @@ sudo apt install -y \
 ./scripts/build.sh Debug
 ```
 
-构建产物位于 `build/install/bin/`：
+构建产物位于 `build/`：
 
 | 产物 | 说明 |
 |------|------|
@@ -162,7 +162,7 @@ sudo apt install -y \
 #### 4.2 启动控制
 
 ```bash
-cd build/install/bin
+cd build
 
 # 1. 赋予 raw socket 权限（EtherCAT 通信需要，每次重新拷贝二进制后需重做）
 sudo setcap cap_net_raw=ep ./aimrt_main
@@ -218,7 +218,7 @@ ros2 topic pub /cmd_vel_limiter geometry_msgs/msg/Twist '{linear: {x: 0.2}, angu
 - **walk_diag**：每帧记录时间戳、步态相位、速度指令、欧拉角、角速度、各关节 action/pos/vel/effort/PD 目标值（原始 + 滤波）、IMU 四元数/陀螺/加速度。
 - **tm_obs_input**：ONNX 策略网络的完整观测向量，用于离线回放。
 
-采集满 1000 帧或离开 walk 状态 500 ms 无新帧后自动关闭文件。日志写入路径相对于进程 CWD（即 `build/install/bin/test_logs/`）。
+采集满 1000 帧或离开 walk 状态 500 ms 无新帧后自动关闭文件。日志写入路径相对于进程 CWD（即 `build/test_logs/`）。
 
 ---
 
@@ -226,7 +226,7 @@ ros2 topic pub /cmd_vel_limiter geometry_msgs/msg/Twist '{linear: {x: 0.2}, angu
 
 | 场景 | 命令 |
 |------|------|
-| 仿真行走（仅控制） | `cd build/install/bin && ./run_sim.sh` |
+| 仿真行走（仅控制） | `cd build && ./run_sim.sh` |
 | 仿真全栈导航 | `./scripts/run_mujoco_nav.sh` 然后 `./scripts/send_nav_goal.sh 5.0 0.0` |
 | 真机自主导航 | 先按 §4 启动控制，再 `./scripts/run_nav_real.sh`，然后 `./scripts/send_nav_goal.sh 3.0 0.0` |
 

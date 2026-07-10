@@ -116,7 +116,7 @@ sudo apt install -y \
 ./scripts/build.sh Debug
 ```
 
-Build artifacts are placed in `build/install/bin/`:
+Build artifacts are placed in `build/`:
 
 | Artifact | Description |
 |----------|-------------|
@@ -162,7 +162,7 @@ The script automatically verifies all artifacts after compilation.
 #### 4.2 Launch Control
 
 ```bash
-cd build/install/bin
+cd build
 
 # 1. Grant raw socket permission (required for EtherCAT; redo after re-copying binary)
 sudo setcap cap_net_raw=ep ./aimrt_main
@@ -218,7 +218,7 @@ The control module has a built-in data acquisition system that **triggers automa
 - **walk_diag**: Per-frame timestamp, gait phase, velocity commands, Euler angles, angular velocities, per-joint action/pos/vel/effort/PD targets (raw + filtered), IMU quaternion/gyro/accel.
 - **tm_obs_input**: Complete observation vector fed to the ONNX policy network, for offline replay.
 
-Files are auto-closed after 1000 frames or 500 ms idle after leaving walk mode. Log paths are relative to the process CWD (i.e. `build/install/bin/test_logs/`).
+Files are auto-closed after 1000 frames or 500 ms idle after leaving walk mode. Log paths are relative to the process CWD (i.e. `build/test_logs/`).
 
 ---
 
@@ -226,7 +226,7 @@ Files are auto-closed after 1000 frames or 500 ms idle after leaving walk mode. 
 
 | Scenario | Command |
 |----------|---------|
-| Sim walking only | `cd build/install/bin && ./run_sim.sh` |
+| Sim walking only | `cd build && ./run_sim.sh` |
 | Full sim navigation | `./scripts/run_mujoco_nav.sh` then `./scripts/send_nav_goal.sh 5.0 0.0` |
 | Real robot navigation | Start control per §4, then `./scripts/run_nav_real.sh`, then `./scripts/send_nav_goal.sh 3.0 0.0` |
 
