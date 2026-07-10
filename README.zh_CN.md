@@ -103,25 +103,132 @@ sudo apt install -y \
 
 ### 3. 构建
 
+#### motion_control（运动控制）
+
 ```bash
-# 构建 motion_control
-scripts/build.sh
+# Release 增量构建（默认）
+./scripts/build.sh
 
-# 构建 navigation
-scripts/build_nav.sh
+# 清理后全新构建
+./scripts/build.sh clean
 
-# 一键构建全部
-scripts/build_all.sh
+# Debug 构建
+./scripts/build.sh Debug
 ```
 
-### 4. 运行
+构建产物位于 `build/install/bin/`：
+
+| 产物 | 说明 |
+|------|------|
+| `aimrt_main` | AimRT 主二进制 |
+| `libpkg1.so` | 注册 5 个模块的共享库 |
+| `cfg/x1_cfg.yaml` | 真机顶层配置 |
+| `cfg/control_module/rl_x1.yaml` | 真机控制配置（频率、关节、ONNX 策略） |
+| `cfg/control_module/policy/*.onnx` | RL 策略模型 |
+| `cfg/dcu_driver_module/dcu_x1.yaml` | DCU 硬件驱动配置（EtherCAT、执行器、传动） |
+| `run.sh` / `run_with_recording.sh` | 真机运行脚本 |
+
+脚本会在编译后自动校验上述产物是否齐全。
+
+#### navigation（导航）
+
+```bash
+./scripts/build_nav.sh
+```
+
+#### 一键构建全部
+
+```bash
+./scripts/build_all.sh
+```
+
+---
+
+### 4. 真机部署运行 motion_control
+
+> 以下为**仅在真机上部署运行运动控制**的完整步骤。
+
+#### 4.1 前置检查
+
+| 检查项 | 配置文件 | 当前值 | 说明 |
+|--------|---------|--------|------|
+| EtherCAT 网卡名 | `cfg/dcu_driver_module/dcu_x1.yaml` → `ethercat.ifname` | `enp2s0` | ⚠️ 必须与真机实际网卡名一致 |
+| DCU EtherCAT ID | `dcu_x1.yaml` → `dcu_network[].ecat_id` | body=1, hip=2 | 按实际链路顺序 |
+| IMU 来源 | `dcu_x1.yaml` → `imu_dcu_name` | `hip` | 使用下肢 DCU 的 IMU |
+| 控制频率 | `cfg/control_module/rl_x1.yaml` → `control_frequecy` | `1000` Hz | MainLoop 1 ms 周期 |
+| EtherCAT 周期 | `dcu_x1.yaml` → `ethercat.cycle_time_ns` | `1000000` ns (1 ms) | 与控制频率匹配 |
+| 关节偏移量 | `rl_x1.yaml` → `joint_offset` | 全 `0.0` | 按实际标零情况调整 |
+
+#### 4.2 启动控制
+
+```bash
+cd build/install/bin
+
+# 1. 赋予 raw socket 权限（EtherCAT 通信需要，每次重新拷贝二进制后需重做）
+sudo setcap cap_net_raw=ep ./aimrt_main
+
+# 2. 启动（方式 A：仅控制）
+./aimrt_main --cfg_file_path=./cfg/x1_cfg.yaml
+# 或等价脚本
+bash run.sh
+
+# 2. 启动（方式 B：控制 + ROS2 bag 录制）
+bash run_with_recording.sh
+```
+
+`x1_cfg.yaml` 加载的模块：
+
+| 模块 | 职责 |
+|------|------|
+| `JoyStickModule` | 遥控器/Nav2 → `/cmd_vel` 速度指令转换 |
+| `ControlModule` | 状态机调度 + RL/PD 控制 + 数据日志采集 |
+| `DcuDriverModule` | EtherCAT 硬件驱动（读取 IMU/关节状态，下发电机指令） |
+
+> 真机配置**不含** `SimModule`（仿真专用）。真机依赖 DCU 驱动提供 `/imu/data`、`/joint_states`，并接收 `/joint_cmd`。
+
+#### 4.3 状态机操作
+
+机器人启动后进入 `initial_state`（由 `rl_x1.yaml` 指定）。通过 ROS2 话题触发状态切换：
+
+```bash
+# —— 标准上电流程 ——
+ros2 topic pub --once /idle_mode  std_msgs/msg/Float32 '{data: 0.0}'   # 空闲（上电不使能）
+ros2 topic pub --once /zero_mode  std_msgs/msg/Float32 '{data: 0.0}'   # 归零（使能 + 回零位）
+ros2 topic pub --once /stand_mode std_msgs/msg/Float32 '{data: 0.0}'   # 站立
+
+# —— 行走（从 stand 进入）——
+ros2 topic pub --once /walk_mode  std_msgs/msg/Float32 '{data: 0.0}'   # walk_leg（纯腿部）
+ros2 topic pub --once /walk_mode2 std_msgs/msg/Float32 '{data: 0.0}'   # walk_leg_arm（腿 + 肩）
+
+# —— 速度指令（行走状态下）——
+ros2 topic pub /cmd_vel_limiter geometry_msgs/msg/Twist '{linear: {x: 0.2}, angular: {z: 0.0}}'
+```
+
+状态转移规则见 `rl_x1.yaml` → `robot_states`，非法转移会被状态机拒绝。
+
+#### 4.4 数据日志
+
+控制模块内置数据采集系统，**在进入 `walk_leg` / `walk_leg_arm` 状态时自动触发**，无需额外操作。
+
+| 日志 | 格式 | 路径 | 采集频率 | 单次时长 |
+|------|------|------|---------|---------|
+| `walk_diag_<时间戳>.csv` | CSV 文本 | `test_logs/data_csv/` | 100 Hz | 10 s (1000 帧) |
+| `tm_obs_input_<时间戳>.bin` | float 二进制原始流 | `test_logs/data_csv/t_m/` | 100 Hz | 10 s (1000 帧) |
+
+- **walk_diag**：每帧记录时间戳、步态相位、速度指令、欧拉角、角速度、各关节 action/pos/vel/effort/PD 目标值（原始 + 滤波）、IMU 四元数/陀螺/加速度。
+- **tm_obs_input**：ONNX 策略网络的完整观测向量，用于离线回放。
+
+采集满 1000 帧或离开 walk 状态 500 ms 无新帧后自动关闭文件。日志写入路径相对于进程 CWD（即 `build/install/bin/test_logs/`）。
+
+---
+
+### 5. 仿真运行
 
 | 场景 | 命令 |
 |------|------|
-| 仿真行走（仅控制） | `cd build/ && ./run_sim.sh` |
-| 真机行走（仅控制） | `cd build/ && sudo setcap cap_net_raw=ep ./aimrt_main && ./run.sh` |
-| 仿真全栈导航 | `scripts/run_mujoco_nav.sh` 然后 `scripts/send_nav_goal.sh 5.0 0.0` |
-| 真机自主导航 | `cd build/ && ./run.sh` 然后 `scripts/run_nav_real.sh` 然后 `scripts/send_nav_goal.sh 3.0 0.0` |
+| 仿真行走（仅控制） | `cd build/install/bin && ./run_sim.sh` |
+| 仿真全栈导航 | `./scripts/run_mujoco_nav.sh` 然后 `./scripts/send_nav_goal.sh 5.0 0.0` |
+| 真机自主导航 | 先按 §4 启动控制，再 `./scripts/run_nav_real.sh`，然后 `./scripts/send_nav_goal.sh 3.0 0.0` |
 
 ---
 

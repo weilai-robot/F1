@@ -103,25 +103,132 @@ sudo apt install -y \
 
 ### 3. Build
 
+#### motion_control
+
 ```bash
-# Build motion_control
-scripts/build.sh
+# Release incremental build (default)
+./scripts/build.sh
 
-# Build navigation
-scripts/build_nav.sh
+# Clean build from scratch
+./scripts/build.sh clean
 
-# Or build both at once
-scripts/build_all.sh
+# Debug build
+./scripts/build.sh Debug
 ```
 
-### 4. Run
+Build artifacts are placed in `build/install/bin/`:
+
+| Artifact | Description |
+|----------|-------------|
+| `aimrt_main` | AimRT main binary |
+| `libpkg1.so` | Shared library registering all 5 modules |
+| `cfg/x1_cfg.yaml` | Real-robot top-level config |
+| `cfg/control_module/rl_x1.yaml` | Real-robot control config (freq, joints, ONNX policy) |
+| `cfg/control_module/policy/*.onnx` | RL policy models |
+| `cfg/dcu_driver_module/dcu_x1.yaml` | DCU hardware driver config (EtherCAT, actuators, transmission) |
+| `run.sh` / `run_with_recording.sh` | Real-robot run scripts |
+
+The script automatically verifies all artifacts after compilation.
+
+#### navigation
+
+```bash
+./scripts/build_nav.sh
+```
+
+#### Build both
+
+```bash
+./scripts/build_all.sh
+```
+
+---
+
+### 4. Real-Robot Deployment (motion_control only)
+
+> Complete steps to deploy and run motion control on the real robot.
+
+#### 4.1 Pre-flight Checks
+
+| Item | Config File | Current | Notes |
+|------|-----------|---------|-------|
+| EtherCAT interface | `cfg/dcu_driver_module/dcu_x1.yaml` → `ethercat.ifname` | `enp2s0` | ⚠️ Must match actual NIC name |
+| DCU EtherCAT IDs | `dcu_x1.yaml` → `dcu_network[].ecat_id` | body=1, hip=2 | Per physical chain order |
+| IMU source | `dcu_x1.yaml` → `imu_dcu_name` | `hip` | Uses lower-limb DCU IMU |
+| Control frequency | `cfg/control_module/rl_x1.yaml` → `control_frequecy` | `1000` Hz | MainLoop 1 ms period |
+| EtherCAT cycle | `dcu_x1.yaml` → `ethercat.cycle_time_ns` | `1000000` ns (1 ms) | Must match control freq |
+| Joint offsets | `rl_x1.yaml` → `joint_offset` | all `0.0` | Adjust per actual zero calibration |
+
+#### 4.2 Launch Control
+
+```bash
+cd build/install/bin
+
+# 1. Grant raw socket permission (required for EtherCAT; redo after re-copying binary)
+sudo setcap cap_net_raw=ep ./aimrt_main
+
+# 2. Launch (Option A: control only)
+./aimrt_main --cfg_file_path=./cfg/x1_cfg.yaml
+# or equivalently
+bash run.sh
+
+# 2. Launch (Option B: control + ROS2 bag recording)
+bash run_with_recording.sh
+```
+
+Modules loaded by `x1_cfg.yaml`:
+
+| Module | Responsibility |
+|--------|---------------|
+| `JoyStickModule` | Joystick / Nav2 → `/cmd_vel` velocity command conversion |
+| `ControlModule` | State machine + RL/PD control + data logging |
+| `DcuDriverModule` | EtherCAT hardware driver (reads IMU/joint states, sends motor commands) |
+
+> The real-robot config does **not** include `SimModule` (simulation only). The real robot relies on the DCU driver to provide `/imu/data`, `/joint_states`, and to consume `/joint_cmd`.
+
+#### 4.3 State Machine Operation
+
+The robot starts in `initial_state` (set in `rl_x1.yaml`). Trigger state transitions via ROS2 topics:
+
+```bash
+# — Standard power-on sequence —
+ros2 topic pub --once /idle_mode  std_msgs/msg/Float32 '{data: 0.0}'   # Idle (powered, not enabled)
+ros2 topic pub --once /zero_mode  std_msgs/msg/Float32 '{data: 0.0}'   # Zero (enable + return to zero)
+ros2 topic pub --once /stand_mode std_msgs/msg/Float32 '{data: 0.0}'   # Stand
+
+# — Walking (from stand) —
+ros2 topic pub --once /walk_mode  std_msgs/msg/Float32 '{data: 0.0}'   # walk_leg (legs only)
+ros2 topic pub --once /walk_mode2 std_msgs/msg/Float32 '{data: 0.0}'   # walk_leg_arm (legs + shoulders)
+
+# — Velocity command (while walking) —
+ros2 topic pub /cmd_vel_limiter geometry_msgs/msg/Twist '{linear: {x: 0.2}, angular: {z: 0.0}}'
+```
+
+State transition rules are defined in `rl_x1.yaml` → `robot_states`. Invalid transitions are rejected by the state machine.
+
+#### 4.4 Data Logging
+
+The control module has a built-in data acquisition system that **triggers automatically upon entering `walk_leg` / `walk_leg_arm`** — no extra action needed.
+
+| Log | Format | Path | Rate | Duration |
+|-----|--------|------|------|----------|
+| `walk_diag_<timestamp>.csv` | CSV text | `test_logs/data_csv/` | 100 Hz | 10 s (1000 frames) |
+| `tm_obs_input_<timestamp>.bin` | Raw float binary | `test_logs/data_csv/t_m/` | 100 Hz | 10 s (1000 frames) |
+
+- **walk_diag**: Per-frame timestamp, gait phase, velocity commands, Euler angles, angular velocities, per-joint action/pos/vel/effort/PD targets (raw + filtered), IMU quaternion/gyro/accel.
+- **tm_obs_input**: Complete observation vector fed to the ONNX policy network, for offline replay.
+
+Files are auto-closed after 1000 frames or 500 ms idle after leaving walk mode. Log paths are relative to the process CWD (i.e. `build/install/bin/test_logs/`).
+
+---
+
+### 5. Simulation
 
 | Scenario | Command |
 |----------|---------|
-| Sim walking only | `cd build/ && ./run_sim.sh` |
-| Real robot walking | `cd build/ && sudo setcap cap_net_raw=ep ./aimrt_main && ./run.sh` |
-| Full sim navigation | `scripts/run_mujoco_nav.sh` then `scripts/send_nav_goal.sh 5.0 0.0` |
-| Real robot navigation | `cd build/ && ./run.sh` then `scripts/run_nav_real.sh` then `scripts/send_nav_goal.sh 3.0 0.0` |
+| Sim walking only | `cd build/install/bin && ./run_sim.sh` |
+| Full sim navigation | `./scripts/run_mujoco_nav.sh` then `./scripts/send_nav_goal.sh 5.0 0.0` |
+| Real robot navigation | Start control per §4, then `./scripts/run_nav_real.sh`, then `./scripts/send_nav_goal.sh 3.0 0.0` |
 
 ---
 
