@@ -133,8 +133,8 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
 fi
 
 # --- 每个窗口的 source 前缀 ---
-# TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
-TMUX_SOURCE="source ~/miniconda3/etc/profile.d/conda.sh && conda activate nav && source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+# TMUX_SOURCE="source /home/robot/env/miniconda/etc/profile.d/conda.sh && conda deactivate >/dev/null 2>&1 || true && conda activate nav && source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
 
 # --- [窗口 0] aimrt_main (运动控制 + 物理仿真) ---
 tmux new-session -d -s "${SESSION_NAME}" -n "aimrt"
