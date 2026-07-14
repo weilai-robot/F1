@@ -344,10 +344,37 @@ fi
 
 cecho "\n${Y} 日志目录: ${CI_LOG_DIR}/${N}"
 
-if [ "$TEST_EXIT_CODE" -ne 0 ]; then
-    cecho "${R}[ci] 测试完成 (有失败场景), exit=${TEST_EXIT_CODE}${N}"
+# 从 JSON 结果判断导航测试是否通过 (nav_test_runner 自身 exit=0 不代表导航成功)
+NAV_PASS=true
+if [ "$SCENARIO" = "all" ]; then
+    BATCH_SUMMARY="$(ls -t "$REPORT_DIR"/batch_summary_*.json 2>/dev/null | head -1)"
+    if [ -n "$BATCH_SUMMARY" ]; then
+        FAIL_COUNT=$(python3 -c "
+import json
+with open('$BATCH_SUMMARY') as f: r=json.load(f)
+print(sum(1 for x in r if not x.get('metrics',{}).get('success')))
+" 2>/dev/null || echo "1")
+        [ "$FAIL_COUNT" -gt 0 ] && NAV_PASS=false
+    fi
 else
-    cecho "${G}[ci] 测试全部通过${N}"
+    LATEST_JSON="$(ls -t "$REPORT_DIR"/*.json 2>/dev/null | grep -v batch_summary | head -1)"
+    if [ -n "$LATEST_JSON" ]; then
+        SUCCESS=$(python3 -c "
+import json
+with open('$LATEST_JSON') as f: r=json.load(f)
+print(str(r.get('metrics',{}).get('success',False)).lower())
+" 2>/dev/null || echo "false")
+        [ "$SUCCESS" != "true" ] && NAV_PASS=false
+    else
+        NAV_PASS=false
+    fi
 fi
 
-exit "$TEST_EXIT_CODE"
+if [ "$NAV_PASS" = true ]; then
+    cecho "${G}[ci] ✓ 导航测试通过${N}"
+    exit 0
+else
+    cecho "${R}[ci] ✗ 导航测试失败 (详见上方指标)${N}"
+    cecho "${Y}  报告: ${REPORT_DIR}/${N}"
+    exit 1
+fi
