@@ -84,6 +84,25 @@ for pkg in fast_lio humanoid_sim open3d_loc; do
     fi
 done
 
+# --- CustomMsg 依赖检查 (output_type:=custom 需要 livox_ros_driver2) ---
+if ! python3 -c "from livox_ros_driver2.msg import CustomMsg, CustomPoint" >/dev/null 2>&1; then
+    echo -e "${RED}[ERROR] 未检测到 livox_ros_driver2 Python 消息: livox_ros_driver2.msg.CustomMsg${NC}"
+    echo -e "  当前配置会启动 output_type:=custom，因此必须可导入 livox_ros_driver2。"
+    echo -e "  请重新构建 navigation（不要跳过 livox）:"
+    echo -e "    ./build_nav.sh"
+    exit 1
+fi
+
+# --- FastLIO2 配置文件检查 (必须安装到 share/fast_lio/config) ---
+FAST_LIO_PREFIX="$(ros2 pkg prefix fast_lio)"
+FAST_LIO_CFG="${FAST_LIO_PREFIX}/share/fast_lio/config/sim_module_mid360_custom.yaml"
+if [ ! -f "${FAST_LIO_CFG}" ]; then
+    echo -e "${RED}[ERROR] FastLIO2 配置未安装: ${FAST_LIO_CFG}${NC}"
+    echo -e "  请重新构建 fast_lio（确保 config 被 install）:"
+    echo -e "    ./build_nav.sh --packages-select fast_lio"
+    exit 1
+fi
+
 HUMANOID_SIM_PREFIX="$(ros2 pkg prefix humanoid_sim)"
 ODOM_BRIDGE_EXE="${HUMANOID_SIM_PREFIX}/lib/humanoid_sim/odom_bridge.py"
 if [ ! -x "${ODOM_BRIDGE_EXE}" ]; then
@@ -133,8 +152,8 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
 fi
 
 # --- 每个窗口的 source 前缀 ---
-TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
-# TMUX_SOURCE="source /home/robot/env/miniconda/etc/profile.d/conda.sh && conda deactivate >/dev/null 2>&1 || true && conda activate nav && source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+# TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+TMUX_SOURCE="source /home/robot/env/miniconda/etc/profile.d/conda.sh && conda deactivate >/dev/null 2>&1 || true && conda activate nav && source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
 
 # --- [窗口 0] aimrt_main (运动控制 + 物理仿真) ---
 tmux new-session -d -s "${SESSION_NAME}" -n "aimrt"
@@ -152,16 +171,16 @@ tmux send-keys -t "${SESSION_NAME}:1" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
     "export MUJOCO_LIDAR_SRC=${NAV_DIR}/sim/MuJoCo-LiDAR/src" Enter
 tmux send-keys -t "${SESSION_NAME}:1" \
-    "python3 ${NAV_DIR}/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=pointcloud2 -p downsample:=1 -p lidar_hz:=10" Enter
+        "python3 ${NAV_DIR}/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py --ros-args -p model_path:='${MODEL_PATH}' -p output_type:=custom -p downsample:=10 -p lidar_hz:=10" Enter
 
 sleep 2
 
 # --- [窗口 2] FastLIO2 ---
 tmux new-window -t "${SESSION_NAME}" -n "fastlio"
-echo -e "${GREEN}  [2] FastLIO2 (sim_module_mid360.yaml)${NC}"
+echo -e "${GREEN}  [2] FastLIO2 (sim_module_mid360_custom.yaml, CustomMsg)${NC}"
 tmux send-keys -t "${SESSION_NAME}:2" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:2" \
-    "ros2 launch fast_lio mapping_sim_module.launch.py" Enter
+    "ros2 launch fast_lio mapping_sim_module.launch.py config_file:=sim_module_mid360_custom.yaml" Enter
 
 sleep 2
 

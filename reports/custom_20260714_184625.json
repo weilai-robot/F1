@@ -1,0 +1,39 @@
+{
+  "scenario": "custom",
+  "description": "自定义 (0.0, 0.0)",
+  "timestamp": "20260714_184625",
+  "params": {
+    "goal_x": 0.0,
+    "goal_y": 0.0,
+    "goal_yaw_deg": 0.0,
+    "timeout": 60
+  },
+  "metrics": {
+    "fall": true,
+    "collisions": 4,
+    "position_error_m": 2.698,
+    "success": false,
+    "plan_time_s": 0.86,
+    "drift_mean_m": 0.5377,
+    "drift_rms_m": 0.7602,
+    "drift_max_m": 1.7,
+    "drift_p95_m": 1.6228,
+    "slam_drift_m": 1.7,
+    "completion_time_s": null,
+    "path_efficiency": 0.144,
+    "linear_jerk_rms": 22.872,
+    "angular_jerk_rms": 34.523,
+    "direction_reversals_per_sec": 0.05,
+    "vmax_m_s": 1.468,
+    "vmin_m_s": 0.0,
+    "vmean_m_s": 0.148,
+    "vstd_m_s": 0.132,
+    "turning_radius_min_m": null,
+    "rtf_mean": 1.05,
+    "rtf_min": 0.973,
+    "timeout_s": 60,
+    "timed_out": false,
+    "result_status": "TIMEOUT",
+    "cpu_mem": {}
+  }
+}
