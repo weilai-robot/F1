@@ -27,16 +27,22 @@ if [ -n "${ROS2_SETUP_PATH:-}" ] && [ -f "${ROS2_SETUP_PATH}" ]; then
     ROS2_FOUND="${ROS2_SETUP_PATH}"
 fi
 
-# 2. AMENT_PREFIX_PATH 已设置（conda env 已激活 / 已手动 source）
+# 2. conda 环境已激活 (CONDA_PREFIX 已设置)
+if [ -z "$ROS2_FOUND" ] && [ -n "${CONDA_PREFIX:-}" ]; then
+    # 常见布局 1: $CONDA_PREFIX/ros_humble/setup.bash (env 内子目录)
+    if [ -f "${CONDA_PREFIX}/ros_humble/setup.bash" ]; then
+        ROS2_FOUND="${CONDA_PREFIX}/ros_humble/setup.bash"
+    # 常见布局 2: $CONDA_PREFIX/setup.bash (ROS2 装在 env 根目录)
+    elif [ -f "${CONDA_PREFIX}/setup.bash" ]; then
+        ROS2_FOUND="${CONDA_PREFIX}/setup.bash"
+    fi
+fi
+
+# 3. AMENT_PREFIX_PATH 已设置 (已手动 source 过 ROS2)
 if [ -z "$ROS2_FOUND" ] && [ -n "${AMENT_PREFIX_PATH:-}" ]; then
-    # 检查是否已包含 humble 相关路径
     _ros_candidate="$(echo "$AMENT_PREFIX_PATH" | tr ':' '\n' | head -1)/../setup.bash"
     if [ -f "$_ros_candidate" ]; then
         ROS2_FOUND="$_ros_candidate"
-    fi
-    # conda env 内通常是 $CONDA_PREFIX/setup.bash
-    if [ -z "$ROS2_FOUND" ] && [ -n "${CONDA_PREFIX:-}" ] && [ -f "${CONDA_PREFIX}/setup.bash" ]; then
-        ROS2_FOUND="${CONDA_PREFIX}/setup.bash"
     fi
 fi
 
@@ -49,7 +55,7 @@ fi
 if [ -z "$ROS2_FOUND" ]; then
     for _base in "$HOME/Anaconda" "$HOME/anaconda3" "$HOME/miniconda3" "/opt/conda"; do
         if [ -d "$_base/envs" ]; then
-            _hit="$(find "$_base/envs" -maxdepth 2 -name setup.bash -path '*/ros_humble/setup.bash' 2>/dev/null | head -1)"
+            _hit="$(find "$_base/envs" -maxdepth 3 -name setup.bash -path '*/ros_humble/setup.bash' 2>/dev/null | head -1)"
             if [ -n "$_hit" ]; then
                 ROS2_FOUND="$_hit"
                 break
