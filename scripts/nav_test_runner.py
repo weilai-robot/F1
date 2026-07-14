@@ -205,6 +205,115 @@ class MetricsCalculator:
 
         return m
 
+    def extract_diagnostics(self, goal_x: float, goal_y: float,
+                            result_status: str = None) -> dict:
+        """提取降采样时序数据 + 事件时间线，供 Agent 诊断"""
+        MAX_POINTS = 120  # 降采样到 ≤120 点，控制 JSON 体积
+
+        def downsample(data, max_pts=MAX_POINTS):
+            if len(data) <= max_pts:
+                return data
+            stride = len(data) / max_pts
+            return [data[int(i * stride)] for i in range(max_pts)]
+
+        diag = {}
+
+        # ── 轨迹 (GT + odom) ──────────────────────────
+        gt_traj = [[round(d[0], 2), round(d[1], 3), round(d[2], 3),
+                     round(d[3], 3), round(math.degrees(d[4]), 1),
+                     round(math.degrees(d[5]), 1), round(math.degrees(d[6]), 1)]
+                    for d in downsample(self.gt_data)]
+        diag["trajectory_gt"] = gt_traj
+
+        odom_traj = [[round(d[0], 2), round(d[1], 3), round(d[2], 3)]
+                      for d in downsample(self.odom_paired_data)]
+        diag["trajectory_odom"] = [[d[0], d[3], d[4]] for d in downsample(self.odom_paired_data)]
+
+        # ── 漂移曲线 ──────────────────────────────────
+        drift_curve = [[d[0], round(d[5], 3)] for d in downsample(self.odom_paired_data)]
+        diag["drift_curve"] = drift_curve
+
+        # ── cmd_vel 曲线 ──────────────────────────────
+        if self.goal_sent_time:
+            t0 = self.goal_sent_time
+            cmd_curve = [[round(d[0] - t0, 2), round(d[1], 3), round(d[3], 3)]
+                         for d in downsample(self.cmd_vel_data)]
+        else:
+            cmd_curve = [[round(d[0], 2), round(d[1], 3), round(d[3], 3)]
+                         for d in downsample(self.cmd_vel_data)]
+        diag["cmd_vel_curve"] = cmd_curve
+
+        # ── 速度曲线 (GT 差分) ────────────────────────
+        vel_curve = []
+        ds_gt = downsample(self.gt_data)
+        for i in range(1, len(ds_gt)):
+            dt = ds_gt[i][0] - ds_gt[i-1][0]
+            if dt < 1e-6:
+                continue
+            dx = ds_gt[i][1] - ds_gt[i-1][1]
+            dy = ds_gt[i][2] - ds_gt[i-1][2]
+            v = math.sqrt(dx*dx + dy*dy) / dt
+            vel_curve.append([round(ds_gt[i][0], 2), round(v, 3)])
+        diag["velocity_curve"] = vel_curve
+
+        # ── 事件时间线 ────────────────────────────────
+        events = []
+        if self.gt_data:
+            events.append({"t": round(self.gt_data[0][0], 2), "type": "test_start",
+                           "desc": f"pos=({self.gt_data[0][1]:.2f},{self.gt_data[0][2]:.2f})"})
+        if self.goal_sent_time and self.gt_data:
+            # 找到最近的 GT 帧
+            nearest = min(self.gt_data, key=lambda g: abs(g[0] - 0))  # sim_time ~0 at goal
+            events.append({"t": round(nearest[0], 2), "type": "goal_sent",
+                           "desc": f"goal=({goal_x:.1f},{goal_y:.1f})"})
+        if self.first_motion_time and self.gt_data:
+            events.append({"t": "plan_done", "type": "first_motion",
+                           "desc": f"plan_time={self.first_motion_time - self.goal_sent_time:.2f}s"})
+        # 摔倒时刻
+        if self.fall_detected:
+            for d in self.gt_data:
+                z, roll, pitch = d[3], abs(d[4]), abs(d[5])
+                if z < self.FALL_Z_THRESHOLD or roll > self.FALL_ANGLE_THRESHOLD or pitch > self.FALL_ANGLE_THRESHOLD:
+                    events.append({"t": round(d[0], 2), "type": "fall",
+                                   "desc": f"z={z:.2f}m roll={math.degrees(roll):.0f}° pitch={math.degrees(pitch):.0f}°"})
+                    break
+        # Nav2 结果
+        if result_status:
+            end_t = self.gt_data[-1][0] if self.gt_data else 0
+            events.append({"t": round(end_t, 2), "type": "nav_result",
+                           "desc": result_status})
+
+        diag["events"] = events
+
+        # ── 摔倒分析 ──────────────────────────────────
+        if self.fall_detected and len(self.gt_data) > 2:
+            fall_frame = None
+            for d in self.gt_data:
+                z, roll, pitch = d[3], abs(d[4]), abs(d[5])
+                if z < self.FALL_Z_THRESHOLD or roll > self.FALL_ANGLE_THRESHOLD or pitch > self.FALL_ANGLE_THRESHOLD:
+                    fall_frame = d
+                    break
+            if fall_frame:
+                idx = self.gt_data.index(fall_frame)
+                pre_fall = self.gt_data[max(0, idx-5):idx+1]
+                vel_before = []
+                for i in range(1, len(pre_fall)):
+                    dt = pre_fall[i][0] - pre_fall[i-1][0]
+                    if dt > 1e-6:
+                        dx = pre_fall[i][1] - pre_fall[i-1][1]
+                        dy = pre_fall[i][2] - pre_fall[i-1][2]
+                        vel_before.append(round(math.sqrt(dx*dx + dy*dy) / dt, 3))
+                diag["fall_analysis"] = {
+                    "fall_time_s": round(fall_frame[0], 2),
+                    "fall_pos": [round(fall_frame[1], 2), round(fall_frame[2], 2)],
+                    "fall_z_m": round(fall_frame[3], 3),
+                    "fall_pitch_deg": round(math.degrees(fall_frame[5]), 1),
+                    "fall_roll_deg": round(math.degrees(fall_frame[4]), 1),
+                    "velocity_before_fall": vel_before,  # 摔倒前 5 帧速度
+                }
+
+        return diag
+
     def _compute_velocity_stats(self) -> dict:
         """从 GT 轨迹逐帧差分计算实际线速度统计"""
         if len(self.gt_data) < 3:
@@ -663,6 +772,10 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
     metrics = node.metrics.compute_metrics(params["goal_x"], params["goal_y"], params["timeout"])
     metrics["result_status"] = node.result_status
 
+    # 提取诊断时序数据 (轨迹、漂移曲线、事件时间线)
+    diagnostics = node.metrics.extract_diagnostics(
+        params["goal_x"], params["goal_y"], node.result_status)
+
     # CPU/内存
     cpu_mem = parse_pidstat(pidstat_path) if os.path.exists(pidstat_path) else {}
     metrics["cpu_mem"] = cpu_mem
@@ -690,6 +803,7 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
             "timeout": params["timeout"],
         },
         "metrics": metrics,
+        "diagnostics": diagnostics,
     }
     with open(json_path, "w") as f:
         json.dump(full_result, f, indent=2, ensure_ascii=False)

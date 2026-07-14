@@ -344,6 +344,62 @@ fi
 
 cecho "\n${Y} 日志目录: ${CI_LOG_DIR}/${N}"
 
+# ── 组件日志诊断 ──────────────────────────────────────────
+cecho "\n${B}[ci] 组件日志诊断${N}"
+DIAG_JSON="${REPORT_DIR}/ci_diagnostic.json"
+
+python3 -c "
+import json, os, re, glob
+
+ci_logs = '${CI_LOG_DIR}'
+components = {
+    'aimrt':         'aimrt.log',
+    'lidar_bridge':  'lidar_bridge.log',
+    'fastlio':       'fastlio.log',
+    'open3d_loc':    'open3d_loc.log',
+    'nav2':          'nav2.log',
+    'leg_odom':      'leg_odom.log',
+}
+
+diag = {'component_logs': {}}
+
+for comp, fname in components.items():
+    fpath = os.path.join(ci_logs, fname)
+    if not os.path.exists(fpath):
+        continue
+
+    errors = []
+    warnings = []
+    try:
+        with open(fpath, errors='replace') as f:
+            for line in f:
+                # ROS2 / Python 常见日志级别关键词
+                line_stripped = line.strip()
+                if not line_stripped or len(line_stripped) > 500:
+                    continue
+                rl = line_stripped.lower()
+                if re.search(r'\berror\b|\bfail|\bexception|\btraceback|\babort|\bfatal', rl):
+                    errors.append(line_stripped[-300:])
+                elif re.search(r'\bwarn', rl):
+                    warnings.append(line_stripped[-300:])
+    except Exception:
+        pass
+
+    diag['component_logs'][comp] = {
+        'errors':   errors[:10],     # 最多保留 10 条
+        'warnings': warnings[:5],    # 最多保留 5 条
+        'error_count': len(errors),
+        'warn_count': len(warnings),
+    }
+
+    icon = '✅' if not errors else '❌'
+    print(f'  {icon} {comp:<15} errors={len(errors):>3}  warnings={len(warnings):>3}')
+
+with open('${DIAG_JSON}', 'w') as f:
+    json.dump(diag, f, indent=2, ensure_ascii=False)
+print(f'  诊断报告: ${DIAG_JSON}')
+" 2>/dev/null || cecho "${Y}  (日志诊断收集失败)${N}"
+
 # 从 JSON 结果判断导航测试是否通过 (nav_test_runner 自身 exit=0 不代表导航成功)
 NAV_PASS=true
 if [ "$SCENARIO" = "all" ]; then
