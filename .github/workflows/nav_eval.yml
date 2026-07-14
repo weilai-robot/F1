@@ -1,0 +1,182 @@
+# ============================================================
+# nav_eval.yml — 导航算法 CI 自动评测
+#
+# 触发条件:
+#   1. push 到 nav/dev-* 分支 (Agent 推代码)
+#   2. 手动 dispatch (调试 / 指定场景)
+#
+# 流程:
+#   checkout → build motion_control → build navigation
+#   → ci_nav_test.sh → upload results artifact
+#
+# 结果获取:
+#   Agent 通过 GitHub API 下载 artifact (reports/*.json)
+#   或在 Actions 页面查看
+# ============================================================
+name: Nav Eval
+
+on:
+  push:
+    branches:
+      - 'nav/dev-*'
+    paths:
+      - 'navigation/**'
+      - '.github/workflows/nav_eval.yml'
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: '测试场景 (all / A_straight_5m / custom 5.0 0.0)'
+        required: false
+        default: 'all'
+      rebuild_mc:
+        description: '强制重新构建 motion_control'
+        type: boolean
+        required: false
+        default: false
+
+# 同一时间只跑一个导航评测 (仿真资源有限)
+concurrency:
+  group: nav-eval
+  cancel-in-progress: true
+
+jobs:
+  nav-eval:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 40
+
+    env:
+      # conda 环境 (按需修改, 也可在 repo Variables 中覆盖)
+      CONDA_BASE: ${{ vars.CONDA_BASE || '~/Anaconda' }}
+      CONDA_ENV: ${{ vars.CONDA_ENV || 'F1' }}
+
+    steps:
+      # ── 1. Checkout (含子模块) ──────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # ── 2. conda 环境初始化 ─────────────────────────────
+      - name: Setup conda
+        id: conda
+        shell: bash
+        run: |
+          # shellcheck disable=SC2088
+          CONDA_SH="${CONDA_BASE/#\~/$HOME}/etc/profile.d/conda.sh"
+          if [ ! -f "$CONDA_SH" ]; then
+            # 尝试其他常见路径
+            for p in "$HOME/Anaconda" "$HOME/anaconda3" "$HOME/miniconda3" "/opt/conda"; do
+              if [ -f "$p/etc/profile.d/conda.sh" ]; then
+                CONDA_SH="$p/etc/profile.d/conda.sh"
+                break
+              fi
+            done
+          fi
+          if [ ! -f "$CONDA_SH" ]; then
+            echo "::error::未找到 conda.sh"
+            exit 1
+          fi
+          echo "CONDA_SH=$CONDA_SH" >> "$GITHUB_OUTPUT"
+          source "$CONDA_SH"
+          conda activate "$CONDA_ENV"
+          echo "Python: $(which python3)"
+          echo "ROS2:   $(ros2 --version 2>/dev/null || echo 'ok')"
+
+      # ── 3. 构建 motion_control ──────────────────────────
+      - name: Build motion_control
+        shell: bash
+        run: |
+          source "${{ steps.conda.outputs.CONDA_SH }}"
+          conda activate "$CONDA_ENV"
+          # 检查是否已有构建产物 (self-hosted runner 持久化)
+          if [ -f build/aimrt_main ] && [ "${{ inputs.rebuild_mc }}" != "true" ]; then
+            echo "motion_control 已构建, 跳过 (如需重建: workflow_dispatch → rebuild_mc=true)"
+          else
+            ./scripts/build.sh
+          fi
+
+      # ── 4. 构建 navigation ──────────────────────────────
+      - name: Build navigation
+        shell: bash
+        run: |
+          source "${{ steps.conda.outputs.CONDA_SH }}"
+          conda activate "$CONDA_ENV"
+          ./scripts/build_nav.sh
+
+      # ── 5. 运行导航评测 ─────────────────────────────────
+      - name: Run nav evaluation
+        id: test
+        shell: bash
+        run: |
+          source "${{ steps.conda.outputs.CONDA_SH }}"
+          conda activate "$CONDA_ENV"
+          SCENARIO="${{ inputs.scenario || 'all' }}"
+          echo "scenario=${SCENARIO}" >> "$GITHUB_OUTPUT"
+          ./scripts/ci_nav_test.sh "$SCENARIO"
+
+      # ── 6. 上传测试报告 ─────────────────────────────────
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nav-results-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+
+      # ── 7. 上传日志 (失败时) ────────────────────────────
+      - name: Upload logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-${{ github.run_id }}
+          path: ci_logs/
+          retention-days: 7
+
+      # ── 8. PR / Commit 评论 (摘要) ──────────────────────
+      - name: Post results comment
+        if: always() && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // 尝试读取 batch summary
+            const reportDir = 'reports';
+            let comment = `## 🤖 导航评测结果\n\n`;
+
+            try {
+              const files = fs.readdirSync(reportDir)
+                .filter(f => f.startsWith('batch_summary_') && f.endsWith('.json'))
+                .sort().reverse();
+              if (files.length > 0) {
+                const results = JSON.parse(
+                  fs.readFileSync(path.join(reportDir, files[0]), 'utf8')
+                );
+                comment += `| 场景 | 成功 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |\n`;
+                comment += `|------|------|------|------|---------|--------|\n`;
+                for (const r of results) {
+                  const m = r.metrics || {};
+                  const s = m.success ? '✅' : '❌';
+                  const f = m.fall ? '是' : '否';
+                  comment += `| ${r.scenario} | ${s} | ${f} | ${m.collisions||0} | ${m.position_error_m||'N/A'} | ${m.drift_mean_m||'N/A'} |\n`;
+                }
+                const pass = results.filter(r => r.metrics?.success).length;
+                comment += `\n**通过率: ${pass}/${results.length}**\n`;
+              } else {
+                comment += `未找到 batch summary, 请查看 artifact.\n`;
+              }
+            } catch (e) {
+              comment += `结果解析失败: ${e.message}\n`;
+            }
+
+            comment += `\n[完整报告下载](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+
+            // 发 commit comment
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: comment
+            });
