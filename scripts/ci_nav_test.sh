@@ -193,15 +193,17 @@ cecho "\n${B}[ci] 3/6 启动仿真全链路${N}"
 cecho "  启动 aimrt_main..."
 (
     cd "$BUILD_DIR"
+    set +eu  # 关闭 -u/-e，避免 source ROS2 相关文件时未绑定变量导致退出
     source install/share/ros2_plugin_proto/local_setup.bash 2>/dev/null || true
     exec ./aimrt_main --cfg_file_path=./cfg/x1_cfg_sim_nav.yaml
 ) > "$CI_LOG_DIR/aimrt.log" 2>&1 &
 PIDS+=($!)
 
 # 健康检查: 等待 ground truth topic
-if ! wait_for_topic "/mujoco/ground_truth" 20 "aimrt_main + MuJoCo"; then
+if ! wait_for_topic "/mujoco/ground_truth" 30 "aimrt_main + MuJoCo"; then
     cecho "${R}[ERROR] aimrt_main 启动失败${N}"
-    tail -30 "$CI_LOG_DIR/aimrt.log"
+    cecho "${Y}--- aimrt.log 最后 30 行 ---${N}"
+    tail -30 "$CI_LOG_DIR/aimrt.log" 2>/dev/null || echo "(无日志)"
     exit 1
 fi
 check_pid_alive "${PIDS[-1]}" "aimrt_main" "$CI_LOG_DIR/aimrt.log" || exit 1
@@ -227,7 +229,8 @@ PIDS+=($!)
 
 if ! wait_for_topic "/Odometry" 20 "FastLIO2"; then
     cecho "${R}[ERROR] FastLIO2 启动失败${N}"
-    tail -30 "$CI_LOG_DIR/fastlio.log"
+    cecho "${Y}--- fastlio.log 最后 30 行 ---${N}"
+    tail -30 "$CI_LOG_DIR/fastlio.log" 2>/dev/null || echo "(无日志)"
     exit 1
 fi
 
@@ -246,7 +249,8 @@ PIDS+=($!)
 
 if ! wait_for_action "navigate_to_pose" 30 "Nav2"; then
     cecho "${R}[ERROR] Nav2 启动失败${N}"
-    tail -30 "$CI_LOG_DIR/nav2.log"
+    cecho "${Y}--- nav2.log 最后 30 行 ---${N}"
+    tail -30 "$CI_LOG_DIR/nav2.log" 2>/dev/null || echo "(无日志)"
     exit 1
 fi
 
