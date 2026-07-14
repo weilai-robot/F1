@@ -148,14 +148,33 @@ cecho "${G}  ✓ 构建产物验证通过${N}"
 #  2. 启动 Xvfb (无头渲染)
 # ============================================================
 cecho "\n${B}[ci] 2/6 启动 Xvfb 虚拟显示${N}"
+
+# 检查 Xvfb 是否安装
+if ! command -v Xvfb &>/dev/null; then
+    cecho "${R}[ERROR] Xvfb 未安装${N}"
+    cecho "${Y}  请安装: sudo apt install -y xvfb${N}"
+    exit 1
+fi
+
+# 清理可能残留的锁文件 (上次 CI 非正常退出)
+rm -f /tmp/.X99-lock /tmp/.X11-unix/X99 2>/dev/null || true
+# 清理残留进程
+pkill -f "Xvfb :99" 2>/dev/null || true
+sleep 0.5
+
 export DISPLAY=:99
 Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset \
     > "$CI_LOG_DIR/xvfb.log" 2>&1 &
 XVFB_PID=$!
-sleep 1
+sleep 2
 if ! kill -0 "$XVFB_PID" 2>/dev/null; then
     cecho "${R}[ERROR] Xvfb 启动失败${N}"
-    cat "$CI_LOG_DIR/xvfb.log"
+    cecho "${Y}--- Xvfb 日志 ---${N}"
+    cat "$CI_LOG_DIR/xvfb.log" 2>/dev/null || echo "(无日志)"
+    cecho "${Y}--- 诊断 ---${N}"
+    cecho "  Xvfb 路径: $(which Xvfb)"
+    cecho "  DISPLAY: ${DISPLAY}"
+    ls -la /tmp/.X*-lock /tmp/.X11-unix/ 2>/dev/null || echo "  无 X 锁文件"
     exit 1
 fi
 cecho "${G}  ✓ Xvfb (PID=${XVFB_PID}, DISPLAY=${DISPLAY})${N}"
