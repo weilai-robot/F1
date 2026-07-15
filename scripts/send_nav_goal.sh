@@ -7,7 +7,7 @@
 # 用法:
 #   ./send_nav_goal.sh 5.0 0.0            # 走到 (5.0, 0.0)
 #   ./send_nav_goal.sh 5.0 0.0 90         # 到 (5.0,0.0) 且终点朝向 90°
-#   ./send_nav_goal.sh 5.0 0.0 0 120      # 超时改成 120s
+#   ./send_nav_goal.sh 5.0 0.0 0 180      # 超时改成 180s (默认 120s)
 #   ./send_nav_goal.sh --walk-only        # 只切 walk_mode, 不发目标
 #   ./send_nav_goal.sh --batch            # 切 walk_mode 后跑 nav_test_runner 批量场景
 #
@@ -15,12 +15,14 @@
 #   1. source ROS2 + navigation workspace
 #   2. publish /walk_mode (std_msgs/Float32) 让机器人进入行走 (初始是 stand, 不执行 cmd_vel)
 #   3. 调 nav_test_runner.py 发 NavigateToPose 目标并出指标报告
+#      每次试验写入 reports/<scenario>_<timestamp>/ ; Ctrl+C 仍会保存已采集数据
 # ============================================================
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 NAV_DIR="${ROOT_DIR}/navigation"
+REPORT_DIR="${ROOT_DIR}/reports"
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 
@@ -66,7 +68,7 @@ case "${1:-}" in
     --batch)
         switch_walk_mode
         echo -e "${GREEN}[2/2] 跑 nav_test_runner 批量场景...${NC}"
-        exec python3 "${SCRIPT_DIR}/nav_test_runner.py" --batch
+        exec python3 "${SCRIPT_DIR}/nav_test_runner.py" --batch --report-dir "${REPORT_DIR}"
         ;;
     "" )
         echo -e "${RED}[ERROR] 缺少目标坐标${NC}"
@@ -79,7 +81,7 @@ esac
 GOAL_X="$1"
 GOAL_Y="$2"
 YAW_DEG="${3:-0}"
-TIMEOUT="${4:-60}"
+TIMEOUT="${4:-120}"
 # 度 -> 弧度
 YAW_RAD=$(python3 -c "import math,sys; print(math.radians(float(sys.argv[1])))" "${YAW_DEG}")
 
@@ -87,4 +89,5 @@ switch_walk_mode
 
 echo -e "${GREEN}[2/2] 发送导航目标: (${GOAL_X}, ${GOAL_Y}, yaw=${YAW_DEG}°) timeout=${TIMEOUT}s${NC}"
 exec python3 "${SCRIPT_DIR}/nav_test_runner.py" \
-    --goal-x "${GOAL_X}" --goal-y "${GOAL_Y}" --goal-yaw "${YAW_RAD}" --timeout "${TIMEOUT}"
+    --goal-x "${GOAL_X}" --goal-y "${GOAL_Y}" --goal-yaw "${YAW_RAD}" --timeout "${TIMEOUT}" \
+    --report-dir "${REPORT_DIR}"
