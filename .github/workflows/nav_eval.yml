@@ -1,17 +1,17 @@
 # ============================================================
-# nav_eval.yml — 导航算法 CI 自动评测
+# nav_eval.yml — 导航算法 CI 自动评测流水线
 #
 # 触发条件:
 #   1. push 到 nav/dev-* 分支 (Agent 推代码)
 #   2. 手动 dispatch (调试 / 指定场景)
 #
 # 流程:
-#   checkout → build motion_control → build navigation
-#   → ci_nav_test.sh → upload results artifact
+#   checkout(不清理) → [增量]build mc → [增量]build nav
+#   → ci_nav_test.sh → upload artifact → 摘要输出
 #
-# 结果获取:
-#   Agent 通过 GitHub API 下载 artifact (reports/*.json)
-#   或在 Actions 页面查看
+# 结果获取 (Agent 侧):
+#   gh run download <run_id> -n nav-results-<run_id>
+#   或 python3 scripts/fetch_ci_results.py
 # ============================================================
 name: Nav Eval
 
@@ -22,6 +22,8 @@ on:
     paths:
       - 'navigation/**'
       - '.github/workflows/nav_eval.yml'
+      - 'scripts/nav_test_runner.py'
+      - 'scripts/ci_nav_test.sh'
   workflow_dispatch:
     inputs:
       scenario:
@@ -30,6 +32,11 @@ on:
         default: 'all'
       rebuild_mc:
         description: '强制重新构建 motion_control'
+        type: boolean
+        required: false
+        default: false
+      rebuild_nav:
+        description: '强制重新构建 navigation'
         type: boolean
         required: false
         default: false
@@ -45,27 +52,26 @@ jobs:
     timeout-minutes: 40
 
     env:
-      # conda 环境 (按需修改, 也可在 repo Variables 中覆盖)
       CONDA_BASE: ${{ vars.CONDA_BASE || '~/Anaconda' }}
       CONDA_ENV: ${{ vars.CONDA_ENV || 'F1' }}
 
     steps:
-      # ── 1. Checkout (含子模块) ──────────────────────────
+      # ── 1. Checkout (不清理 build/) ─────────────────────
+      # 关键: clean: false 防止 git clean -ffdx 删除 build/ 和 navigation/install/
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+          clean: false
 
       # ── 2. conda 环境初始化 ─────────────────────────────
       - name: Setup conda
         id: conda
         shell: bash
         run: |
-          # shellcheck disable=SC2088
           CONDA_SH="${CONDA_BASE/#\~/$HOME}/etc/profile.d/conda.sh"
           if [ ! -f "$CONDA_SH" ]; then
-            # 尝试其他常见路径
             for p in "$HOME/Anaconda" "$HOME/anaconda3" "$HOME/miniconda3" "/opt/conda"; do
               if [ -f "$p/etc/profile.d/conda.sh" ]; then
                 CONDA_SH="$p/etc/profile.d/conda.sh"
@@ -80,33 +86,47 @@ jobs:
           echo "CONDA_SH=$CONDA_SH" >> "$GITHUB_OUTPUT"
           source "$CONDA_SH"
           conda activate "$CONDA_ENV"
-          echo "Python: $(which python3)"
-          echo "ROS2:   $(ros2 --version 2>/dev/null || echo 'ok')"
+          echo "::notice::Python=$(which python3)  ROS2=$(ros2 --version 2>/dev/null || echo ok)"
 
-      # ── 3. 构建 motion_control ──────────────────────────
+      # ── 3. 构建 motion_control (增量) ──────────────────
       - name: Build motion_control
         shell: bash
         run: |
           source "${{ steps.conda.outputs.CONDA_SH }}"
           conda activate "$CONDA_ENV"
-          # 检查是否已有构建产物 (self-hosted runner 持久化)
           if [ -f build/aimrt_main ] && [ "${{ inputs.rebuild_mc }}" != "true" ]; then
-            echo "motion_control 已构建, 跳过 (如需重建: workflow_dispatch → rebuild_mc=true)"
+            echo "::notice::motion_control 已构建, 跳过"
           else
+            echo "::group::build.sh output"
             ./scripts/build.sh
+            echo "::endgroup::"
           fi
 
-      # ── 4. 构建 navigation ──────────────────────────────
+      # ── 4. 构建 navigation (增量) ───────────────────────
       - name: Build navigation
         shell: bash
         run: |
           source "${{ steps.conda.outputs.CONDA_SH }}"
           conda activate "$CONDA_ENV"
-          ./scripts/build_nav.sh
+          # 增量构建: 检查关键产物是否存在
+          NAV_SETUP="${{ github.workspace }}/navigation/install/setup.bash"
+          if [ -f "$NAV_SETUP" ] && [ "${{ inputs.rebuild_nav }}" != "true" ]; then
+            echo "::notice::navigation 已构建, 跳过 (colcon --symlink-install 会自动增量)"
+            # colcon --symlink-install 默认就是增量的, 跑一次确保 Python 脚本链接更新
+            echo "::group::build_nav.sh output"
+            ./scripts/build_nav.sh || true
+            echo "::endgroup::"
+          else
+            echo "::group::build_nav.sh output"
+            ./scripts/build_nav.sh
+            echo "::endgroup::"
+          fi
 
       # ── 5. 运行导航评测 ─────────────────────────────────
+      # continue-on-error: 测试失败不阻断后续上传结果步骤
       - name: Run nav evaluation
         id: test
+        continue-on-error: true
         shell: bash
         run: |
           source "${{ steps.conda.outputs.CONDA_SH }}"
@@ -115,25 +135,90 @@ jobs:
           echo "scenario=${SCENARIO}" >> "$GITHUB_OUTPUT"
           ./scripts/ci_nav_test.sh "$SCENARIO"
 
-      # ── 6. 上传测试报告 ─────────────────────────────────
+      # ── 6. 提取测试摘要到 Step Summary ─────────────────
+      - name: Extract summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 导航评测结果" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # 尝试读取 batch summary
+          BATCH_FILE=$(ls -t reports/batch_summary_*.json 2>/dev/null | head -1)
+          if [ -n "$BATCH_FILE" ]; then
+            python3 -c "
+          import json, sys
+          with open('$BATCH_FILE') as f:
+              results = json.load(f)
+          total = len(results)
+          passed = sum(1 for r in results if r.get('metrics',{}).get('success'))
+          print(f'**通过率: {passed}/{total}**')
+          print()
+          print('| 场景 | 结果 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |')
+          print('|------|------|------|------|---------|--------|')
+          for r in results:
+              m = r.get('metrics',{})
+              s = '✅' if m.get('success') else '❌'
+              f = '是' if m.get('fall') else '否'
+              print(f\"| {r['scenario']} | {s} | {f} | {m.get('collisions',0)} | {m.get('position_error_m','N/A')} | {m.get('drift_mean_m','N/A')} |\")
+          " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "结果解析失败" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # 单场景
+            SINGLE=$(ls -t reports/*.json 2>/dev/null | grep -v batch_summary | head -1)
+            if [ -n "$SINGLE" ]; then
+              python3 -c "
+          import json
+          with open('$SINGLE') as f:
+              r = json.load(f)
+          m = r.get('metrics',{})
+          s = '✅' if m.get('success') else '❌'
+          print(f'**结果: {s}**')
+          print(f'- 摔倒: {\"是\" if m.get(\"fall\") else \"否\"}')
+          print(f'- 碰撞: {m.get(\"collisions\",0)} 次')
+          print(f'- 位置误差: {m.get(\"position_error_m\",\"N/A\")} m')
+          print(f'- SLAM漂移: {m.get(\"drift_mean_m\",\"N/A\")} m')
+          " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "结果解析失败" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "未找到测试结果" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          # 组件诊断
+          if [ -f reports/ci_diagnostic.json ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### 组件日志诊断" >> "$GITHUB_STEP_SUMMARY"
+            echo "| 组件 | Errors | Warnings |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|------|--------|----------|" >> "$GITHUB_STEP_SUMMARY"
+            python3 -c "
+          import json
+          with open('reports/ci_diagnostic.json') as f:
+              d = json.load(f)
+          for comp, info in d.get('component_logs',{}).items():
+              icon = '❌' if info.get('error_count',0) > 0 else '✅'
+              print(f'| {icon} {comp} | {info.get(\"error_count\",0)} | {info.get(\"warn_count\",0)} |')
+          " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          fi
+
+      # ── 7. 上传测试报告 (always) ────────────────────────
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nav-results-${{ github.run_id }}
-          path: reports/
+          path: |
+            reports/
           retention-days: 30
 
-      # ── 7. 上传日志 (失败时) ────────────────────────────
+      # ── 8. 上传日志 (失败时) ────────────────────────────
       - name: Upload logs (on failure)
-        if: failure()
+        if: always() && steps.test.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: ci-logs-${{ github.run_id }}
           path: ci_logs/
           retention-days: 7
 
-      # ── 8. PR / Commit 评论 (摘要) ──────────────────────
+      # ── 9. Commit 评论 (push 触发时) ────────────────────
       - name: Post results comment
         if: always() && github.event_name == 'push'
         uses: actions/github-script@v7
@@ -142,18 +227,18 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            // 尝试读取 batch summary
-            const reportDir = 'reports';
             let comment = `## 🤖 导航评测结果\n\n`;
+            const testOutcome = '${{ steps.test.outcome }}';
+            comment += `测试状态: **${testOutcome}**\n\n`;
 
             try {
-              const files = fs.readdirSync(reportDir)
+              const reportDir = 'reports';
+              const batchFiles = fs.readdirSync(reportDir)
                 .filter(f => f.startsWith('batch_summary_') && f.endsWith('.json'))
                 .sort().reverse();
-              if (files.length > 0) {
-                const results = JSON.parse(
-                  fs.readFileSync(path.join(reportDir, files[0]), 'utf8')
-                );
+
+              if (batchFiles.length > 0) {
+                const results = JSON.parse(fs.readFileSync(path.join(reportDir, batchFiles[0]), 'utf8'));
                 comment += `| 场景 | 成功 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |\n`;
                 comment += `|------|------|------|------|---------|--------|\n`;
                 for (const r of results) {
@@ -165,18 +250,54 @@ jobs:
                 const pass = results.filter(r => r.metrics?.success).length;
                 comment += `\n**通过率: ${pass}/${results.length}**\n`;
               } else {
-                comment += `未找到 batch summary, 请查看 artifact.\n`;
+                // 单场景
+                const singleFiles = fs.readdirSync(reportDir)
+                  .filter(f => f.endsWith('.json') && !f.startsWith('batch_summary') && !f.startsWith('ci_diagnostic'))
+                  .sort().reverse();
+                if (singleFiles.length > 0) {
+                  const r = JSON.parse(fs.readFileSync(path.join(reportDir, singleFiles[0]), 'utf8'));
+                  const m = r.metrics || {};
+                  comment += `| 场景 | 成功 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |\n`;
+                  comment += `|------|------|------|------|---------|--------|\n`;
+                  const s = m.success ? '✅' : '❌';
+                  const f = m.fall ? '是' : '否';
+                  comment += `| ${r.scenario||'test'} | ${s} | ${f} | ${m.collisions||0} | ${m.position_error_m||'N/A'} | ${m.drift_mean_m||'N/A'} |\n`;
+                }
+              }
+
+              // 组件诊断
+              const diagPath = path.join(reportDir, 'ci_diagnostic.json');
+              if (fs.existsSync(diagPath)) {
+                const diag = JSON.parse(fs.readFileSync(diagPath, 'utf8'));
+                const comps = diag.component_logs || {};
+                const errorComps = Object.entries(comps).filter(([k,v]) => v.error_count > 0);
+                if (errorComps.length > 0) {
+                  comment += `\n**组件错误:**\n`;
+                  for (const [comp, info] of errorComps) {
+                    comment += `- ${comp}: ${info.error_count} errors\n`;
+                  }
+                }
               }
             } catch (e) {
               comment += `结果解析失败: ${e.message}\n`;
             }
 
-            comment += `\n[完整报告下载](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            comment += `\n[📋 完整报告](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            comment += `📥 下载结果: \`gh run download ${{ github.run_id }} -n nav-results-${{ github.run_id }}\`\n`;
 
-            // 发 commit comment
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
               body: comment
             });
+
+      # ── 10. 标记 job 失败 (如果测试失败) ─────────────────
+      - name: Check test result
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.test.outcome }}" = "failure" ]; then
+            echo "::warning::导航测试未通过, 但结果已上传"
+            exit 1
+          fi
