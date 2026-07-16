@@ -7,7 +7,8 @@
 # 全部在 tmux 中启动, 无需额外终端:
 #   [0] aimrt_main       — ONNX RL + sim_module 物理仿真 (真机一致)
 #   [1] lidar_bridge     — MuJoCo LiDAR 射线追踪 + /clock
-#   [2] fast_lio2        — SLAM 里程计
+#   [2] imu              — /livox/imu → /livox/imu_200 转发 (FastLIO)
+#   [3] fast_lio2        — SLAM 里程计
 #   [3] open3d_loc       — ICP 全局定位 (发布 map->odom / map->camera_init TF)
 #   [4] nav2             — 导航栈 (MPPI + Costmap)
 #   [5] octomap          — 3D 地图 (可选)
@@ -175,53 +176,62 @@ tmux send-keys -t "${SESSION_NAME}:1" \
 
 sleep 2
 
-# --- [窗口 2] FastLIO2 ---
+# --- [窗口 2] livox IMU 200Hz 转发 ---
+tmux new-window -t "${SESSION_NAME}" -n "imu"
+echo -e "${GREEN}  [2] livox_imu_throttle (/livox/imu -> /livox/imu_200)${NC}"
+tmux send-keys -t "${SESSION_NAME}:imu" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:imu" \
+    "ros2 run humanoid_sim livox_imu_throttle.py" Enter
+
+sleep 1
+
+# --- [窗口 3] FastLIO2 ---
 tmux new-window -t "${SESSION_NAME}" -n "fastlio"
-echo -e "${GREEN}  [2] FastLIO2 (sim_module_mid360_custom.yaml, CustomMsg)${NC}"
-tmux send-keys -t "${SESSION_NAME}:2" "${TMUX_SOURCE}" Enter
-tmux send-keys -t "${SESSION_NAME}:2" \
+echo -e "${GREEN}  [3] FastLIO2 (sim_module_mid360_custom.yaml, CustomMsg)${NC}"
+tmux send-keys -t "${SESSION_NAME}:3" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:3" \
     "ros2 launch fast_lio mapping_sim_module.launch.py config_file:=sim_module_mid360_custom.yaml" Enter
 
 sleep 2
 
-# --- [窗口 3] open3d_loc (ICP) ---
+# --- [窗口 4] open3d_loc (ICP) ---
 tmux new-window -t "${SESSION_NAME}" -n "icp"
-echo -e "${GREEN}  [3] open3d_loc (ICP)${NC}"
-tmux send-keys -t "${SESSION_NAME}:3" "${TMUX_SOURCE}" Enter
-tmux send-keys -t "${SESSION_NAME}:3" \
+echo -e "${GREEN}  [4] open3d_loc (ICP)${NC}"
+tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:4" \
     "ros2 launch open3d_loc open3d_loc_x1.launch.py use_sim_time:=true" Enter
 
 sleep 2
 
-# --- [窗口 4] Nav2 ---
+# --- [窗口 5] Nav2 ---
 tmux new-window -t "${SESSION_NAME}" -n "nav2"
-echo -e "${GREEN}  [4] Nav2 导航${NC}"
-tmux send-keys -t "${SESSION_NAME}:4" "${TMUX_SOURCE}" Enter
-tmux send-keys -t "${SESSION_NAME}:4" \
+echo -e "${GREEN}  [5] Nav2 导航${NC}"
+tmux send-keys -t "${SESSION_NAME}:5" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:5" \
     "ros2 launch humanoid_sim navigation.launch.py" Enter
 
 sleep 2
 
-# --- [窗口 5] OctoMap ---
+# --- [窗口 6] OctoMap ---
 if [ "${ENABLE_OCTOMAP}" = true ]; then
     tmux new-window -t "${SESSION_NAME}" -n "octomap"
-    echo -e "${GREEN}  [5] OctoMap 3D 地图${NC}"
-    tmux send-keys -t "${SESSION_NAME}:5" "${TMUX_SOURCE}" Enter
-    tmux send-keys -t "${SESSION_NAME}:5" \
+    echo -e "${GREEN}  [6] OctoMap 3D 地图${NC}"
+    tmux send-keys -t "${SESSION_NAME}:6" "${TMUX_SOURCE}" Enter
+    tmux send-keys -t "${SESSION_NAME}:6" \
         "ros2 launch humanoid_sim octomap_mapping.launch.py" Enter
 fi
 
-# --- [窗口 6] 腿里程计 (Leg Odometry 前馈) ---
+# --- [窗口 7] 腿里程计 (Leg Odometry 前馈) ---
 tmux new-window -t "${SESSION_NAME}" -n "leg_odom"
-echo -e "${GREEN}  [6] 腿里程计 (Leg Odometry)${NC}"
-tmux send-keys -t "${SESSION_NAME}:6" "${TMUX_SOURCE}" Enter
-tmux send-keys -t "${SESSION_NAME}:6" \
+echo -e "${GREEN}  [7] 腿里程计 (Leg Odometry)${NC}"
+tmux send-keys -t "${SESSION_NAME}:7" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:7" \
     "ros2 run humanoid_sim leg_odom_node.py --ros-args -p model_path:='${MODEL_PATH}'" Enter
 
-# --- [窗口 7] 测试数据采集 (rosbag + pidstat) ---
+# --- [窗口 8] 测试数据采集 (rosbag + pidstat) ---
 tmux new-window -t "${SESSION_NAME}" -n "record"
-RECORD_WINDOW=7
-echo -e "${GREEN}  [7] 测试数据采集 (手动启动)${NC}"
+RECORD_WINDOW=8
+echo -e "${GREEN}  [8] 测试数据采集 (手动启动)${NC}"
 tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" "source ${ROS_SETUP_BASH}" Enter
 tmux send-keys -t "${SESSION_NAME}:${RECORD_WINDOW}" \
     "echo '=== 导航测试数据采集 ===\n  录制 bag: ros2 bag record /mujoco/ground_truth /cmd_vel /cmd_vel_limiter /Odometry /leg_odom /tf -o test_run_NNN\n  CPU/内存: pidstat -ru 1 -C \"aimrt_main|mujoco_lidar_bridge|fastlio|open3d_loc|nav2\" > cpu_mem.log\n  实时监控: ros2 topic echo /mujoco/ground_truth --once'" Enter
@@ -235,12 +245,13 @@ echo ""
 echo " tmux 窗口布局:"
 echo "   [0] aimrt        - aimrt_main (ONNX RL + MuJoCo 物理)"
 echo "   [1] lidar_bridge - MuJoCo LiDAR 射线追踪 + /clock"
-echo "   [2] fastlio      - FastLIO2 里程计"
-echo "   [3] icp          - open3d_loc (ICP 全局定位)"
-echo "   [4] nav2         - Nav2 导航栈"
-echo "   [5] octomap      - OctoMap 3D 地图 (可选)"
-echo "   [6] leg_odom     - 腿里程计前馈"
-echo "   [7] record       - 测试数据采集 (rosbag + pidstat)"
+echo "   [2] imu          - /livox/imu -> /livox/imu_200 (200Hz)"
+echo "   [3] fastlio      - FastLIO2 里程计"
+echo "   [4] icp          - open3d_loc (ICP 全局定位)"
+echo "   [5] nav2         - Nav2 导航栈"
+echo "   [6] octomap      - OctoMap 3D 地图 (可选)"
+echo "   [7] leg_odom     - 腿里程计前馈"
+echo "   [8] record       - 测试数据采集 (rosbag + pidstat)"
 echo ""
 echo " 切换窗口: Ctrl+B 然后 数字键"
 echo " 附加终端: tmux attach -t ${SESSION_NAME}"
