@@ -1,0 +1,47 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-07-14-16-28-58-813300-robot-ThinkStation-P720-1909544
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fastlio_mapping-1]: process started with pid [1909570]
+[INFO] [rviz2-2]: process started with pid [1909572]
+[fastlio_mapping-1] [INFO] [1784017739.029454569] [laser_mapping]: p_pre->lidar_type 4
+[fastlio_mapping-1] Multi thread started 
+[fastlio_mapping-1] ~~~~/home/robot/F1/navigation/localization/fast_lio2/ file opened
+[fastlio_mapping-1] [INFO] [1784017739.039041553] [laser_mapping]: Node init finished.
+[rviz2-2] Xlib: sequence lost (0x1003c > 0x3e) in reply type 0x0!
+[rviz2-2] [INFO] [1784017739.155051018] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-2] [INFO] [1784017739.155095512] [rviz2]: OpenGl version: 3.1 (GLSL 1.4)
+[rviz2-2] Xlib: sequence lost (0x1006f > 0x71) in reply type 0x0!
+[rviz2-2] [INFO] [1784017739.222854344] [rviz2]: Stereo is NOT SUPPORTED
+[fastlio_mapping-1] IMU Initial Done
+[fastlio_mapping-1] [WARN] [1784017739.662094854] [laser_mapping]: No point, skip this scan!
+[fastlio_mapping-1] 
+[fastlio_mapping-1] [INFO] [1784017739.760033214] [laser_mapping]: Initialize the map kdtree
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!
+[fastlio_mapping-1] No Effective Points!

@@ -1,0 +1,378 @@
+AimRT start, version: 0.9.1
+[2026-07-14 16:28:54.656859][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/configurator/configurator_manager.cc:57:5 @Initialize]Cfg file path: /home/robot/F1/build/cfg/x1_cfg_sim_nav.yaml
+[2026-07-14 16:28:54.658973][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/configurator/configurator_manager.cc:87:3 @Initialize]Configurator manager init complete
+[2026-07-14 16:28:54.702758][Trace][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/plugin/plugin_manager.cc:121:5 @Initialize]Load plugin 'ros2_plugin' succeeded.
+[2026-07-14 16:28:54.702968][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/plugin/plugin_manager.cc:135:3 @Initialize]Plugin manager init complete
+[2026-07-14 16:28:54.703127][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/main_thread_executor.cc:63:3 @Initialize]Main thread executor init complete
+[2026-07-14 16:28:54.703277][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/guard_thread_executor.cc:113:3 @Initialize]Guard thread executor init complete
+[2026-07-14 16:28:54.703400][Trace][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/executor_manager.cc:91:5 @Initialize]Gen executor 'rl_control_pub_thread' success.
+[2026-07-14 16:28:54.703509][Trace][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/executor_manager.cc:91:5 @Initialize]Gen executor 'rl_log_flush_thread' success.
+[2026-07-14 16:28:54.703614][Trace][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/executor_manager.cc:91:5 @Initialize]Gen executor 'joy_stick_pub_thread' success.
+[2026-07-14 16:28:54.703707][Trace][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/executor_manager.cc:91:5 @Initialize]Gen executor 'sim_render_thread' success.
+[2026-07-14 16:28:54.703825][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/executor_manager.cc:102:3 @Initialize]Executor manager init complete
+[2026-07-14 16:28:54.704387][Info][1909335][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/logger/logger_manager.cc:105:3 @Initialize]Logger manager init complete
+[0;32m[2026-07-14 16:28:54.704410][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/aimrt_core.cc:46:3 @PrintStartupInfo]
+  ╔═══════════════════════════════════════════════════════════╗
+  ║                                                           ║
+  ║           █████╗ ██╗███╗   ███╗██████╗ ████████╗          ║
+  ║          ██╔══██╗██║████╗ ████║██╔══██╗╚══██╔══╝          ║
+  ║          ███████║██║██╔████╔██║██████╔╝   ██║             ║
+  ║          ██╔══██║██║██║╚██╔╝██║██╔══██╗   ██║             ║
+  ║          ██║  ██║██║██║ ╚═╝ ██║██║  ██║   ██║             ║
+  ║          ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝             ║
+  ║                                                           ║
+  ║        Modern High Performance Robotics Framework         ║
+  ║        Official Website: https://aimrt.org                ║
+  ║        Documentation:    https://docs.aimrt.org           ║
+  ║        Version:          v0.9.1                           ║
+  ╚═══════════════════════════════════════════════════════════╝
+  [0m
+[0;32m[2026-07-14 16:28:54.704516][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/allocator/allocator_manager.cc:37:3 @Initialize]Allocator manager init complete[0m
+[0;32m[2026-07-14 16:28:54.704716][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/rpc/rpc_manager.cc:175:3 @Initialize]Rpc manager init complete[0m
+[0;32m[2026-07-14 16:28:54.705026][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/channel/channel_manager.cc:175:3 @Initialize]Channel manager init complete[0m
+[0;32m[2026-07-14 16:28:54.705051][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/parameter/parameter_manager.cc:37:3 @Initialize]Parameter manager init complete[0m
+[0;32m[2026-07-14 16:28:54.929834][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/idle_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.931289][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/zero_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.932240][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/stand_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.932642][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/walk_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.933037][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/walk_mode2' success.[0m
+[0;32m[2026-07-14 16:28:54.933436][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/keep_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.933843][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/plan_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.934914][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/cmd_vel' success.[0m
+[0;32m[2026-07-14 16:28:54.935342][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/cmd_vel_limiter' success.[0m
+[0;32m[2026-07-14 16:28:54.935462][Info][1909335][JoyStickModule][/home/robot/F1/motion_control/module/joy_stick_module/src/joy_stick_module.cc:83:5 @Initialize]Init succeeded.[0m
+[0;32m[2026-07-14 16:28:54.940875][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/idle_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.941194][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/keep_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.941495][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/zero_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.941793][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/stand_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.942098][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/walk_mode' success.[0m
+[0;32m[2026-07-14 16:28:54.942446][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/walk_mode2' success.[0m
+[0;32m[2026-07-14 16:28:54.942792][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/plan_mode' success.[0m
+[0;32m[2026-07-14 16:28:55.31053][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:330:7 @Subscribe]subscribe topic '/cmd_vel_limiter' success.[0m
+[0;32m[2026-07-14 16:28:55.32027][Info][1909335][ControlModule][/home/robot/F1/motion_control/module/control_module/src/control_module.cc:171:3 @Initialize]Init succeeded.[0m
+[0;32m[2026-07-14 16:28:55.35237][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/imu/data' success.[0m
+[0;32m[2026-07-14 16:28:55.36458][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/joint_states' success.[0m
+[0;32m[2026-07-14 16:28:55.37583][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/livox/imu' success.[0m
+[0;32m[2026-07-14 16:28:55.38855][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/mujoco/base_pose' success.[0m
+[0;32m[2026-07-14 16:28:55.40284][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/plugins/ros2_plugin/ros2_channel_backend.cc:224:7 @RegisterPublishType]ros2 backend register publish type for topic '/mujoco/ground_truth' success.[0m
+[0;32m[2026-07-14 16:28:55.40309][Info][1909335][SimModule][/home/robot/F1/motion_control/module/sim_module/src/sim_module.cc:49:5 @Initialize]Init succeeded.[0m
+[0;32m[2026-07-14 16:28:55.40506][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/module/module_manager.cc:217:3 @Initialize]Module manager init complete[0m
+[0;32m[2026-07-14 16:28:55.43720][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/aimrt_core.cc:140:3 @StartImpl]Gen initialization report:
+
+----------------------- AimRT Initialization Report Begin ----------------------
+
+AimRT Version: 0.9.1
+
+[1]. AimRT Cfg File Path
+/home/robot/F1/build/cfg/x1_cfg_sim_nav.yaml
+
+[2]. AimRT Core Option
+configurator:
+  temp_cfg_path: ./cfg/tmp
+plugin:
+  plugins:
+    - name: ros2_plugin
+      path: /home/robot/F1/build/libaimrt_ros2_plugin.so
+      options:
+        node_name: x1_rl_ctrl_node
+        executor_type: MultiThreaded
+        executor_thread_num: 4
+main_thread:
+  name: aimrt_main
+  thread_sched_policy: ""
+  thread_bind_cpu:
+    []
+guard_thread:
+  name: aimrt_guard
+  thread_sched_policy: ""
+  thread_bind_cpu:
+    []
+  queue_threshold: 10000
+executor:
+  executors:
+    - name: rl_control_pub_thread
+      type: simple_thread
+      options:
+        thread_sched_policy: ""
+        thread_bind_cpu:
+          []
+        queue_threshold: 10000
+    - name: rl_log_flush_thread
+      type: simple_thread
+      options:
+        thread_sched_policy: ""
+        thread_bind_cpu:
+          []
+        queue_threshold: 10000
+    - name: joy_stick_pub_thread
+      type: simple_thread
+      options:
+        thread_sched_policy: ""
+        thread_bind_cpu:
+          []
+        queue_threshold: 10000
+    - name: sim_render_thread
+      type: simple_thread
+      options:
+        thread_sched_policy: ""
+        thread_bind_cpu:
+          []
+        queue_threshold: 10000
+log:
+  core_lvl: Info
+  default_module_lvl: Info
+  backends:
+    - type: console
+      options:
+        color: true
+        module_filter: (.*)
+        log_executor_name: ""
+        pattern: ""
+    - type: rotate_file
+      options:
+        path: ./log
+        filename: x1_rl_ctrl_nav.log
+        max_file_size_m: 4
+        max_file_num: 10
+        module_filter: (.*)
+        log_executor_name: ""
+        pattern: ""
+        enable_sync: false
+        sync_interval_ms: 30000
+        sync_executor_name: ""
+allocator: ~
+rpc:
+  backends:
+    - type: local
+      options:
+        timeout_executor: ""
+    - type: ros2
+      options:
+        timeout_executor: ""
+        clients_options: ~
+        servers_options: ~
+  clients_options:
+    - func_name: (.*)
+      enable_backends:
+        - local
+      enable_filters:
+        []
+  servers_options:
+    - func_name: (.*)
+      enable_backends:
+        - local
+        - ros2
+      enable_filters:
+        []
+channel:
+  backends:
+    - type: local
+      options:
+        subscriber_use_inline_executor: true
+    - type: ros2
+      options:
+        pub_topics_options: ~
+        sub_topics_options: ~
+  pub_topics_options:
+    - topic_name: /joint_cmd
+      enable_backends:
+        - local
+      enable_filters:
+        []
+    - topic_name: /(idle_mode|zero_mode|stand_mode|walk_mode|walk_mode2|keep_mode|plan_mode|cmd_vel|cmd_vel_limiter|imu/data|joint_states|livox/imu|mujoco/base_pose|mujoco/ground_truth)
+      enable_backends:
+        - local
+        - ros2
+      enable_filters:
+        []
+    - topic_name: (.*)
+      enable_backends:
+        - local
+      enable_filters:
+        []
+  sub_topics_options:
+    - topic_name: /(idle_mode|zero_mode|stand_mode|walk_mode|walk_mode2|keep_mode|plan_mode|cmd_vel_limiter)
+      enable_backends:
+        - local
+        - ros2
+      enable_filters:
+        []
+    - topic_name: (.*)
+      enable_backends:
+        - local
+      enable_filters:
+        []
+parameter: ~
+module:
+  pkgs:
+    - path: /home/robot/F1/build/libpkg1.so
+      disable_modules:
+        []
+      enable_modules:
+        - JoyStickModule
+        - ControlModule
+        - SimModule
+  modules:
+    - name: JoyStickModule
+      enable: true
+      log_lvl: Info
+      cfg_file_path: ./cfg/joy_stick_module/joy_x1.yaml
+    - name: ControlModule
+      enable: true
+      log_lvl: Info
+      cfg_file_path: ./cfg/control_module/rl_x1_sim.yaml
+    - name: SimModule
+      enable: true
+      log_lvl: Info
+      cfg_file_path: ./cfg/sim_module/sim_x1_nav.yaml
+
+[3]. Plugin List
++-------------+----------------------------------------------+
+| name        | path                                         |
++-------------+----------------------------------------------+
+| ros2_plugin | /home/robot/F1/build/libaimrt_ros2_plugin.so |
++-------------+----------------------------------------------+
+
+
+[4]. Executor Type List
+[ time_wheel , simple_thread , tbb_thread , asio_strand , asio_thread ]
+
+[5]. Executor List
++-----------------------+---------------+-------------+-----------------------+
+| name                  | type          | thread safe | support time schedule |
++-----------------------+---------------+-------------+-----------------------+
+| rl_control_pub_thread | simple_thread | Y           | N                     |
+| rl_log_flush_thread   | simple_thread | Y           | N                     |
+| joy_stick_pub_thread  | simple_thread | Y           | N                     |
+| sim_render_thread     | simple_thread | Y           | N                     |
++-----------------------+---------------+-------------+-----------------------+
+
+
+[6]. Log Backend List
+[ console , rotate_file ]
+
+[7]. Rpc Backend List
+[ ros2 , local ]
+
+[8]. Rpc Client Filter List
+[ debug_log ]
+
+[9]. Rpc Server Filter List
+[ debug_log ]
+
+[10]. Rpc Client Info
++------+--------+----------+---------+
+| func | module | backends | filters |
++------+--------+----------+---------+
++------+--------+----------+---------+
+
+
+[11]. Rpc Server Info
++------+--------+----------+---------+
+| func | module | backends | filters |
++------+--------+----------+---------+
++------+--------+----------+---------+
+
+
+[12]. Ros2 Rpc Backend Server Info
++-----------+----------------+
+| func name | ros2 func name |
++-----------+----------------+
++-----------+----------------+
+
+
+[13]. Ros2 Rpc Backend Client Info
++-----------+----------------+
+| func name | ros2 func name |
++-----------+----------------+
++-----------+----------------+
+
+
+[14]. Channel Backend List
+[ ros2 , local ]
+
+[15]. Channel Pub Filter List
+[ debug_log ]
+
+[16]. Channel Sub Filter List
+[ debug_log ]
+
+[17]. Channel Pub Topic Info
++----------------------+-------------------------------------+----------------+------------+---------+
+| topic                | msg type                            | module         | backends   | filters |
++----------------------+-------------------------------------+----------------+------------+---------+
+| /mujoco/base_pose    | ros2:geometry_msgs/msg/PoseStamped  | SimModule      | local,ros2 |         |
+| /idle_mode           | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /mujoco/ground_truth | ros2:std_msgs/msg/Float64MultiArray | SimModule      | local,ros2 |         |
+| /stand_mode          | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /cmd_vel_limiter     | ros2:geometry_msgs/msg/Twist        | JoyStickModule | local,ros2 |         |
+| /walk_mode           | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /keep_mode           | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /zero_mode           | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /cmd_vel             | ros2:geometry_msgs/msg/Twist        | JoyStickModule | local,ros2 |         |
+| /livox/imu           | ros2:sensor_msgs/msg/Imu            | SimModule      | local,ros2 |         |
+| /plan_mode           | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /imu/data            | ros2:sensor_msgs/msg/Imu            | SimModule      | local,ros2 |         |
+| /walk_mode2          | ros2:std_msgs/msg/Float32           | JoyStickModule | local,ros2 |         |
+| /joint_cmd           | ros2:my_ros2_proto/msg/JointCommand | ControlModule  | local      |         |
+| /joint_states        | ros2:sensor_msgs/msg/JointState     | SimModule      | local,ros2 |         |
++----------------------+-------------------------------------+----------------+------------+---------+
+
+
+[18]. Channel Sub Topic Info
++------------------+-------------------------------------+---------------+------------+---------+
+| topic            | msg type                            | module        | backends   | filters |
++------------------+-------------------------------------+---------------+------------+---------+
+| /joint_cmd       | ros2:my_ros2_proto/msg/JointCommand | SimModule     | local      |         |
+| /joint_states    | ros2:sensor_msgs/msg/JointState     | ControlModule | local      |         |
+| /imu/data        | ros2:sensor_msgs/msg/Imu            | ControlModule | local      |         |
+| /walk_mode       | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
+| /cmd_vel_limiter | ros2:geometry_msgs/msg/Twist        | ControlModule | local,ros2 |         |
+| /walk_mode2      | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
+| /stand_mode      | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
+| /plan_mode       | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
+| /zero_mode       | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
+| /keep_mode       | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
+| /idle_mode       | ros2:std_msgs/msg/Float32           | ControlModule | local,ros2 |         |
++------------------+-------------------------------------+---------------+------------+---------+
+
+
+[19]. Module Info List
++----------------+---------------------------------+---------+
+| name           | pkg                             | version |
++----------------+---------------------------------+---------+
+| JoyStickModule | /home/robot/F1/build/libpkg1.so | 0.0.0.0 |
+| ControlModule  | /home/robot/F1/build/libpkg1.so | 0.0.0.0 |
+| SimModule      | /home/robot/F1/build/libpkg1.so | 0.0.0.0 |
++----------------+---------------------------------+---------+
+
+
+
+----------------------- AimRT Initialization Report End ------------------------
+
+[0m
+[0;32m[2026-07-14 16:28:55.43746][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/configurator/configurator_manager.cc:95:3 @Start]Configurator manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43754][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/plugin/plugin_manager.cc:143:3 @Start]Plugin manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43763][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/executor/executor_manager.cc:114:3 @Start]Executor manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43770][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/logger/logger_manager.cc:117:3 @Start]Logger manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43776][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/allocator/allocator_manager.cc:45:3 @Start]Allocator manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43785][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/rpc/rpc_manager.cc:185:3 @Start]Rpc manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43795][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/channel/channel_manager.cc:186:3 @Start]Channel manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43803][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/parameter/parameter_manager.cc:45:3 @Start]Parameter manager start completed.[0m
+[0;32m[2026-07-14 16:28:55.43816][Info][1909335][JoyStickModule][/home/robot/F1/motion_control/module/joy_stick_module/src/joy_stick_module.cc:94:3 @Start]Started succeeded.[0m
+[0;32m[2026-07-14 16:28:55.43827][Info][1909335][ControlModule][/home/robot/F1/motion_control/module/control_module/src/control_module.cc:176:3 @Start]thread safe [true][0m
+[0;32m[2026-07-14 16:28:55.43839][Info][1909335][ControlModule][/home/robot/F1/motion_control/module/control_module/src/control_module.cc:179:5 @Start]Started succeeded.[0m
+[0;32m[2026-07-14 16:28:55.43852][Info][1909357][ControlModule][/home/robot/F1/motion_control/module/control_module/src/control_module.cc:200:5 @MainLoop]Start MainLoop.[0m
+[0;32m[2026-07-14 16:28:57.262794][Info][1909335][SimModule][/home/robot/F1/motion_control/module/sim_module/src/sim_module.cc:129:7 @Start]Ground truth: robot_root_body_id=1, floor_geom_id=0[0m
+[0;32m[2026-07-14 16:28:57.263015][Info][1909335][SimModule][/home/robot/F1/motion_control/module/sim_module/src/sim_module.cc:135:3 @Start]Started succeeded.[0m
+[0;32m[2026-07-14 16:28:57.263036][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/module/module_manager.cc:239:3 @Start]Module manager start completed.[0m
+[0;32m[2026-07-14 16:28:57.263097][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/aimrt_core.cc:250:3 @Start]AimRT startup completed, will wait for shutdown.[0m
+[0;32m[2026-07-14 16:29:10.500377][Info][1909355][ControlModule][/home/robot/F1/motion_control/module/control_module/src/control_module.cc:44:15 @operator()]Trigger event: [/walk_mode] state 'stand' -> 'walk_leg'[0m
+[0;32m[2026-07-14 16:29:10.500432][Info][1909355][ControlModule][/home/robot/F1/motion_control/module/control_module/src/control_module.cc:56:17 @operator()][Diag Trigger] Entered walk_leg mode, notified 2 controller(s), walk_diag and tm_obs_input logging will start[0m
+[0;32m[2026-07-14 16:29:10.505061][Info][1909358][ControlModule][/home/robot/F1/motion_control/module/control_module/src/rl_controller.cc:577:9 @DrainDiagBuffer]walk_diag logging triggered: test_logs/data_csv/walk_diag_20260714_162910.csv[0m
+[0;32m[2026-07-14 16:29:10.505270][Info][1909358][ControlModule][/home/robot/F1/motion_control/module/control_module/src/rl_controller.cc:644:9 @DrainTmBuffer]tm_obs_input logging triggered: test_logs/data_csv/t_m/tm_obs_input_20260714_162910.bin[0m
+[0;32m[2026-07-14 16:29:20.491429][Info][1909358][ControlModule][/home/robot/F1/motion_control/module/control_module/src/rl_controller.cc:522:3 @FinalizeDiagLogging]walk_diag logging finished, reason=frame_limit, frames=1000, dropped=0[0m
+[0;32m[2026-07-14 16:29:20.491630][Info][1909358][ControlModule][/home/robot/F1/motion_control/module/control_module/src/rl_controller.cc:537:3 @FinalizeTmLogging]tm_obs_input logging finished, reason=frame_limit, frames=1000, dropped=0[0m
+[0;32m[2026-07-14 16:30:02.967893][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/aimrt_core.cc:276:3 @Shutdown]Received shutdown signal.[0m
+[0;32m[2026-07-14 16:30:02.967979][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/aimrt_core.cc:194:3 @ShutdownImpl]AimRT start shutdown.[0m
+[0;32m[2026-07-14 16:30:02.967994][Info][1909335][core][/home/robot/F1/build/_deps/aimrt-src/src/runtime/core/module/module_manager.cc:246:3 @Shutdown]Module manager shutdown.[0m

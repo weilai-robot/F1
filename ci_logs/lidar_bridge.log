@@ -1,0 +1,80 @@
+[INFO] [1784017735.933698167] [mujoco_lidar_bridge]: Loading MuJoCo scene: /home/robot/F1/build/cfg/sim_module/model/mjcf/xyber_x1_nav.xml
+[INFO] [1784017736.291674440] [mujoco_lidar_bridge]: LiDAR raycast excludes 48 robot geoms via group 3
+[INFO] [1784017736.295821767] [mujoco_lidar_bridge]: Free joint qpos_adr=0
+[INFO] [1784017736.309637152] [mujoco_lidar_bridge]: LidarBridge 启动 (事件驱动): model=/home/robot/F1/build/cfg/sim_module/model/mjcf/xyber_x1_nav.xml
+  lidar_hz=10, downsample=1
+  output_type=pointcloud2
+  base_pose 驱动: /clock (1000Hz) + /livox/lidar (10Hz)
+
+[INFO] [1784017737.300984100] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017739.305601059] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017744.009037463] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017746.083231969] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017748.153152926] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017750.325031760] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017752.350201195] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017754.364693107] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017756.382475518] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017758.443359516] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017760.798490821] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017762.804199552] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017764.824381276] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017766.826196259] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017768.841578273] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017770.851557471] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017772.873630384] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017774.883241479] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017776.890549837] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017778.899820528] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017780.908353508] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017782.927692934] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017784.936065362] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017786.948885880] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017788.965134115] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017790.984702132] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017792.992182606] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017795.002949461] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017797.011092675] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017799.026339313] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+[INFO] [1784017801.036996414] [mujoco_lidar_bridge]: MID360 hits=24000, downsample=1
+Traceback (most recent call last):
+  File "/home/robot/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 304, in main
+    rclpy.spin(node)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/__init__.py", line 229, in spin
+    executor.spin_once()
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/executors.py", line 776, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/executors.py", line 773, in _spin_once_impl
+    raise handler.exception()
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/task.py", line 254, in __call__
+    self._handler.send(None)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/executors.py", line 463, in handler
+    await call_coroutine(entity, arg)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/executors.py", line 382, in _execute_subscription
+    await await_or_execute(sub.callback, msg)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/executors.py", line 107, in await_or_execute
+    return callback(*args)
+           ^^^^^^^^^^^^^^^
+  File "/home/robot/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 222, in _pose_cb
+    self._publish_pc2(pts, stamp_sec, stamp_nsec)
+  File "/home/robot/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 285, in _publish_pc2
+    self.lidar_pub.publish(msg)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/publisher.py", line 70, in publish
+    self.__publisher.publish(msg)
+rclpy._rclpy_pybind11.RCLError: Failed to publish: publisher's context is invalid, at /home/runner/conda-bld/bld/rattler-build_ros-humble-rcl_1773562911/work/ros-humble-rcl/src/work/src/rcl/publisher.c:389
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/robot/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 313, in <module>
+    main()
+  File "/home/robot/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 309, in main
+    rclpy.shutdown()
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/__init__.py", line 130, in shutdown
+    _shutdown(context=context)
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/utilities.py", line 58, in shutdown
+    return context.shutdown()
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/robot/Anaconda/envs/F1/ros_humble/lib/python3.12/site-packages/rclpy/context.py", line 102, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at /home/runner/conda-bld/bld/rattler-build_ros-humble-rcl_1773562911/work/ros-humble-rcl/src/work/src/rcl/init.c:241
