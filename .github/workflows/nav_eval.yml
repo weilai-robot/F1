@@ -281,7 +281,12 @@ jobs:
         if: always()
         shell: bash
         run: |
+          if [ -f "$F1_REPORT_DIR/infrastructure_failure.json" ]; then
+            echo "::error::导航评测基础设施失败；请查看结果和日志 artifact"
+            cat "$F1_REPORT_DIR/infrastructure_failure.json"
+            exit 2
+          fi
           if [ "${{ steps.test.outcome }}" != "success" ]; then
-            echo "::error::导航评测未成功；证据已上传（若基础设施允许生成）"
+            echo "::error::导航算法评测未通过；指标证据已上传"
             exit 1
           fi

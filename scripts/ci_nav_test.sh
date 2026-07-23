@@ -37,6 +37,32 @@ MODEL_PATH="${BUILD_DIR}/cfg/sim_module/model/mjcf/xyber_x1_nav.xml"
 
 mkdir -p "$CI_LOG_DIR" "$REPORT_DIR"
 
+# ── 基础设施失败证据 ──────────────────────────────────────
+record_infrastructure_failure() {
+    local reason="$1"
+    python3 - "$REPORT_DIR/infrastructure_failure.json" "$reason" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+path.write_text(
+    json.dumps(
+        {
+            "classification": "infrastructure_failure",
+            "stage": "runtime_preflight",
+            "reason": sys.argv[2],
+            "test_outcome": "infrastructure_failure",
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
+}
+
 # ── 参数解析 ──────────────────────────────────────────────
 SCENARIO="${1:-all}"
 
@@ -145,6 +171,24 @@ if [ ! -f "$MODEL_PATH" ]; then
     exit 1
 fi
 cecho "${G}  ✓ 构建产物验证通过${N}"
+
+# 编译成功不代表插件可在 Runner 上加载。检查所有动态依赖，避免把
+# glibc/共享库不兼容错误误判成导航算法失败。
+PLUGIN_PATH="${BUILD_DIR}/libpkg1.so"
+if [ ! -f "$PLUGIN_PATH" ]; then
+    reason="motion_control plugin missing: ${PLUGIN_PATH}"
+    record_infrastructure_failure "$reason"
+    cecho "${R}[ERROR] ${reason}${N}"
+    exit 2
+fi
+LDD_OUTPUT="$(ldd "$PLUGIN_PATH" 2>&1 || true)"
+if echo "$LDD_OUTPUT" | grep -Eq "version .+ not found|not found"; then
+    reason="motion_control runtime dependency check failed: $(echo "$LDD_OUTPUT" | grep -E "version .+ not found|not found" | head -n 1)"
+    record_infrastructure_failure "$reason"
+    cecho "${R}[ERROR] ${reason}${N}"
+    exit 2
+fi
+cecho "${G}  ✓ motion_control 动态依赖可加载${N}"
 
 # ============================================================
 #  2. 启动 Xvfb (无头渲染)

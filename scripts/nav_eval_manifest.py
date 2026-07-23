@@ -70,27 +70,34 @@ def create_manifest(args: argparse.Namespace) -> Path:
     report_dir.mkdir(parents=True, exist_ok=True)
 
     files = report_files(report_dir)
-    result_json = [
+    metric_result_json = [
         item
         for item in files
         if item["path"].endswith(".json")
-        and not Path(item["path"]).name.startswith("ci_diagnostic")
+        and Path(item["path"]).name
+        not in {
+            "ci_diagnostic.json",
+            "evaluation_manifest.json",
+            "infrastructure_failure.json",
+        }
     ]
-    evidence_status = "complete" if result_json else "incomplete"
-    if not result_json:
+    evidence_status = "complete" if metric_result_json else "infrastructure_failure"
+    if not metric_result_json:
         failure_path = report_dir / "infrastructure_failure.json"
-        failure_path.write_text(
-            json.dumps(
-                {
-                    "reason": "navigation evaluation produced no metric result",
-                    "test_outcome": args.test_outcome,
-                },
-                indent=2,
-                ensure_ascii=False,
+        if not failure_path.exists():
+            failure_path.write_text(
+                json.dumps(
+                    {
+                        "classification": "infrastructure_failure",
+                        "reason": "navigation evaluation produced no metric result",
+                        "test_outcome": args.test_outcome,
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
             )
-            + "\n",
-            encoding="utf-8",
-        )
         files = report_files(report_dir)
 
     manifest = {
