@@ -43,6 +43,8 @@ from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
 from action_msgs.msg import GoalStatus
 
+from nav_eval_contract import POSITION_SUCCESS_THRESHOLD_M, SUCCESS_CONTRACT
+
 
 # ═══════════════════════════════════════════════════════════
 #  指标计算
@@ -132,7 +134,11 @@ class MetricsCalculator:
         goal_dist = math.sqrt((final_x - goal_x)**2 + (final_y - goal_y)**2)
 
         m["position_error_m"] = round(goal_dist, 3)
-        m["success"] = (not self.fall_detected) and (m["collisions"] == 0) and (goal_dist < 0.35)
+        m["success"] = (
+            (not self.fall_detected)
+            and (m["collisions"] == 0)
+            and (goal_dist < POSITION_SUCCESS_THRESHOLD_M)
+        )
 
         # === 规划时间: goal发出 → 首次有速度输出 ===
         if self.goal_sent_time and self.first_motion_time:
@@ -619,8 +625,8 @@ def format_report(scenario_name: str, scenario_desc: str, params: dict,
         f"|------|-----|------|------|",
         f"| **摔倒** | {'是' if metrics.get('fall') else '否'} | {fall_icon} | z<{0.35}m 或 pitch/roll >45° |",
         f"| **碰撞** | {metrics.get('collisions', '?')} 次 | {collision_icon} | robot vs environment (排除地面) |",
-        f"| **导航成功** | {'是' if metrics.get('success') else '否'} | {status_icon} | 未摔未撞且距离<0.35m |",
-        f"| **位置误差** | {metrics.get('position_error_m', '?')} m | {PASS if (metrics.get('position_error_m') is not None and metrics['position_error_m'] < 0.35) else FAIL} | 真实位置 vs 目标 |",
+        f"| **导航成功** | {'是' if metrics.get('success') else '否'} | {status_icon} | 未摔未撞且距离<{POSITION_SUCCESS_THRESHOLD_M}m |",
+        f"| **位置误差** | {metrics.get('position_error_m', '?')} m | {PASS if (metrics.get('position_error_m') is not None and metrics['position_error_m'] < POSITION_SUCCESS_THRESHOLD_M) else FAIL} | 真实位置 vs 目标 |",
         f"| **SLAM漂移** | mean={metrics.get('drift_mean_m', 'N/A')}m max={metrics.get('drift_max_m', 'N/A')}m p95={metrics.get('drift_p95_m', 'N/A')}m | {WARN if metrics.get('drift_mean_m', 0) and metrics.get('drift_mean_m', 0) > 0.3 else PASS} | FastLIO2 估计 vs ground truth (逐帧) |",
         f"| **规划时间** | {metrics.get('plan_time_s', 'N/A')} s | — | goal发出 → 首次有速度输出 |",
         f"| **完成时间** | {metrics.get('completion_time_s', '?')} s | — | sim_time |",
@@ -803,6 +809,7 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
             "timeout": params["timeout"],
         },
         "metrics": metrics,
+        "metric_contract": SUCCESS_CONTRACT,
         "diagnostics": diagnostics,
     }
     with open(json_path, "w") as f:

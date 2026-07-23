@@ -168,54 +168,46 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
     def _download_and_analyze(self, run_id, run_number, branch, conclusion):
         """异步: 下载 artifact + 分析 + 触发回调"""
-        print(f"\n{B}[fetch] 下载 run {run_id} 的结果...{N}")
-
-        dest = os.path.abspath("ci_fetched")
-        os.makedirs(dest, exist_ok=True)
-
-        # 下载 artifact
-        result = subprocess.run(
-            ["gh", "run", "download", str(run_id),
-             f"--name=nav-results-{run_id}",
-             f"--dir={dest}"],
+        print(f"\n{B}[fetch] 下载并校验 run {run_id} 的结果...{N}")
+        fetch_script = os.path.join(self.SCRIPTS_DIR, "fetch_ci_results.py")
+        if not os.path.exists(fetch_script):
+            print(f"{R}[fetch] ✗ 缺少结果拉取脚本: {fetch_script}{N}")
+            return
+        attempt_result = subprocess.run(
+            ["gh", "run", "view", str(run_id), "--json=attempt"],
             capture_output=True, text=True,
         )
-
-        if result.returncode != 0:
-            print(f"{R}[fetch] ✗ 下载失败: {result.stderr[:300]}{N}")
-            # 尝试不带 name 下载 (可能 artifact 名不同)
-            result = subprocess.run(
-                ["gh", "run", "download", str(run_id), f"--dir={dest}"],
-                capture_output=True, text=True,
-            )
-            if result.returncode != 0:
-                print(f"{R}[fetch] ✗ 再次下载失败: {result.stderr[:300]}{N}")
-                return
-
-        print(f"{G}[fetch] ✓ artifact 下载到 {dest}/{N}")
-
-        # 分析结果
-        fetch_script = os.path.join(self.SCRIPTS_DIR, "fetch_ci_results.py")
-        if os.path.exists(fetch_script):
-            print(f"{B}[fetch] 分析结果...{N}")
-            analyze = subprocess.run(
-                ["python3", fetch_script,
-                 "--run-id", str(run_id),
-                 "--no-wait",
-                 "--dest", dest],
-                capture_output=True, text=True,
-            )
-            report_path = os.path.join(dest, "report.md")
-            if os.path.exists(report_path):
-                print(f"{G}[fetch] ✓ 诊断报告: {report_path}{N}")
-                # 打印报告前 30 行
-                with open(report_path) as f:
-                    lines = f.readlines()[:30]
-                    print("".join(lines))
-            else:
-                print(f"{Y}[fetch] 分析脚本未生成报告{N}")
-                if analyze.stderr:
-                    print(f"  stderr: {analyze.stderr[:300]}")
+        if attempt_result.returncode != 0:
+            print(f"{R}[fetch] ✗ 无法读取 run attempt: {attempt_result.stderr[:300]}{N}")
+            return
+        attempt = json.loads(attempt_result.stdout)["attempt"]
+        dest = os.path.abspath(
+            os.path.join("ci_fetched", f"{run_id}-{attempt}")
+        )
+        analyze = subprocess.run(
+            ["python3", fetch_script,
+             "--run-id", str(run_id),
+             "--dest", dest],
+            capture_output=True, text=True,
+        )
+        if analyze.returncode != 0:
+            print(f"{R}[fetch] ✗ 下载或证据校验失败{N}")
+            if analyze.stdout:
+                print(analyze.stdout[-1000:])
+            if analyze.stderr:
+                print(analyze.stderr[-500:])
+            return
+        report_path = os.path.join(dest, "report.md")
+        if os.path.exists(report_path):
+            print(f"{G}[fetch] ✓ 诊断报告: {report_path}{N}")
+            # 打印报告前 30 行
+            with open(report_path) as f:
+                lines = f.readlines()[:30]
+                print("".join(lines))
+        else:
+            print(f"{Y}[fetch] 分析脚本未生成报告{N}")
+            if analyze.stderr:
+                print(f"  stderr: {analyze.stderr[:300]}")
 
         # 触发自定义回调
         if self.CALLBACK_CMD:

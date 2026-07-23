@@ -1,18 +1,3 @@
-# ============================================================
-# nav_eval.yml — 导航算法 CI 自动评测流水线
-#
-# 触发条件:
-#   1. push 到 nav/dev-* 分支 (Agent 推代码)
-#   2. 手动 dispatch (调试 / 指定场景)
-#
-# 流程:
-#   checkout(不清理) → [增量]build mc → [增量]build nav
-#   → ci_nav_test.sh → upload artifact → 摘要输出
-#
-# 结果获取 (Agent 侧):
-#   gh run download <run_id> -n nav-results-<run_id>
-#   或 python3 scripts/fetch_ci_results.py
-# ============================================================
 name: Nav Eval
 
 on:
@@ -20,14 +5,17 @@ on:
     branches:
       - 'nav/dev-*'
     paths:
+      - 'navigation'
       - 'navigation/**'
       - '.github/workflows/nav_eval.yml'
       - 'scripts/nav_test_runner.py'
       - 'scripts/ci_nav_test.sh'
+      - 'scripts/nav_eval_contract.py'
+      - 'scripts/nav_eval_manifest.py'
   workflow_dispatch:
     inputs:
       scenario:
-        description: '测试场景 (all / A_straight_5m / custom 5.0 0.0)'
+        description: '测试场景 (all / A_straight_5m / custom)'
         required: false
         default: 'all'
       rebuild_mc:
@@ -41,263 +29,259 @@ on:
         required: false
         default: false
 
-# 同一时间只跑一个导航评测 (仿真资源有限)
+# Dedicated simulation resources must be serialized. Never cancel an evaluation
+# whose run id may already have been handed to a local loop.
 concurrency:
   group: nav-eval
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   nav-eval:
     runs-on: [self-hosted, linux]
     timeout-minutes: 40
-
     env:
-      CONDA_BASE: ${{ vars.CONDA_BASE || '~/Anaconda' }}
-      CONDA_ENV: ${{ vars.CONDA_ENV || 'F1' }}
+      F1_EVAL_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      F1_REPORT_DIR: ${{ github.workspace }}/reports/${{ github.run_id }}-${{ github.run_attempt }}
+      F1_CI_LOG_DIR: ${{ github.workspace }}/ci_logs/${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
-      # ── 1. Checkout (不清理 build/) ─────────────────────
-      # 关键: clean: false 防止 git clean -ffdx 删除 build/ 和 navigation/install/
-      - name: Checkout
+      - name: Checkout exact source
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+          # Build directories are kept on the dedicated runner. Source trees are
+          # sanitized explicitly in the next step.
           clean: false
 
-      # ── 2. conda 环境初始化 ─────────────────────────────
-      - name: Setup conda
-        id: conda
+      - name: Verify source identity
+        id: source
         shell: bash
         run: |
-          CONDA_SH="${CONDA_BASE/#\~/$HOME}/etc/profile.d/conda.sh"
-          if [ ! -f "$CONDA_SH" ]; then
-            for p in "$HOME/Anaconda" "$HOME/anaconda3" "$HOME/miniconda3" "/opt/conda"; do
-              if [ -f "$p/etc/profile.d/conda.sh" ]; then
-                CONDA_SH="$p/etc/profile.d/conda.sh"
-                break
-              fi
-            done
-          fi
-          if [ ! -f "$CONDA_SH" ]; then
-            echo "::error::未找到 conda.sh"
+          set -euo pipefail
+          git submodule update --init --recursive --force
+          git submodule foreach --recursive \
+            'git clean -ffd -e build/ -e install/ -e log/'
+
+          F1_SHA="$(git rev-parse HEAD)"
+          NAV_GITLINK_SHA="$(git ls-tree HEAD navigation | awk '{print $3}')"
+          NAV_CHECKOUT_SHA="$(git -C navigation rev-parse HEAD)"
+          MC_GITLINK_SHA="$(git ls-tree HEAD motion_control | awk '{print $3}')"
+          MC_CHECKOUT_SHA="$(git -C motion_control rev-parse HEAD)"
+
+          if [ "$F1_SHA" != "${{ github.sha }}" ]; then
+            echo "::error::F1 checkout SHA mismatch: $F1_SHA != ${{ github.sha }}"
             exit 1
           fi
-          echo "CONDA_SH=$CONDA_SH" >> "$GITHUB_OUTPUT"
-          source "$CONDA_SH"
-          conda activate "$CONDA_ENV"
-          echo "::notice::Python=$(which python3)  ROS2=$(ros2 --version 2>/dev/null || echo ok)"
+          if [ "$NAV_GITLINK_SHA" != "$NAV_CHECKOUT_SHA" ]; then
+            echo "::error::navigation gitlink mismatch: $NAV_GITLINK_SHA != $NAV_CHECKOUT_SHA"
+            exit 1
+          fi
+          if [ "$MC_GITLINK_SHA" != "$MC_CHECKOUT_SHA" ]; then
+            echo "::error::motion_control gitlink mismatch: $MC_GITLINK_SHA != $MC_CHECKOUT_SHA"
+            exit 1
+          fi
 
-      # ── 3. 构建 motion_control (增量) ──────────────────
+          echo "f1_sha=$F1_SHA" >> "$GITHUB_OUTPUT"
+          echo "nav_sha=$NAV_CHECKOUT_SHA" >> "$GITHUB_OUTPUT"
+          echo "mc_sha=$MC_CHECKOUT_SHA" >> "$GITHUB_OUTPUT"
+          echo "::notice::F1=$F1_SHA navigation=$NAV_CHECKOUT_SHA motion_control=$MC_CHECKOUT_SHA"
+
+      - name: Verify f1ros environment
+        id: environment
+        shell: bash -il {0}
+        run: |
+          if ! type f1ros >/dev/null 2>&1; then
+            echo "::error::登录 shell 中未找到 f1ros，请检查 Runner 用户的 shell 配置"
+            exit 1
+          fi
+          if ! f1ros; then
+            echo "::error::f1ros 环境激活失败"
+            exit 1
+          fi
+          set -euo pipefail
+          command -v python3
+          command -v ros2
+          python3 -c "import rclpy; print('rclpy ok')"
+          echo "conda_environment=${CONDA_DEFAULT_ENV:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "ros_distro=${ROS_DISTRO:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "python_version=$(python3 -c 'import platform; print(platform.python_version())')" >> "$GITHUB_OUTPUT"
+          echo "::notice::f1ros active: CONDA_DEFAULT_ENV=${CONDA_DEFAULT_ENV:-unknown} ROS_DISTRO=${ROS_DISTRO:-unknown}"
+
       - name: Build motion_control
-        shell: bash
+        shell: bash -il {0}
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
-          if [ -f build/aimrt_main ] && [ "${{ inputs.rebuild_mc }}" != "true" ]; then
-            echo "::notice::motion_control 已构建, 跳过"
+          if ! f1ros; then
+            echo "::error::f1ros 环境激活失败"
+            exit 1
+          fi
+          set -euo pipefail
+          MARKER="${{ github.workspace }}/build/.ci-motion-control-source"
+          BUILD_DRIVER_SHA="$(
+            sha256sum CMakeLists.txt scripts/build.sh |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          EXPECTED="${{ steps.source.outputs.mc_sha }}:$BUILD_DRIVER_SHA"
+          if [ -f build/aimrt_main ] \
+             && [ -f "$MARKER" ] \
+             && [ "$(cat "$MARKER")" = "$EXPECTED" ] \
+             && [ "${{ inputs.rebuild_mc }}" != "true" ]; then
+            echo "::notice::复用 motion_control 构建: $EXPECTED"
           else
-            echo "::group::build.sh output"
             ./scripts/build.sh
-            echo "::endgroup::"
+            printf '%s\n' "$EXPECTED" > "$MARKER"
           fi
 
-      # ── 4. 构建 navigation (增量) ───────────────────────
       - name: Build navigation
-        shell: bash
+        shell: bash -il {0}
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
-          # 增量构建: 检查关键产物是否存在
-          NAV_SETUP="${{ github.workspace }}/navigation/install/setup.bash"
-          if [ -f "$NAV_SETUP" ] && [ "${{ inputs.rebuild_nav }}" != "true" ]; then
-            echo "::notice::navigation 已构建, 跳过 (colcon --symlink-install 会自动增量)"
-            # colcon --symlink-install 默认就是增量的, 跑一次确保 Python 脚本链接更新
-            echo "::group::build_nav.sh output"
-            ./scripts/build_nav.sh || true
-            echo "::endgroup::"
+          if ! f1ros; then
+            echo "::error::f1ros 环境激活失败"
+            exit 1
+          fi
+          set -euo pipefail
+          MARKER="${{ github.workspace }}/navigation/install/.ci-navigation-source"
+          BUILD_DRIVER_SHA="$(sha256sum scripts/build_nav.sh | awk '{print $1}')"
+          EXPECTED="${{ steps.source.outputs.nav_sha }}:$BUILD_DRIVER_SHA"
+          if [ -f navigation/install/setup.bash ] \
+             && [ -f "$MARKER" ] \
+             && [ "$(cat "$MARKER")" = "$EXPECTED" ] \
+             && [ "${{ inputs.rebuild_nav }}" != "true" ]; then
+            echo "::notice::复用 navigation 构建: $EXPECTED"
           else
-            echo "::group::build_nav.sh output"
             ./scripts/build_nav.sh
-            echo "::endgroup::"
+            printf '%s\n' "$EXPECTED" > "$MARKER"
           fi
 
-      # ── 5. 运行导航评测 ─────────────────────────────────
-      # continue-on-error: 测试失败不阻断后续上传结果步骤
       - name: Run nav evaluation
         id: test
         continue-on-error: true
-        shell: bash
+        shell: bash -il {0}
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
+          if ! f1ros; then
+            echo "::error::f1ros 环境激活失败"
+            exit 1
+          fi
+          set -euo pipefail
           SCENARIO="${{ inputs.scenario || 'all' }}"
-          echo "scenario=${SCENARIO}" >> "$GITHUB_OUTPUT"
+          echo "scenario=$SCENARIO" >> "$GITHUB_OUTPUT"
           ./scripts/ci_nav_test.sh "$SCENARIO"
 
-      # ── 6. 提取测试摘要到 Step Summary ─────────────────
+      - name: Write evaluation manifest
+        if: always() && steps.source.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/nav_eval_manifest.py create \
+            --report-dir "$F1_REPORT_DIR" \
+            --repo-root "${{ github.workspace }}" \
+            --repository "${{ github.repository }}" \
+            --workflow "${{ github.workflow_ref }}" \
+            --event "${{ github.event_name }}" \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --scenario "${{ inputs.scenario || 'all' }}" \
+            --test-outcome "${{ steps.test.outcome }}" \
+            --f1-commit "${{ steps.source.outputs.f1_sha }}" \
+            --navigation-commit "${{ steps.source.outputs.nav_sha }}" \
+            --ros-distro "${{ steps.environment.outputs.ros_distro }}" \
+            --conda-environment "${{ steps.environment.outputs.conda_environment }}" \
+            --python-version "${{ steps.environment.outputs.python_version }}"
+
       - name: Extract summary
         if: always()
         shell: bash
         run: |
-          echo "## 导航评测结果" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          # 尝试读取 batch summary
-          BATCH_FILE=$(ls -t reports/batch_summary_*.json 2>/dev/null | head -1)
-          if [ -n "$BATCH_FILE" ]; then
-            python3 -c "
-          import json, sys
-          with open('$BATCH_FILE') as f:
-              results = json.load(f)
-          total = len(results)
-          passed = sum(1 for r in results if r.get('metrics',{}).get('success'))
-          print(f'**通过率: {passed}/{total}**')
-          print()
-          print('| 场景 | 结果 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |')
-          print('|------|------|------|------|---------|--------|')
-          for r in results:
-              m = r.get('metrics',{})
-              s = '✅' if m.get('success') else '❌'
-              f = '是' if m.get('fall') else '否'
-              print(f\"| {r['scenario']} | {s} | {f} | {m.get('collisions',0)} | {m.get('position_error_m','N/A')} | {m.get('drift_mean_m','N/A')} |\")
-          " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "结果解析失败" >> "$GITHUB_STEP_SUMMARY"
-          else
-            # 单场景
-            SINGLE=$(ls -t reports/*.json 2>/dev/null | grep -v batch_summary | head -1)
-            if [ -n "$SINGLE" ]; then
-              python3 -c "
+          python3 - "$F1_REPORT_DIR" >> "$GITHUB_STEP_SUMMARY" <<'PY'
           import json
-          with open('$SINGLE') as f:
-              r = json.load(f)
-          m = r.get('metrics',{})
-          s = '✅' if m.get('success') else '❌'
-          print(f'**结果: {s}**')
-          print(f'- 摔倒: {\"是\" if m.get(\"fall\") else \"否\"}')
-          print(f'- 碰撞: {m.get(\"collisions\",0)} 次')
-          print(f'- 位置误差: {m.get(\"position_error_m\",\"N/A\")} m')
-          print(f'- SLAM漂移: {m.get(\"drift_mean_m\",\"N/A\")} m')
-          " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "结果解析失败" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "未找到测试结果" >> "$GITHUB_STEP_SUMMARY"
-            fi
-          fi
+          import pathlib
+          import sys
 
-          # 组件诊断
-          if [ -f reports/ci_diagnostic.json ]; then
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "### 组件日志诊断" >> "$GITHUB_STEP_SUMMARY"
-            echo "| 组件 | Errors | Warnings |" >> "$GITHUB_STEP_SUMMARY"
-            echo "|------|--------|----------|" >> "$GITHUB_STEP_SUMMARY"
-            python3 -c "
-          import json
-          with open('reports/ci_diagnostic.json') as f:
-              d = json.load(f)
-          for comp, info in d.get('component_logs',{}).items():
-              icon = '❌' if info.get('error_count',0) > 0 else '✅'
-              print(f'| {icon} {comp} | {info.get(\"error_count\",0)} | {info.get(\"warn_count\",0)} |')
-          " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
-          fi
+          report_dir = pathlib.Path(sys.argv[1])
+          print("## 导航评测结果\n")
+          batches = sorted(report_dir.glob("batch_summary_*.json"))
+          if batches:
+              results = json.loads(batches[-1].read_text())
+          else:
+              results = []
+              for path in sorted(report_dir.glob("*.json")):
+                  if path.name in {"ci_diagnostic.json", "evaluation_manifest.json"}:
+                      continue
+                  data = json.loads(path.read_text())
+                  if "metrics" in data:
+                      results.append(data)
+          if not results:
+              print("未生成场景指标；请查看日志 artifact。")
+              raise SystemExit(0)
+          passed = sum(bool(r.get("metrics", {}).get("success")) for r in results)
+          print(f"**通过率: {passed}/{len(results)}**\n")
+          print("| 场景 | 结果 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |")
+          print("|------|------|------|------|---------|---------|")
+          for result in results:
+              metrics = result.get("metrics", {})
+              status = "✅" if metrics.get("success") else "❌"
+              fall = "是" if metrics.get("fall") else "否"
+              print(
+                  f"| {result.get('scenario', '?')} | {status} | {fall} | "
+                  f"{metrics.get('collisions', 0)} | "
+                  f"{metrics.get('position_error_m', 'N/A')} | "
+                  f"{metrics.get('drift_mean_m', 'N/A')} |"
+              )
+          PY
 
-      # ── 7. 上传测试报告 (always) ────────────────────────
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nav-results-${{ github.run_id }}
-          path: |
-            reports/
+          name: nav-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F1_REPORT_DIR }}/
+          if-no-files-found: error
           retention-days: 30
 
-      # ── 8. 上传日志 (失败时) ────────────────────────────
-      - name: Upload logs (on failure)
-        if: always() && steps.test.outcome == 'failure'
+      - name: Upload logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-logs-${{ github.run_id }}
-          path: ci_logs/
+          name: ci-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.F1_CI_LOG_DIR }}/
+          if-no-files-found: ignore
           retention-days: 7
 
-      # ── 9. Commit 评论 (push 触发时) ────────────────────
-      - name: Post results comment
+      - name: Post commit result
         if: always() && github.event_name == 'push'
         uses: actions/github-script@v7
+        env:
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          NAV_SHA: ${{ steps.source.outputs.nav_sha }}
         with:
           script: |
-            const fs = require('fs');
-            const path = require('path');
-
-            let comment = `## 🤖 导航评测结果\n\n`;
-            const testOutcome = '${{ steps.test.outcome }}';
-            comment += `测试状态: **${testOutcome}**\n\n`;
-
-            try {
-              const reportDir = 'reports';
-              const batchFiles = fs.readdirSync(reportDir)
-                .filter(f => f.startsWith('batch_summary_') && f.endsWith('.json'))
-                .sort().reverse();
-
-              if (batchFiles.length > 0) {
-                const results = JSON.parse(fs.readFileSync(path.join(reportDir, batchFiles[0]), 'utf8'));
-                comment += `| 场景 | 成功 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |\n`;
-                comment += `|------|------|------|------|---------|--------|\n`;
-                for (const r of results) {
-                  const m = r.metrics || {};
-                  const s = m.success ? '✅' : '❌';
-                  const f = m.fall ? '是' : '否';
-                  comment += `| ${r.scenario} | ${s} | ${f} | ${m.collisions||0} | ${m.position_error_m||'N/A'} | ${m.drift_mean_m||'N/A'} |\n`;
-                }
-                const pass = results.filter(r => r.metrics?.success).length;
-                comment += `\n**通过率: ${pass}/${results.length}**\n`;
-              } else {
-                // 单场景
-                const singleFiles = fs.readdirSync(reportDir)
-                  .filter(f => f.endsWith('.json') && !f.startsWith('batch_summary') && !f.startsWith('ci_diagnostic'))
-                  .sort().reverse();
-                if (singleFiles.length > 0) {
-                  const r = JSON.parse(fs.readFileSync(path.join(reportDir, singleFiles[0]), 'utf8'));
-                  const m = r.metrics || {};
-                  comment += `| 场景 | 成功 | 摔倒 | 碰撞 | 误差(m) | 漂移(m) |\n`;
-                  comment += `|------|------|------|------|---------|--------|\n`;
-                  const s = m.success ? '✅' : '❌';
-                  const f = m.fall ? '是' : '否';
-                  comment += `| ${r.scenario||'test'} | ${s} | ${f} | ${m.collisions||0} | ${m.position_error_m||'N/A'} | ${m.drift_mean_m||'N/A'} |\n`;
-                }
-              }
-
-              // 组件诊断
-              const diagPath = path.join(reportDir, 'ci_diagnostic.json');
-              if (fs.existsSync(diagPath)) {
-                const diag = JSON.parse(fs.readFileSync(diagPath, 'utf8'));
-                const comps = diag.component_logs || {};
-                const errorComps = Object.entries(comps).filter(([k,v]) => v.error_count > 0);
-                if (errorComps.length > 0) {
-                  comment += `\n**组件错误:**\n`;
-                  for (const [comp, info] of errorComps) {
-                    comment += `- ${comp}: ${info.error_count} errors\n`;
-                  }
-                }
-              }
-            } catch (e) {
-              comment += `结果解析失败: ${e.message}\n`;
-            }
-
-            comment += `\n[📋 完整报告](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            comment += `📥 下载结果: \`gh run download ${{ github.run_id }} -n nav-results-${{ github.run_id }}\`\n`;
-
+            const body = [
+              '## 🤖 导航评测结果',
+              '',
+              `测试状态: **${process.env.TEST_OUTCOME}**`,
+              `F1 commit: \`${context.sha}\``,
+              `navigation commit: \`${process.env.NAV_SHA || 'unavailable'}\``,
+              `run/attempt: \`${context.runId}/${process.env.GITHUB_RUN_ATTEMPT}\``,
+              '',
+              `[完整报告](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              `下载并校验: \`python3 scripts/fetch_ci_results.py --run-id ${context.runId}\``,
+            ].join('\n');
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-              body: comment
+              body,
             });
 
-      # ── 10. 标记 job 失败 (如果测试失败) ─────────────────
-      - name: Check test result
+      - name: Enforce evaluation result
         if: always()
         shell: bash
         run: |
-          if [ "${{ steps.test.outcome }}" = "failure" ]; then
-            echo "::warning::导航测试未通过, 但结果已上传"
+          if [ "${{ steps.test.outcome }}" != "success" ]; then
+            echo "::error::导航评测未成功；证据已上传（若基础设施允许生成）"
             exit 1
           fi

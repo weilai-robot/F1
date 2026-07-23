@@ -26,3 +26,6 @@ AGENTS.md
 
 # --- Test data ---
 test_logs/data_csv/
+reports/
+ci_logs/
+ci_fetched/

@@ -25,9 +25,10 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
+
+from nav_eval_manifest import ManifestError, verify_manifest
 
 
 # ── gh CLI 封装 ────────────────────────────────────────────
@@ -43,16 +44,19 @@ def gh(*args, check=True, capture=True):
     return result.stdout.strip()
 
 
-def find_latest_run(workflow="nav_eval.yml", branch=None):
-    """找最新的 nav_eval workflow run"""
-    args = ["run", "list", f"--workflow={workflow}", "--limit=1", "--json=databaseId,status,conclusion,headBranch,createdAt,displayTitle"]
+def find_latest_run(workflow="nav_eval.yml", branch=None, expected_sha=None):
+    """找最新的 nav_eval workflow run，可限定精确 F1 commit。"""
+    args = [
+        "run", "list", f"--workflow={workflow}", "--limit=30",
+        "--json=databaseId,status,conclusion,headBranch,headSha,createdAt,displayTitle",
+    ]
     if branch:
         args.append(f"--branch={branch}")
     out = gh(*args)
     runs = json.loads(out)
-    if not runs:
-        return None
-    return runs[0]
+    if expected_sha:
+        runs = [run for run in runs if run.get("headSha") == expected_sha]
+    return runs[0] if runs else None
 
 
 def wait_for_run(run_id, timeout=2400, poll_interval=30):
@@ -79,50 +83,52 @@ def wait_for_run(run_id, timeout=2400, poll_interval=30):
         time.sleep(poll_interval)
 
 
-def download_artifacts(run_id, dest_dir):
-    """下载 run 的所有 artifact"""
-    # 列出 artifact
-    out = gh("run", "view", str(run_id), "--json=artifacts")
+def download_results_artifact(repository, run_id, run_attempt, dest_dir):
+    """只下载当前 attempt 的结果 artifact，拒绝混入旧目录内容。"""
+    out = gh(
+        "api",
+        f"repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100",
+    )
     info = json.loads(out)
     artifacts = info.get("artifacts", [])
-
-    if not artifacts:
-        print(f"[ERROR] run {run_id} 没有 artifact")
+    expected_name = f"nav-results-{run_id}-{run_attempt}"
+    matches = [item for item in artifacts if item.get("name") == expected_name]
+    if len(matches) != 1:
+        names = ", ".join(item.get("name", "?") for item in artifacts) or "<none>"
+        print(f"[ERROR] 未找到唯一结果 artifact: {expected_name}")
+        print(f"  当前 artifacts: {names}")
         sys.exit(1)
 
-    print(f"[fetch] 发现 {len(artifacts)} 个 artifact:")
-    for a in artifacts:
-        print(f"  - {a['name']} ({a.get('sizeInBytes', '?')} bytes)")
-
-    # 下载
-    os.makedirs(dest_dir, exist_ok=True)
-    for a in artifacts:
-        name = a["name"]
-        # gh run download 到临时目录再解压
-        tmp = os.path.join(dest_dir, f"_tmp_{name}")
-        os.makedirs(tmp, exist_ok=True)
-        gh("run", "download", str(run_id), f"--name={name}", f"--dir={tmp}",
-           check=False)  # 有些 artifact 可能不存在
-        # 合并到 dest_dir
-        merge_dir(tmp, dest_dir)
-        # 清理临时目录
-        import shutil
-        shutil.rmtree(tmp, ignore_errors=True)
-
-    print(f"[fetch] artifact 已下载到 {dest_dir}")
+    dest_path = Path(dest_dir)
+    if dest_path.exists() and any(dest_path.iterdir()):
+        print(f"[ERROR] 目标目录非空，拒绝混入旧结果: {dest_path}")
+        sys.exit(1)
+    dest_path.mkdir(parents=True, exist_ok=True)
+    gh(
+        "run", "download", str(run_id),
+        f"--name={expected_name}", f"--dir={dest_path}",
+    )
+    print(
+        f"[fetch] 已下载 {expected_name} "
+        f"({matches[0].get('size_in_bytes', '?')} bytes) 到 {dest_path}"
+    )
 
 
-def merge_dir(src, dst):
-    """合并 src 内容到 dst"""
-    for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if os.path.isdir(s):
-            import shutil
-            shutil.copytree(s, d, dirs_exist_ok=True)
-        else:
-            import shutil
-            shutil.copy2(s, d)
+def navigation_gitlink(repository, f1_commit):
+    """从 GitHub commit tree 读取 navigation gitlink SHA。"""
+    commit = json.loads(
+        gh("api", f"repos/{repository}/git/commits/{f1_commit}")
+    )
+    tree_sha = commit.get("tree", {}).get("sha")
+    if not tree_sha:
+        print("[ERROR] 无法读取 F1 commit 的 tree SHA")
+        sys.exit(1)
+    tree = json.loads(gh("api", f"repos/{repository}/git/trees/{tree_sha}"))
+    matches = [item for item in tree.get("tree", []) if item.get("path") == "navigation"]
+    if len(matches) != 1 or matches[0].get("type") != "commit":
+        print("[ERROR] F1 commit tree 中没有唯一的 navigation gitlink")
+        sys.exit(1)
+    return matches[0]["sha"]
 
 
 # ── 诊断分析 ────────────────────────────────────────────────
@@ -136,8 +142,9 @@ def analyze_results(results_dir):
     test_results = []
     batch_summary = None
     ci_diag = None
+    infrastructure_failure = None
 
-    for f in sorted(Path(results_dir).glob("*.json")):
+    for f in sorted(Path(results_dir).rglob("*.json")):
         try:
             data = json.loads(f.read_text())
         except Exception:
@@ -147,6 +154,10 @@ def analyze_results(results_dir):
             batch_summary = data
         elif f.name == "ci_diagnostic.json":
             ci_diag = data
+        elif f.name == "infrastructure_failure.json":
+            infrastructure_failure = data
+        elif f.name == "evaluation_manifest.json":
+            continue
         elif "metrics" in data:
             test_results.append(data)
 
@@ -154,7 +165,15 @@ def analyze_results(results_dir):
         test_results = batch_summary
 
     if not test_results:
-        report_lines.append("⚠ 未找到测试结果文件")
+        report_lines.append("⚠ 未找到场景指标，评测基础设施未完成测试。")
+        if infrastructure_failure:
+            report_lines.append("")
+            report_lines.append(
+                f"- 原因: {infrastructure_failure.get('reason', 'unknown')}"
+            )
+            report_lines.append(
+                f"- test outcome: {infrastructure_failure.get('test_outcome', 'unknown')}"
+            )
         return "\n".join(report_lines)
 
     # ── 1. 总览 ──
@@ -304,11 +323,16 @@ def analyze_results(results_dir):
 # ── 主流程 ──────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="获取 CI 导航评测结果")
-    parser.add_argument("--run-id", type=int, help="指定 run ID (跳过等待)")
-    parser.add_argument("--latest", action="store_true", help="下载最近一次结果 (不等新 run)")
+    parser.add_argument("--run-id", type=int, help="指定 run ID")
+    parser.add_argument(
+        "--latest",
+        action="store_true",
+        help="显式允许使用最近一次结果；默认只匹配当前本地 F1 commit",
+    )
+    parser.add_argument("--sha", help="只匹配指定 F1 commit")
     parser.add_argument("--branch", type=str, help="指定分支")
     parser.add_argument("--timeout", type=int, default=2400, help="等待超时 (秒)")
-    parser.add_argument("--dest", type=str, default="ci_fetched", help="下载目录")
+    parser.add_argument("--dest", type=str, help="下载目录 (默认按 run/attempt 隔离)")
     parser.add_argument("--no-wait", action="store_true", help="不等 run 完成, 直接下载")
     args = parser.parse_args()
 
@@ -325,20 +349,55 @@ def main():
         print("  运行: gh auth login")
         sys.exit(1)
 
-    # 1. 找 run
+    repository = json.loads(gh("repo", "view", "--json=nameWithOwner"))["nameWithOwner"]
+
+    # 1. 精确定位 run
     if args.run_id:
         run_id = args.run_id
         print(f"[fetch] 使用指定 run_id: {run_id}")
+        run = json.loads(
+            gh(
+                "run", "view", str(run_id),
+                "--json=attempt,status,conclusion,headBranch,headSha,displayTitle",
+            )
+        )
     else:
-        run = find_latest_run(branch=args.branch)
+        expected_sha = args.sha
+        if not expected_sha and not args.latest:
+            local = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+            )
+            if local.returncode != 0:
+                print("[ERROR] 无法读取本地 F1 commit；请传 --sha、--run-id 或 --latest")
+                sys.exit(1)
+            expected_sha = local.stdout.strip()
+            print(f"[fetch] 默认匹配当前本地 F1 commit: {expected_sha}")
+
+        run = find_latest_run(
+            branch=args.branch,
+            expected_sha=expected_sha,
+        )
         if not run:
-            print("[ERROR] 未找到 nav_eval workflow run")
+            suffix = f" for commit {expected_sha}" if expected_sha else ""
+            print(f"[ERROR] 未找到 nav_eval workflow run{suffix}")
             print("  请先触发 CI: push 到 nav/dev-* 分支 或手动 dispatch")
             sys.exit(1)
         run_id = run["databaseId"]
-        status = run["status"]
-        print(f"[fetch] 最新 run: {run_id} (status={status}, branch={run.get('headBranch', '?')})")
-        print(f"  title: {run.get('displayTitle', '?')}")
+        run = json.loads(
+            gh(
+                "run", "view", str(run_id),
+                "--json=attempt,status,conclusion,headBranch,headSha,displayTitle",
+            )
+        )
+
+    print(
+        f"[fetch] run={run_id} attempt={run['attempt']} "
+        f"status={run.get('status')} branch={run.get('headBranch', '?')}"
+    )
+    print(f"  F1 commit: {run.get('headSha')}")
+    print(f"  title: {run.get('displayTitle', '?')}")
 
     # 2. 等待完成
     if not args.no_wait:
@@ -347,11 +406,32 @@ def main():
         out = gh("run", "view", str(run_id), "--json=status,conclusion")
         conclusion = json.loads(out).get("conclusion", "unknown")
 
-    # 3. 下载 artifact
-    dest = os.path.abspath(args.dest)
-    download_artifacts(run_id, dest)
+    # 3. 下载当前 attempt 的唯一结果 artifact
+    dest = os.path.abspath(
+        args.dest or os.path.join("ci_fetched", f"{run_id}-{run['attempt']}")
+    )
+    download_results_artifact(repository, run_id, run["attempt"], dest)
 
-    # 4. 分析
+    # 4. 校验 run → F1 commit → navigation gitlink → 文件 hash
+    expected_navigation = navigation_gitlink(repository, run["headSha"])
+    try:
+        manifest = verify_manifest(
+            Path(dest),
+            expected_run_id=str(run_id),
+            expected_run_attempt=run["attempt"],
+            expected_f1_commit=run["headSha"],
+            expected_navigation_commit=expected_navigation,
+        )
+    except (ManifestError, OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"[ERROR] 结果证据校验失败: {exc}")
+        sys.exit(1)
+    print(
+        "[fetch] 证据校验通过: "
+        f"F1={run['headSha']} navigation={expected_navigation} "
+        f"attempt={manifest['run']['run_attempt']}"
+    )
+
+    # 5. 分析
     print("\n[fetch] 分析结果...\n")
     report = analyze_results(dest)
 
