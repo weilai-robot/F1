@@ -23,6 +23,7 @@ cmake-build*/
 .oma/
 .meta-agent/
 AGENTS.md
+tools/agent_loop/
 
 # --- Test data ---
 test_logs/data_csv/
