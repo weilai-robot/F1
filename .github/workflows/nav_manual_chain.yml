@@ -65,10 +65,23 @@ jobs:
           source "${{ steps.conda.outputs.conda_sh }}"
           conda activate "${{ steps.conda.outputs.env_prefix }}"
           source scripts/ros2_source.sh
-          if [ ! -x build/aimrt_main ]; then
-            ./scripts/build_ruckig.sh
+
+          RUCKIG_SOURCE_SHA="$(./scripts/build_ruckig.sh --print-commit)"
+          ./scripts/build_ruckig.sh
+          MC_SHA="$(git ls-tree HEAD motion_control | awk '{print $3}')"
+          BUILD_DRIVER_SHA="$(sha256sum CMakeLists.txt scripts/build.sh scripts/build_ruckig.sh | sha256sum | awk '{print $1}')"
+          EXPECTED="${MC_SHA}:${RUCKIG_SOURCE_SHA}:${BUILD_DRIVER_SHA}"
+          MARKER="${{ github.workspace }}/build/.ci-motion-control-source"
+          if [ ! -x build/aimrt_main ] \
+             || [ ! -f build/libpkg1.so ] \
+             || [ ! -f "$MARKER" ] \
+             || [ "$(cat "$MARKER" 2>/dev/null)" != "$EXPECTED" ]; then
             ./scripts/build.sh
+            printf '%s\n' "$EXPECTED" > "$MARKER"
+          else
+            echo "Reusing runner-compatible motion_control build: $EXPECTED"
           fi
+
           ./scripts/build_nav.sh
           source navigation/install/setup.bash
           ros2 pkg prefix humanoid_sim
@@ -81,6 +94,7 @@ jobs:
           set -eo pipefail
           source "${{ steps.conda.outputs.conda_sh }}"
           conda activate "${{ steps.conda.outputs.env_prefix }}"
+          rm -rf ci_logs reports
           mkdir -p ci_logs reports
 
           SESSION_NAME=f1_sim_nav

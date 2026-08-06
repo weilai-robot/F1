@@ -167,8 +167,12 @@ if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
 fi
 
 # --- 每个窗口的 source 前缀 ---
-# TMUX_SOURCE="source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
-TMUX_SOURCE="source /home/robot/miniconda/etc/profile.d/conda.sh && conda deactivate >/dev/null 2>&1 || true && conda activate nav && source ${ROS_SETUP_BASH} && source ${NAV_DIR}/install/setup.bash"
+# 入口处已用同一套 ROS/Python 环境完成 package、CustomMsg 和构建产物检查。
+# tmux 子进程必须复用这套环境，不能再切换到硬编码的 Conda 环境，
+# 否则 ROS setup 与 Python ABI 会被拆开，导致 AMENT_PREFIX_PATH 丢失或 NumPy 混用。
+PYTHON_BIN_DIR="$(dirname "$(command -v python3)")"
+ROS2_PREFIX="$(cd "$(dirname "${ROS_SETUP_BASH}")" && pwd)"
+TMUX_SOURCE="export PATH='${PYTHON_BIN_DIR}':\$PATH && source '${ROS_SETUP_BASH}' && export LD_LIBRARY_PATH='${ROS2_PREFIX}/lib':\${LD_LIBRARY_PATH:-} && source '${NAV_DIR}/install/setup.bash'"
 
 # --- [窗口 0] aimrt_main (运动控制 + 物理仿真) ---
 tmux new-session -d -s "${SESSION_NAME}" -n "aimrt"
