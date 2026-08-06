@@ -60,6 +60,11 @@ BUILD_START=$(date +%s)
 if [ "$BUILD_MC" = true ]; then
     echo -e "\n${GREEN}━━━ Phase 1: motion_control (CMake/AimRT) ━━━${NC}"
 
+    # 在当前构建机上固定版本重编 Ruckig，避免部署产物依赖比目标机更新的 GLIBC。
+    # build_ruckig.sh 会在复制库前校验源码 SHA，并在复制后用 ldd 检查依赖。
+    echo -e "${GREEN}  构建当前主机兼容的 Ruckig...${NC}"
+    "${SCRIPT_DIR}/build_ruckig.sh"
+
     cmake -B build \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=./build/install \
