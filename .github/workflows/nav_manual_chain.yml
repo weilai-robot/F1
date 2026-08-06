@@ -82,6 +82,9 @@ jobs:
             echo "Reusing runner-compatible motion_control build: $EXPECTED"
           fi
 
+          # Self-hosted runner 会保留上次 colcon 的 install 副本；地图、launch、
+          # config 不一定触发增量重装。A 基线必须从当前 main gitlink 干净构建。
+          rm -rf navigation/build navigation/install navigation/log
           ./scripts/build_nav.sh
           source navigation/install/setup.bash
           ros2 pkg prefix humanoid_sim
