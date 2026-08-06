@@ -33,7 +33,7 @@ jobs:
         id: conda
         shell: bash
         run: |
-          set -euo pipefail
+          set -eo pipefail
           CONDA_SH="${CONDA_BASE/#\~/$HOME}/etc/profile.d/conda.sh"
           if [ ! -f "$CONDA_SH" ]; then
             for candidate in "$HOME/Anaconda" "$HOME/anaconda3" "$HOME/miniconda3" "/opt/conda"; do
@@ -61,7 +61,7 @@ jobs:
       - name: Build and verify main artifacts
         shell: bash
         run: |
-          set -euo pipefail
+          set -eo pipefail
           source "${{ steps.conda.outputs.conda_sh }}"
           conda activate "${{ steps.conda.outputs.env_prefix }}"
           source scripts/ros2_source.sh
@@ -70,9 +70,7 @@ jobs:
             ./scripts/build.sh
           fi
           ./scripts/build_nav.sh
-          set +u
           source navigation/install/setup.bash
-          set -u
           ros2 pkg prefix humanoid_sim
           ros2 pkg prefix fast_lio
           ros2 pkg prefix open3d_loc
@@ -80,7 +78,7 @@ jobs:
       - name: Run main manual navigation chain
         shell: bash
         run: |
-          set -euo pipefail
+          set -eo pipefail
           source "${{ steps.conda.outputs.conda_sh }}"
           conda activate "${{ steps.conda.outputs.env_prefix }}"
           mkdir -p ci_logs reports
