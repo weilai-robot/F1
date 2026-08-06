@@ -1,6 +1,11 @@
 name: Nav Manual Chain
 
 on:
+  push:
+    branches:
+      - agent/dev-f1
+    paths:
+      - .github/workflows/nav_manual_chain.yml
   workflow_dispatch:
 
 concurrency:
