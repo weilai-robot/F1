@@ -1,0 +1,131 @@
+name: Nav Manual Chain
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: nav-manual-chain
+  cancel-in-progress: true
+
+jobs:
+  manual-chain:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 20
+
+    env:
+      CONDA_BASE: ${{ vars.CONDA_BASE || '~/Anaconda' }}
+      CONDA_ENV: ${{ vars.CONDA_ENV || 'F1' }}
+
+    steps:
+      - name: Checkout main-aligned agent branch
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          clean: false
+
+      - name: Resolve validated ROS environment
+        id: conda
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONDA_SH="${CONDA_BASE/#\~/$HOME}/etc/profile.d/conda.sh"
+          if [ ! -f "$CONDA_SH" ]; then
+            for candidate in "$HOME/Anaconda" "$HOME/anaconda3" "$HOME/miniconda3" "/opt/conda"; do
+              if [ -f "$candidate/etc/profile.d/conda.sh" ]; then
+                CONDA_SH="$candidate/etc/profile.d/conda.sh"
+                break
+              fi
+            done
+          fi
+          test -f "$CONDA_SH"
+          source "$CONDA_SH"
+          CONDA_ROOT="$(cd "$(dirname "$CONDA_SH")/../.." && pwd)"
+          if [ -x "$CONDA_ROOT/envs/$CONDA_ENV/ros_humble/bin/python3" ]; then
+            ENV_PREFIX="$CONDA_ROOT/envs/$CONDA_ENV/ros_humble"
+          else
+            ENV_PREFIX="$CONDA_ENV"
+          fi
+          conda activate "$ENV_PREFIX"
+          source scripts/ros2_source.sh
+          python3 -c 'import numpy, rclpy, mujoco'
+          echo "conda_sh=$CONDA_SH" >> "$GITHUB_OUTPUT"
+          echo "env_prefix=$CONDA_PREFIX" >> "$GITHUB_OUTPUT"
+          echo "Python=$(command -v python3), ROS=$ROS2_FOUND"
+
+      - name: Build and verify main artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "${{ steps.conda.outputs.conda_sh }}"
+          conda activate "${{ steps.conda.outputs.env_prefix }}"
+          source scripts/ros2_source.sh
+          if [ ! -x build/aimrt_main ]; then
+            ./scripts/build_ruckig.sh
+            ./scripts/build.sh
+          fi
+          ./scripts/build_nav.sh
+          set +u
+          source navigation/install/setup.bash
+          set -u
+          ros2 pkg prefix humanoid_sim
+          ros2 pkg prefix fast_lio
+          ros2 pkg prefix open3d_loc
+
+      - name: Run main manual navigation chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "${{ steps.conda.outputs.conda_sh }}"
+          conda activate "${{ steps.conda.outputs.env_prefix }}"
+          mkdir -p ci_logs reports
+
+          SESSION_NAME=f1_sim_nav
+          XVFB_PID=""
+          capture_tmux_logs() {
+            if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+              return
+            fi
+            while IFS=: read -r index name; do
+              tmux capture-pane -p -S -100000 -t "${SESSION_NAME}:${index}" \
+                > "ci_logs/tmux_${index}_${name}.log" 2>&1 || true
+            done < <(tmux list-windows -t "$SESSION_NAME" -F '#I:#W')
+          }
+          cleanup() {
+            local rc=$?
+            set +e
+            capture_tmux_logs
+            tmux kill-session -t "$SESSION_NAME" 2>/dev/null
+            [ -n "$XVFB_PID" ] && kill "$XVFB_PID" 2>/dev/null
+            pkill -f aimrt_main 2>/dev/null
+            pkill -f mujoco_lidar_bridge 2>/dev/null
+            pkill -f fastlio_mapping 2>/dev/null
+            pkill -f global_localization_node 2>/dev/null
+            pkill -f component_container_isolated 2>/dev/null
+            exit "$rc"
+          }
+          trap cleanup EXIT
+
+          tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
+          pkill -f "Xvfb :99" 2>/dev/null || true
+          rm -f /tmp/.X99-lock /tmp/.X11-unix/X99 2>/dev/null || true
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset \
+            > ci_logs/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          sleep 2
+          kill -0 "$XVFB_PID"
+
+          ./scripts/run_mujoco_nav.sh
+          ./scripts/send_nav_goal.sh 5.0 0
+
+      - name: Upload manual-chain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nav-manual-chain-${{ github.run_id }}
+          path: |
+            ci_logs/
+            reports/
+          if-no-files-found: warn
+          retention-days: 14
