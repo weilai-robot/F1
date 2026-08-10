@@ -1,0 +1,456 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-07-14-16-29-02-252466-robot-ThinkStation-P720-1909755
+[INFO] [launch]: Default logging verbosity is set to INFO
+[37;1m2026-07-14 16:29:02.430 [31;1m[[37;1mRTPS_TRANSPORT_SHM[31;1m Error] [37mFailed init_port fastrtps_port7425: open_and_lock_file failed[34;1m -> Function [36mopen_port_internal[m
+[INFO] [odom_bridge.py-1]: process started with pid [1909804]
+[INFO] [static_transform_publisher-2]: process started with pid [1909806]
+[INFO] [static_transform_publisher-3]: process started with pid [1909808]
+[INFO] [static_transform_publisher-4]: process started with pid [1909810]
+[INFO] [component_container_isolated-5]: process started with pid [1909812]
+[static_transform_publisher-2] [WARN] [1784017742.757793461] []: Old-style arguments are deprecated; see --help for new-style arguments
+[static_transform_publisher-4] [WARN] [1784017742.765040355] []: Old-style arguments are deprecated; see --help for new-style arguments
+[static_transform_publisher-3] [WARN] [1784017742.768785651] []: Old-style arguments are deprecated; see --help for new-style arguments
+[component_container_isolated-5] [37;1m2026-07-14 16:29:02.782 [31;1m[[37;1mRTPS_TRANSPORT_SHM[31;1m Error] [37mFailed init_port fastrtps_port7425: open_and_lock_file failed[34;1m -> Function [36mopen_port_internal[m
+[static_transform_publisher-2] [INFO] [1784017742.785579392] [tf_map_to_camera_init]: Spinning until stopped - publishing transform
+[static_transform_publisher-2] translation: ('0.000000', '0.000000', '1.050000')
+[static_transform_publisher-2] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-2] from 'map' to 'camera_init'
+[static_transform_publisher-4] [INFO] [1784017743.150578003] [tf_base_link_to_lidar_link]: Spinning until stopped - publishing transform
+[static_transform_publisher-4] translation: ('0.000000', '0.000000', '0.660000')
+[static_transform_publisher-4] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] from 'base_link' to 'lidar_link'
+[static_transform_publisher-3] [INFO] [1784017743.186457329] [tf_base_footprint_to_base_link]: Spinning until stopped - publishing transform
+[static_transform_publisher-3] translation: ('0.000000', '0.000000', '0.650000')
+[static_transform_publisher-3] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-3] from 'base_footprint' to 'base_link'
+[odom_bridge.py-1] [37;1m2026-07-14 16:29:03.305 [31;1m[[37;1mRTPS_TRANSPORT_SHM[31;1m Error] [37mFailed init_port fastrtps_port7425: open_and_lock_file failed[34;1m -> Function [36mopen_port_internal[m
+[odom_bridge.py-1] [INFO] [1784017743.444405002] [odom_bridge]: OdomBridge 启动:
+[odom_bridge.py-1]   输入: /Odometry
+[odom_bridge.py-1]   输出TF: odom -> base_footprint
+[odom_bridge.py-1]   输出话题: /odom
+[odom_bridge.py-1]   Z偏移: -1.25m
+[odom_bridge.py-1]   cmd_vel relay: /cmd_vel -> /cmd_vel_limiter (max_ax=1.5, max_ay=0.5, max_az=2.0)
+[component_container_isolated-5] [INFO] [1784017744.240707197] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libcontroller_server_core.so
+[component_container_isolated-5] [INFO] [1784017744.250312975] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
+[component_container_isolated-5] [INFO] [1784017744.250351912] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
+[component_container_isolated-5] [INFO] [1784017744.272588792] [controller_server]: 
+[component_container_isolated-5] 	controller_server lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.278037140] [controller_server]: Creating controller server
+[component_container_isolated-5] [INFO] [1784017744.295849376] [local_costmap.local_costmap]: 
+[component_container_isolated-5] 	local_costmap lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.296377104] [local_costmap.local_costmap]: Creating Costmap
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/controller_server' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.300509905] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libsmoother_server_core.so
+[component_container_isolated-5] [INFO] [1784017744.302473746] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
+[component_container_isolated-5] [INFO] [1784017744.302501661] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
+[component_container_isolated-5] [INFO] [1784017744.324480831] [smoother_server]: 
+[component_container_isolated-5] 	smoother_server lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.329316812] [smoother_server]: Creating smoother server
+[component_container_isolated-5] [INFO] [1784017744.330753353] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libmap_server_core.so
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/smoother_server' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.343582384] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::CostmapFilterInfoServer>
+[component_container_isolated-5] [INFO] [1784017744.343615705] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapSaver>
+[component_container_isolated-5] [INFO] [1784017744.343629502] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
+[component_container_isolated-5] [INFO] [1784017744.343639563] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
+[component_container_isolated-5] [INFO] [1784017744.366479783] [map_server]: 
+[component_container_isolated-5] 	map_server lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.366540522] [map_server]: Creating
+[component_container_isolated-5] [INFO] [1784017744.367377124] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libplanner_server_core.so
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map_server' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.369721740] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
+[component_container_isolated-5] [INFO] [1784017744.369763453] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
+[component_container_isolated-5] [INFO] [1784017744.388821579] [planner_server]: 
+[component_container_isolated-5] 	planner_server lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.390786233] [planner_server]: Creating
+[component_container_isolated-5] [INFO] [1784017744.408423190] [global_costmap.global_costmap]: 
+[component_container_isolated-5] 	global_costmap lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.408948196] [global_costmap.global_costmap]: Creating Costmap
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/planner_server' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.411770373] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libamcl_core.so
+[component_container_isolated-5] [INFO] [1784017744.415428413] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
+[component_container_isolated-5] [INFO] [1784017744.415465856] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
+[component_container_isolated-5] [INFO] [1784017744.435371938] [amcl]: 
+[component_container_isolated-5] 	amcl lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.435805696] [amcl]: Creating
+[component_container_isolated-5] [INFO] [1784017744.441144550] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libbehavior_server_core.so
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/amcl' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.444894466] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
+[component_container_isolated-5] [INFO] [1784017744.444919997] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
+[component_container_isolated-5] [INFO] [1784017744.459879165] [behavior_server]: 
+[component_container_isolated-5] 	behavior_server lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/behavior_server' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.463574066] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libnav2_lifecycle_manager_core.so
+[component_container_isolated-5] [INFO] [1784017744.464526492] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-5] [INFO] [1784017744.464549191] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-5] [INFO] [1784017744.478733200] [lifecycle_manager_localization]: Creating
+[component_container_isolated-5] [INFO] [1784017744.484427210] [lifecycle_manager_localization]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.484450937] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libbt_navigator_core.so
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/lifecycle_manager_localization' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.486259015] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
+[component_container_isolated-5] [INFO] [1784017744.486302661] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
+[component_container_isolated-5] [INFO] [1784017744.501167190] [lifecycle_manager_localization]: [34m[1mStarting managed nodes bringup...[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.501226616] [lifecycle_manager_localization]: [34m[1mConfiguring map_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.501493277] [map_server]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.501558173] [map_io]: Loading yaml file: /home/robot/F1/navigation/install/humanoid_sim/share/humanoid_sim/maps/mujoco_lab.yaml
+[component_container_isolated-5] [INFO] [1784017744.501857479] [map_io]: resolution: 0.05
+[component_container_isolated-5] [INFO] [1784017744.501872399] [map_io]: origin[0]: -9.95
+[component_container_isolated-5] [INFO] [1784017744.501880814] [map_io]: origin[1]: -5.1
+[component_container_isolated-5] [INFO] [1784017744.501888900] [map_io]: origin[2]: 0
+[component_container_isolated-5] [INFO] [1784017744.501897191] [map_io]: free_thresh: 0.25
+[component_container_isolated-5] [INFO] [1784017744.501905547] [map_io]: occupied_thresh: 0.65
+[component_container_isolated-5] [INFO] [1784017744.501913383] [map_io]: mode: trinary
+[component_container_isolated-5] [INFO] [1784017744.501922755] [map_io]: negate: 0
+[component_container_isolated-5] [INFO] [1784017744.502143631] [map_io]: Loading image_file: /home/robot/F1/navigation/install/humanoid_sim/share/humanoid_sim/maps/mujoco_lab.pgm
+[component_container_isolated-5] [INFO] [1784017744.513685575] [map_io]: Read map /home/robot/F1/navigation/install/humanoid_sim/share/humanoid_sim/maps/mujoco_lab.pgm: 401 X 204 map @ 0.05 m/cell
+[component_container_isolated-5] [INFO] [1784017744.525951432] [bt_navigator]: 
+[component_container_isolated-5] 	bt_navigator lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.526017319] [bt_navigator]: Creating
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/bt_navigator' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.527331524] [lifecycle_manager_localization]: [34m[1mConfiguring amcl[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.527515747] [amcl]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.527669446] [amcl]: initTransforms
+[component_container_isolated-5] [INFO] [1784017744.529184096] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libwaypoint_follower_core.so
+[component_container_isolated-5] [INFO] [1784017744.531481637] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
+[component_container_isolated-5] [INFO] [1784017744.531532085] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
+[component_container_isolated-5] [INFO] [1784017744.545861446] [amcl]: initPubSub
+[component_container_isolated-5] [INFO] [1784017744.558243998] [amcl]: Subscribed to map topic.
+[component_container_isolated-5] [INFO] [1784017744.571094474] [lifecycle_manager_localization]: [34m[1mActivating map_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.571382053] [map_server]: Activating
+[component_container_isolated-5] [INFO] [1784017744.571507422] [map_server]: Creating bond (map_server) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017744.571594960] [amcl]: Received a 401 X 204 map @ 0.050 m/pix
+[component_container_isolated-5] [INFO] [1784017744.576543555] [waypoint_follower]: 
+[component_container_isolated-5] 	waypoint_follower lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.577416273] [waypoint_follower]: Creating
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/waypoint_follower' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.581781218] [nav2_container]: Load Library: /home/robot/Anaconda/envs/F1/ros_humble/lib/libvelocity_smoother_core.so
+[component_container_isolated-5] [INFO] [1784017744.583306701] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
+[component_container_isolated-5] [INFO] [1784017744.583352217] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
+[component_container_isolated-5] [INFO] [1784017744.610454191] [velocity_smoother]: 
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/velocity_smoother' in container '/nav2_container'
+[component_container_isolated-5] 	velocity_smoother lifecycle node launched. 
+[component_container_isolated-5] 	Waiting on external lifecycle transitions to activate
+[component_container_isolated-5] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[component_container_isolated-5] [INFO] [1784017744.613967563] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-5] [INFO] [1784017744.614000883] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-5] [INFO] [1784017744.629575503] [lifecycle_manager_navigation]: Creating
+[component_container_isolated-5] [INFO] [1784017744.633379501] [lifecycle_manager_navigation]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/lifecycle_manager_navigation' in container '/nav2_container'
+[component_container_isolated-5] [INFO] [1784017744.656783143] [lifecycle_manager_navigation]: [34m[1mStarting managed nodes bringup...[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.656847906] [lifecycle_manager_navigation]: [34m[1mConfiguring controller_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.657093623] [controller_server]: Configuring controller interface
+[component_container_isolated-5] [INFO] [1784017744.657403624] [controller_server]: getting goal checker plugins..
+[component_container_isolated-5] [INFO] [1784017744.657586021] [controller_server]: Controller frequency set to 10.0000Hz
+[component_container_isolated-5] [INFO] [1784017744.657620671] [local_costmap.local_costmap]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.665590664] [local_costmap.local_costmap]: Using plugin "voxel_layer"
+[component_container_isolated-5] [INFO] [1784017744.668718642] [local_costmap.local_costmap]: Subscribed to Topics: cloud_mark cloud_clear
+[component_container_isolated-5] [INFO] [1784017744.681663845] [lifecycle_manager_localization]: Server map_server connected with bond.
+[component_container_isolated-5] [INFO] [1784017744.681738389] [lifecycle_manager_localization]: [34m[1mActivating amcl[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.682021903] [amcl]: Activating
+[component_container_isolated-5] [INFO] [1784017744.682048690] [amcl]: Creating bond (amcl) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017744.687524252] [voxel_grid]: Error, this implementation can only support up to 16 z values (25)
+[component_container_isolated-5] [INFO] [1784017744.687578324] [local_costmap.local_costmap]: Initialized plugin "voxel_layer"
+[component_container_isolated-5] [INFO] [1784017744.687597476] [local_costmap.local_costmap]: Using plugin "denoise_layer"
+[component_container_isolated-5] [INFO] [1784017744.688244420] [local_costmap.local_costmap]: Initialized plugin "denoise_layer"
+[component_container_isolated-5] [INFO] [1784017744.688267964] [local_costmap.local_costmap]: Using plugin "inflation_layer"
+[component_container_isolated-5] [INFO] [1784017744.690113132] [local_costmap.local_costmap]: Initialized plugin "inflation_layer"
+[component_container_isolated-5] [INFO] [1784017744.701188512] [controller_server]: Created progress_checker : progress_checker of type nav2_controller::SimpleProgressChecker
+[component_container_isolated-5] [INFO] [1784017744.702265017] [controller_server]: Created goal checker : general_goal_checker of type nav2_controller::SimpleGoalChecker
+[component_container_isolated-5] [INFO] [1784017744.702863949] [controller_server]: Controller Server has general_goal_checker  goal checkers available.
+[component_container_isolated-5] [INFO] [1784017744.706146886] [controller_server]: Created controller : FollowPath of type nav2_rotation_shim_controller::RotationShimController
+[component_container_isolated-5] [INFO] [1784017744.709074204] [controller_server]: Created internal controller for rotation shimming: FollowPath of type nav2_mppi_controller::MPPIController
+[component_container_isolated-5] [INFO] [1784017744.712089677] [controller_server]: Controller period is equal to model dt. Control sequence shifting is ON
+[component_container_isolated-5] [INFO] [1784017744.713938268] [controller_server]: ConstraintCritic instantiated with 1 power and 4.000000 weight.
+[component_container_isolated-5] [INFO] [1784017744.713971771] [controller_server]: Critic loaded : mppi::critics::ConstraintCritic
+[component_container_isolated-5] [INFO] [1784017744.714756372] [controller_server]: GoalCritic instantiated with 1 power and 5.000000 weight.
+[component_container_isolated-5] [INFO] [1784017744.714782909] [controller_server]: Critic loaded : mppi::critics::GoalCritic
+[component_container_isolated-5] [INFO] [1784017744.716181913] [controller_server]: GoalAngleCritic instantiated with 1 power, 3.000000 weight, and 0.500000 angular threshold.
+[component_container_isolated-5] [INFO] [1784017744.716210567] [controller_server]: Critic loaded : mppi::critics::GoalAngleCritic
+[component_container_isolated-5] [INFO] [1784017744.717851148] [controller_server]: ReferenceTrajectoryCritic instantiated with 1 power and 14.000000 weight
+[component_container_isolated-5] [INFO] [1784017744.717878805] [controller_server]: Critic loaded : mppi::critics::PathAlignCritic
+[component_container_isolated-5] [INFO] [1784017744.719091638] [controller_server]: PathAngleCritic instantiated with 1 power and 3.500000 weight. Reversing allowed.
+[component_container_isolated-5] [INFO] [1784017744.719120210] [controller_server]: Critic loaded : mppi::critics::PathAngleCritic
+[component_container_isolated-5] [INFO] [1784017744.720065257] [controller_server]: Critic loaded : mppi::critics::PathFollowCritic
+[component_container_isolated-5] [INFO] [1784017744.720833965] [controller_server]: PreferForwardCritic instantiated with 1 power and 2.000000 weight.
+[component_container_isolated-5] [INFO] [1784017744.720860696] [controller_server]: Critic loaded : mppi::critics::PreferForwardCritic
+[component_container_isolated-5] [INFO] [1784017744.722603227] [controller_server]: InflationCostCritic instantiated with 1 power and 300.000000 / 0.013780 weights. Critic will collision check based on circular cost.
+[component_container_isolated-5] [INFO] [1784017744.722644147] [controller_server]: Critic loaded : mppi::critics::CostCritic
+[component_container_isolated-5] [INFO] [1784017744.725310699] [controller_server]: Optimizer reset
+[component_container_isolated-5] [INFO] [1784017744.729958250] [MPPIController]: Configured MPPI Controller: FollowPath
+[component_container_isolated-5] [INFO] [1784017744.729982251] [controller_server]: Controller Server has FollowPath  controllers available.
+[component_container_isolated-5] [INFO] [1784017744.739963797] [lifecycle_manager_navigation]: [34m[1mConfiguring smoother_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.740242579] [smoother_server]: Configuring smoother server
+[component_container_isolated-5] [INFO] [1784017744.747686273] [smoother_server]: Created smoother : simple_smoother of type nav2_smoother::SimpleSmoother
+[component_container_isolated-5] [INFO] [1784017744.748723002] [smoother_server]: Smoother Server has simple_smoother  smoothers available.
+[component_container_isolated-5] [INFO] [1784017744.754449666] [lifecycle_manager_navigation]: [34m[1mConfiguring planner_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.754657290] [planner_server]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.754740896] [global_costmap.global_costmap]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.769571182] [global_costmap.global_costmap]: Using plugin "static_layer"
+[component_container_isolated-5] [INFO] [1784017744.773526860] [global_costmap.global_costmap]: Subscribing to the map topic (/map) with transient local durability
+[component_container_isolated-5] [INFO] [1784017744.774700358] [global_costmap.global_costmap]: Initialized plugin "static_layer"
+[component_container_isolated-5] [INFO] [1784017744.774735006] [global_costmap.global_costmap]: Using plugin "voxel_layer"
+[component_container_isolated-5] [INFO] [1784017744.776451153] [global_costmap.global_costmap]: Subscribed to Topics: pointcloud
+[component_container_isolated-5] [INFO] [1784017744.788748260] [voxel_grid]: Error, this implementation can only support up to 16 z values (25)
+[component_container_isolated-5] [INFO] [1784017744.788848032] [global_costmap.global_costmap]: Initialized plugin "voxel_layer"
+[component_container_isolated-5] [INFO] [1784017744.788885542] [global_costmap.global_costmap]: Using plugin "denoise_layer"
+[component_container_isolated-5] [INFO] [1784017744.789536369] [lifecycle_manager_localization]: Server amcl connected with bond.
+[component_container_isolated-5] [INFO] [1784017744.789604147] [lifecycle_manager_localization]: [34m[1mManaged nodes are active[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.789622583] [lifecycle_manager_localization]: [34m[1mCreating bond timer...[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.790123316] [global_costmap.global_costmap]: Initialized plugin "denoise_layer"
+[component_container_isolated-5] [INFO] [1784017744.790152800] [global_costmap.global_costmap]: Using plugin "inflation_layer"
+[component_container_isolated-5] [INFO] [1784017744.791658471] [global_costmap.global_costmap]: Initialized plugin "inflation_layer"
+[component_container_isolated-5] [INFO] [1784017744.800710638] [planner_server]: Created global planner plugin GridBased of type nav2_navfn_planner/NavfnPlanner
+[component_container_isolated-5] [INFO] [1784017744.800741221] [planner_server]: Configuring plugin GridBased of type NavfnPlanner
+[component_container_isolated-5] [INFO] [1784017744.801681964] [planner_server]: Planner Server has GridBased  planners available.
+[component_container_isolated-5] [INFO] [1784017744.821720933] [lifecycle_manager_navigation]: [34m[1mConfiguring behavior_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.821880553] [behavior_server]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.828336466] [behavior_server]: Creating behavior plugin spin of type nav2_behaviors/Spin
+[component_container_isolated-5] [INFO] [1784017744.829515905] [behavior_server]: Configuring spin
+[component_container_isolated-5] [INFO] [1784017744.836545023] [behavior_server]: Creating behavior plugin backup of type nav2_behaviors/BackUp
+[component_container_isolated-5] [INFO] [1784017744.837646229] [behavior_server]: Configuring backup
+[component_container_isolated-5] [INFO] [1784017744.850641280] [global_costmap.global_costmap]: StaticLayer: Resizing costmap to 401 X 204 at 0.050000 m/pix
+[component_container_isolated-5] [INFO] [1784017744.850965422] [voxel_grid]: Error, this implementation can only support up to 16 z values (25)
+[component_container_isolated-5] [INFO] [1784017744.851529085] [behavior_server]: Creating behavior plugin drive_on_heading of type nav2_behaviors/DriveOnHeading
+[component_container_isolated-5] [INFO] [1784017744.852938421] [behavior_server]: Configuring drive_on_heading
+[component_container_isolated-5] [INFO] [1784017744.863546900] [behavior_server]: Creating behavior plugin wait of type nav2_behaviors/Wait
+[component_container_isolated-5] [INFO] [1784017744.864920993] [behavior_server]: Configuring wait
+[component_container_isolated-5] [INFO] [1784017744.874428361] [lifecycle_manager_navigation]: [34m[1mConfiguring bt_navigator[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.874645009] [bt_navigator]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.976651742] [lifecycle_manager_navigation]: [34m[1mConfiguring waypoint_follower[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.976880552] [waypoint_follower]: Configuring
+[component_container_isolated-5] [INFO] [1784017744.988486700] [waypoint_follower]: Created waypoint_task_executor : wait_at_waypoint of type nav2_waypoint_follower::WaitAtWaypoint
+[component_container_isolated-5] [INFO] [1784017744.989325507] [waypoint_follower]: Waypoint pause duration is set to zero, disabling task executor plugin.
+[component_container_isolated-5] [INFO] [1784017744.989649980] [lifecycle_manager_navigation]: [34m[1mConfiguring velocity_smoother[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.989820123] [velocity_smoother]: Configuring velocity smoother
+[component_container_isolated-5] [INFO] [1784017744.996897423] [lifecycle_manager_navigation]: [34m[1mActivating controller_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017744.997090222] [controller_server]: Activating
+[component_container_isolated-5] [INFO] [1784017744.997156813] [local_costmap.local_costmap]: Activating
+[component_container_isolated-5] [INFO] [1784017744.997182303] [local_costmap.local_costmap]: Checking transform
+[component_container_isolated-5] [INFO] [1784017744.997335105] [local_costmap.local_costmap]: start
+[component_container_isolated-5] [INFO] [1784017745.199727998] [controller_server]: Activating controller: FollowPath of type nav2_rotation_shim_controller::RotationShimController
+[component_container_isolated-5] [WARN] [1784017745.199792273] [controller_server]: Parameter controller_server.verbose not found
+[component_container_isolated-5] [INFO] [1784017745.200721164] [controller_server]: Optimizer reset
+[component_container_isolated-5] [INFO] [1784017745.201252743] [MPPIController]: Activated MPPI Controller: FollowPath
+[component_container_isolated-5] [INFO] [1784017745.201277275] [controller_server]: Creating bond (controller_server) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017745.307583154] [lifecycle_manager_navigation]: Server controller_server connected with bond.
+[component_container_isolated-5] [INFO] [1784017745.307635192] [lifecycle_manager_navigation]: [34m[1mActivating smoother_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017745.307977294] [smoother_server]: Activating
+[component_container_isolated-5] [INFO] [1784017745.308028124] [smoother_server]: Creating bond (smoother_server) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017745.416249974] [lifecycle_manager_navigation]: Server smoother_server connected with bond.
+[component_container_isolated-5] [INFO] [1784017745.416309125] [lifecycle_manager_navigation]: [34m[1mActivating planner_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017745.416632144] [planner_server]: Activating
+[component_container_isolated-5] [INFO] [1784017745.416665584] [global_costmap.global_costmap]: Activating
+[component_container_isolated-5] [INFO] [1784017745.416699294] [global_costmap.global_costmap]: Checking transform
+[component_container_isolated-5] [INFO] [1784017745.416779090] [global_costmap.global_costmap]: start
+[component_container_isolated-5] [INFO] [1784017746.468292477] [planner_server]: Activating plugin GridBased of type NavfnPlanner
+[component_container_isolated-5] [INFO] [1784017746.471275383] [planner_server]: Creating bond (planner_server) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017746.578695457] [lifecycle_manager_navigation]: Server planner_server connected with bond.
+[component_container_isolated-5] [INFO] [1784017746.578758099] [lifecycle_manager_navigation]: [34m[1mActivating behavior_server[0m[0m
+[component_container_isolated-5] [INFO] [1784017746.579111941] [behavior_server]: Activating
+[component_container_isolated-5] [INFO] [1784017746.579142049] [behavior_server]: Activating spin
+[component_container_isolated-5] [INFO] [1784017746.579155295] [behavior_server]: Activating backup
+[component_container_isolated-5] [INFO] [1784017746.579166319] [behavior_server]: Activating drive_on_heading
+[component_container_isolated-5] [INFO] [1784017746.579178230] [behavior_server]: Activating wait
+[component_container_isolated-5] [INFO] [1784017746.579189625] [behavior_server]: Creating bond (behavior_server) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017746.686554530] [lifecycle_manager_navigation]: Server behavior_server connected with bond.
+[component_container_isolated-5] [INFO] [1784017746.686663515] [lifecycle_manager_navigation]: [34m[1mActivating bt_navigator[0m[0m
+[component_container_isolated-5] [INFO] [1784017746.687129747] [bt_navigator]: Activating
+[component_container_isolated-5] [INFO] [1784017746.774561823] [bt_navigator]: Creating bond (bt_navigator) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017746.884256601] [lifecycle_manager_navigation]: Server bt_navigator connected with bond.
+[component_container_isolated-5] [INFO] [1784017746.884308341] [lifecycle_manager_navigation]: [34m[1mActivating waypoint_follower[0m[0m
+[component_container_isolated-5] [INFO] [1784017746.884659380] [waypoint_follower]: Activating
+[component_container_isolated-5] [INFO] [1784017746.884694905] [waypoint_follower]: Creating bond (waypoint_follower) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017746.992509009] [lifecycle_manager_navigation]: Server waypoint_follower connected with bond.
+[component_container_isolated-5] [INFO] [1784017746.992566831] [lifecycle_manager_navigation]: [34m[1mActivating velocity_smoother[0m[0m
+[component_container_isolated-5] [INFO] [1784017746.992970673] [velocity_smoother]: Activating
+[component_container_isolated-5] [INFO] [1784017746.993002553] [velocity_smoother]: Creating bond (velocity_smoother) to lifecycle manager.
+[component_container_isolated-5] [INFO] [1784017747.100101180] [lifecycle_manager_navigation]: Server velocity_smoother connected with bond.
+[component_container_isolated-5] [INFO] [1784017747.100159192] [lifecycle_manager_navigation]: [34m[1mManaged nodes are active[0m[0m
+[component_container_isolated-5] [INFO] [1784017747.100176328] [lifecycle_manager_navigation]: [34m[1mCreating bond timer...[0m[0m
+[component_container_isolated-5] [INFO] [1784017759.968712812] [bt_navigator]: Begin navigating from current location (0.03, -0.03) to (5.00, 0.00)
+[component_container_isolated-5] [INFO] [1784017760.010802351] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-5] [WARN] [1784017760.010876029] [controller_server]: No goal checker was specified in parameter 'current_goal_checker'. Server will use only plugin loaded general_goal_checker . This warning will appear once.
+[component_container_isolated-5] [INFO] [1784017760.012311083] [controller_server]: Optimizer reset
+[component_container_isolated-5] [INFO] [1784017761.111081543] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017762.211085283] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017763.211086789] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017764.311069728] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017765.311073733] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017766.411069122] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017767.511087370] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017768.511080114] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017769.611071878] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017770.611068591] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017771.711080149] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017772.811074910] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017773.811073867] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [WARN] [1784017774.565370159] [controller_server]: Control loop missed its desired rate of 10.0000Hz
+[component_container_isolated-5] [INFO] [1784017774.911075380] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017775.911075027] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [INFO] [1784017777.011088128] [controller_server]: Passing new path to controller.
+[component_container_isolated-5] [WARN] [1784017777.489899546] [controller_server]: Control loop missed its desired rate of 10.0000Hz
+[component_container_isolated-5] [WARN] [1784017777.797603178] [local_costmap.local_costmap]: Sensor origin at (0.60, 1.10 -2.13) is out of map bounds (-2.55, 0.30, -1.40) to (1.42, 4.28, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [ERROR] [1784017777.798530880] [controller_server]: Resulting plan has 0 poses in it.
+[component_container_isolated-5] [WARN] [1784017777.798674509] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017777.830055478] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-5] [INFO] [1784017777.831762762] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-5] [WARN] [1784017777.997715993] [local_costmap.local_costmap]: Sensor origin at (0.00, 2.18 -2.98) is out of map bounds (-2.90, 0.85, -1.40) to (1.07, 4.83, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [ERROR] [1784017778.073001271] [controller_server]: Resulting plan has 0 poses in it.
+[component_container_isolated-5] [WARN] [1784017778.073154272] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017778.073306036] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-5] [ERROR] [1784017778.174508537] [transformPoseInTargetFrame]: Extrapolation Error looking up target frame: Lookup would require extrapolation into the future.  Requested time 40.806000 but the latest data is at time 40.800000, when looking up transform from frame [map] to frame [base_link]
+[component_container_isolated-5] 
+[component_container_isolated-5] [WARN] [1784017778.177935973] [controller_server]: Control loop missed its desired rate of 10.0000Hz
+[component_container_isolated-5] [WARN] [1784017778.197587151] [local_costmap.local_costmap]: Sensor origin at (-0.17, 2.51 -3.25) is out of map bounds (-3.30, 1.60, -1.40) to (0.67, 5.58, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017778.397645848] [local_costmap.local_costmap]: Sensor origin at (-0.17, 2.51 -3.25) is out of map bounds (-3.60, 2.45, -1.40) to (0.37, 6.43, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017778.417043057] [global_costmap.global_costmap]: Sensor origin at (-0.17, 2.51 -3.25) is out of map bounds (-9.95, -5.10, -1.40) to (10.08, 5.08, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017778.597533336] [local_costmap.local_costmap]: Sensor origin at (-0.90, 4.76 -3.90) is out of map bounds (-3.85, 3.35, -1.40) to (0.12, 7.33, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [ERROR] [1784017778.673633791] [controller_server]: Resulting plan has 0 poses in it.
+[component_container_isolated-5] [WARN] [1784017778.673805200] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017778.709758074] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-5] [INFO] [1784017778.710501915] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017778.797562244] [local_costmap.local_costmap]: Sensor origin at (-1.13, 6.22 -3.93) is out of map bounds (-4.05, 4.85, -1.40) to (-0.08, 8.83, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017778.997528232] [local_costmap.local_costmap]: Sensor origin at (-1.24, 6.92 -3.96) is out of map bounds (-4.30, 6.20, -1.40) to (-0.33, 10.18, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017779.197517552] [local_costmap.local_costmap]: Sensor origin at (-1.56, 8.74 -4.21) is out of map bounds (-4.50, 7.30, -1.40) to (-0.53, 11.28, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017779.397567642] [local_costmap.local_costmap]: Sensor origin at (-1.68, 9.65 -4.36) is out of map bounds (-4.65, 8.15, -1.40) to (-0.68, 12.12, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017779.416908987] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017779.416962624] [global_costmap.global_costmap]: Sensor origin at (-1.84, 10.48 -4.51) is out of map bounds (-9.95, -5.10, -1.40) to (10.08, 5.08, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [ERROR] [1784017779.431365629] [planner_server]: worldToMap failed: mx,my: 143,325, size_x,size_y: 401,204
+[component_container_isolated-5] [WARN] [1784017779.431512451] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017779.431536110] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017779.431560246] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017779.431601473] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017779.469756888] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017779.597501407] [local_costmap.local_costmap]: Sensor origin at (-2.11, 12.45 -4.93) is out of map bounds (-5.00, 11.05, -1.40) to (-1.03, 15.03, 1.05). The costmap cannot raytrace for it.
+[component_container_isolated-5] [WARN] [1784017780.416911738] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [ERROR] [1784017780.431380428] [planner_server]: worldToMap failed: mx,my: 121,543, size_x,size_y: 401,204
+[component_container_isolated-5] [WARN] [1784017780.431560695] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017780.431593063] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017780.431624823] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017780.431655915] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017780.470291284] [behavior_server]: Running spin
+[component_container_isolated-5] [INFO] [1784017780.470865721] [behavior_server]: Turning 1.57 for spin behavior.
+[component_container_isolated-5] [ERROR] [1784017780.671469900] [behavior_server]: Pose Goes Off Grid.
+[component_container_isolated-5] [WARN] [1784017780.671666880] [behavior_server]: Collision Ahead - Exiting Spin
+[component_container_isolated-5] [WARN] [1784017780.671704368] [behavior_server]: spin failed
+[component_container_isolated-5] [WARN] [1784017780.671735718] [behavior_server]: [spin] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017780.729967627] [behavior_server]: Running wait
+[component_container_isolated-5] [WARN] [1784017781.416913765] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017782.416931377] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017783.416929125] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017784.416968038] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017785.416934859] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [INFO] [1784017785.730237984] [behavior_server]: wait completed successfully
+[component_container_isolated-5] [WARN] [1784017785.790279358] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017785.790333510] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017785.790343840] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017785.790373736] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017785.829700390] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017786.416927897] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017786.430355191] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017786.430437438] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017786.430461363] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017786.430485551] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017786.469959121] [behavior_server]: Running backup
+[component_container_isolated-5] [INFO] [1784017786.470288682] [behavior_server]: DriveOnHeading: no acceleration or deceleration limits set
+[component_container_isolated-5] [ERROR] [1784017786.470417558] [behavior_server]: Pose Goes Off Grid.
+[component_container_isolated-5] [WARN] [1784017786.470567199] [behavior_server]: Collision Ahead - Exiting DriveOnHeading
+[component_container_isolated-5] [WARN] [1784017786.470595175] [behavior_server]: backup failed
+[component_container_isolated-5] [WARN] [1784017786.470617134] [behavior_server]: [backup] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017786.529785030] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-5] [INFO] [1784017786.530150874] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017787.416929004] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017787.430906191] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017787.430994776] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017787.431034766] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017787.431062725] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017787.469862062] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017788.416931726] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017788.431207186] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017788.431315485] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017788.431333959] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017788.431357310] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017788.469971660] [behavior_server]: Running spin
+[component_container_isolated-5] [INFO] [1784017788.470084893] [behavior_server]: Turning 1.57 for spin behavior.
+[component_container_isolated-5] [ERROR] [1784017788.570294901] [behavior_server]: Pose Goes Off Grid.
+[component_container_isolated-5] [WARN] [1784017788.570434991] [behavior_server]: Collision Ahead - Exiting Spin
+[component_container_isolated-5] [WARN] [1784017788.570461087] [behavior_server]: spin failed
+[component_container_isolated-5] [WARN] [1784017788.570486227] [behavior_server]: [spin] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017788.629907274] [behavior_server]: Running wait
+[component_container_isolated-5] [WARN] [1784017789.417025606] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017790.416943322] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017791.416928281] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017792.416927022] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017793.416935996] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [INFO] [1784017793.630116482] [behavior_server]: wait completed successfully
+[component_container_isolated-5] [WARN] [1784017793.689963966] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017793.690054740] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017793.690080776] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017793.690103047] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017793.729937962] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017794.416914780] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017794.431726997] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017794.431774005] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017794.431786147] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017794.431798944] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017794.469980950] [behavior_server]: Running backup
+[component_container_isolated-5] [ERROR] [1784017794.470142456] [behavior_server]: Pose Goes Off Grid.
+[component_container_isolated-5] [WARN] [1784017794.470231085] [behavior_server]: Collision Ahead - Exiting DriveOnHeading
+[component_container_isolated-5] [WARN] [1784017794.470246141] [behavior_server]: backup failed
+[component_container_isolated-5] [WARN] [1784017794.470260430] [behavior_server]: [backup] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017794.529856491] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-5] [INFO] [1784017794.530650369] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017795.416928390] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017795.431594448] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017795.431679983] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017795.431717584] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017795.431756819] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017795.469688061] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017796.416938450] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017796.430777276] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017796.430993877] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017796.431040063] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017796.431076996] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017796.469996161] [behavior_server]: Running spin
+[component_container_isolated-5] [INFO] [1784017796.470153772] [behavior_server]: Turning 1.57 for spin behavior.
+[component_container_isolated-5] [ERROR] [1784017796.570540620] [behavior_server]: Pose Goes Off Grid.
+[component_container_isolated-5] [WARN] [1784017796.570736226] [behavior_server]: Collision Ahead - Exiting Spin
+[component_container_isolated-5] [WARN] [1784017796.570774228] [behavior_server]: spin failed
+[component_container_isolated-5] [WARN] [1784017796.570804545] [behavior_server]: [spin] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017796.630018709] [behavior_server]: Running wait
+[component_container_isolated-5] [WARN] [1784017797.416916804] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017798.416947274] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017799.416913346] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017800.416950901] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017801.416963250] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [INFO] [1784017801.630241469] [behavior_server]: wait completed successfully
+[component_container_isolated-5] [WARN] [1784017801.689946076] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017801.690013471] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017801.690029339] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017801.690044896] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [INFO] [1784017801.729774602] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-5] [WARN] [1784017802.416931972] [nav2_costmap_2d]: Robot is out of bounds of the costmap!
+[component_container_isolated-5] [WARN] [1784017802.430923508] [planner_server]: Cannot create a plan: the robot's start position is off the global costmap. Planning will always fail, are you sure the robot has been properly localized?
+[component_container_isolated-5] [WARN] [1784017802.430968742] [planner_server]: GridBased: failed to create plan with tolerance 0.50.
+[component_container_isolated-5] [WARN] [1784017802.430991800] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (5.00, 0.00)
+[component_container_isolated-5] [WARN] [1784017802.431005929] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [WARN] [1784017802.489560486] [bt_navigator]: [navigate_to_pose] [ActionServer] Aborting handle.
+[component_container_isolated-5] [ERROR] [1784017802.490090964] [bt_navigator]: Goal failed

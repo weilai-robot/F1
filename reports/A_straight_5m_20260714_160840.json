@@ -1,0 +1,39 @@
+{
+  "scenario": "A_straight_5m",
+  "description": "直线通行 5m (基线)",
+  "timestamp": "20260714_160840",
+  "params": {
+    "goal_x": 5.0,
+    "goal_y": 0.0,
+    "goal_yaw_deg": 0.0,
+    "timeout": 60
+  },
+  "metrics": {
+    "fall": true,
+    "collisions": 0,
+    "position_error_m": 5.185,
+    "success": false,
+    "plan_time_s": 0.09,
+    "drift_mean_m": 139.1612,
+    "drift_rms_m": 252.82,
+    "drift_max_m": 791.1757,
+    "drift_p95_m": 640.6394,
+    "slam_drift_m": 791.1757,
+    "completion_time_s": 39.16,
+    "path_efficiency": 1.679,
+    "linear_jerk_rms": 4.882,
+    "angular_jerk_rms": 14.433,
+    "direction_reversals_per_sec": 0.0,
+    "vmax_m_s": 1.485,
+    "vmin_m_s": 0.0,
+    "vmean_m_s": 0.077,
+    "vstd_m_s": 0.147,
+    "turning_radius_min_m": null,
+    "rtf_mean": 1.097,
+    "rtf_min": 0.948,
+    "timeout_s": 60,
+    "timed_out": false,
+    "result_status": "FAILED_6",
+    "cpu_mem": {}
+  }
+}

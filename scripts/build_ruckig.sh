@@ -1,49 +1,89 @@
 #!/bin/bash
-# ============================================================
-# build_ruckig.sh — 从源码编译 ruckig (解决 GLIBC 2.32 兼容性)
-#
-# 预编译的 libruckig.so 需要 GLIBC 2.32 (Ubuntu 22.04)。
-# 旧系统 (如 Ubuntu 20.04, GLIBC 2.31) 需要本地编译。
-#
-# 用法:
-#   ./build_ruckig.sh
-# ============================================================
-set -ex
+# Build Ruckig on the current host so libruckig.so only requires the host GLIBC.
+# The pinned commit was validated on the self-hosted F1 runner.
+
+set -euo pipefail
+
+readonly RUCKIG_REPOSITORY="https://github.com/pantor/ruckig.git"
+readonly RUCKIG_COMMIT="a8db97a4e9c55e5160a3855f739fa3b270df8e4c"
+
+if [ "${1:-}" = "--print-commit" ]; then
+    printf '%s\n' "$RUCKIG_COMMIT"
+    exit 0
+fi
+if [ "$#" -ne 0 ]; then
+    echo "Usage: $0 [--print-commit]" >&2
+    exit 2
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUCKIG_DIR="${ROOT_DIR}/motion_control/module/control_module/third_party"
+RUCKIG_TARGET_LIB="${RUCKIG_DIR}/lib/libruckig.so"
 
-echo "=== 编译 ruckig (源码) ==="
-
-cd /tmp
-rm -rf ruckig
-git clone --depth 1 https://github.com/pantor/ruckig.git
-cd ruckig
-
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release \
-         -DCMAKE_INSTALL_PREFIX=/usr/local \
-         -DRUCKIG_BUILD_TESTS=OFF \
-         -DRUCKIG_BUILD_EXAMPLES=OFF
-
-make -j$(nproc)
-sudo make install
-
-# 覆盖 third_party 中的预编译 .so
-echo "=== 替换 third_party 中的 libruckig.so ==="
-cp /usr/local/lib/libruckig.so "${RUCKIG_DIR}/lib/libruckig.so"
-
-# 同时复制头文件 (确保版本一致)
-if [ -d /usr/local/include/ruckig ]; then
-    rm -rf "${RUCKIG_DIR}/include/ruckig"
-    cp -r /usr/local/include/ruckig "${RUCKIG_DIR}/include/ruckig"
+TASK_TEMP_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+if [ ! -d "$TASK_TEMP_ROOT" ]; then
+    echo "ERROR: temporary root does not exist: $TASK_TEMP_ROOT" >&2
+    exit 1
 fi
 
-echo ""
-echo "✅ ruckig 编译安装完成"
-echo "   库: ${RUCKIG_DIR}/lib/libruckig.so"
-echo "   头文件: ${RUCKIG_DIR}/include/ruckig/"
-echo ""
-echo "现在需要重新编译 motion_control:"
-echo "  cd ${ROOT_DIR} && rm -rf build/ && scripts/build.sh"
+RUCKIG_BUILD_ROOT="$(mktemp -d "${TASK_TEMP_ROOT%/}/f1-ruckig.XXXXXX")"
+RUCKIG_SOURCE_DIR="${RUCKIG_BUILD_ROOT}/source"
+RUCKIG_INSTALL_DIR="${RUCKIG_BUILD_ROOT}/install"
+
+cleanup() {
+    rm -rf "$RUCKIG_BUILD_ROOT"
+}
+trap cleanup EXIT
+
+echo "=== Build host-compatible Ruckig ==="
+echo "repository: $RUCKIG_REPOSITORY"
+echo "commit:    $RUCKIG_COMMIT"
+echo "host:      $(getconf GNU_LIBC_VERSION 2>/dev/null || echo unknown-glibc)"
+
+git init --quiet "$RUCKIG_SOURCE_DIR"
+git -C "$RUCKIG_SOURCE_DIR" remote add origin "$RUCKIG_REPOSITORY"
+git -C "$RUCKIG_SOURCE_DIR" fetch --quiet --depth 1 origin "$RUCKIG_COMMIT"
+git -C "$RUCKIG_SOURCE_DIR" checkout --quiet --detach FETCH_HEAD
+
+ACTUAL_COMMIT="$(git -C "$RUCKIG_SOURCE_DIR" rev-parse HEAD)"
+if [ "$ACTUAL_COMMIT" != "$RUCKIG_COMMIT" ]; then
+    echo "ERROR: Ruckig commit mismatch: $ACTUAL_COMMIT != $RUCKIG_COMMIT" >&2
+    exit 1
+fi
+
+JOBS="$(nproc 2>/dev/null || echo 4)"
+cmake -S "$RUCKIG_SOURCE_DIR" -B "$RUCKIG_SOURCE_DIR/build" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$RUCKIG_INSTALL_DIR" \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_PYTHON_MODULE=OFF \
+    -DBUILD_CLOUD_CLIENT=OFF \
+    -DBUILD_TESTS=OFF \
+    -DBUILD_EXAMPLES=OFF
+cmake --build "$RUCKIG_SOURCE_DIR/build" --parallel "$JOBS"
+cmake --install "$RUCKIG_SOURCE_DIR/build"
+
+RUCKIG_BUILT_LIB="$(find "$RUCKIG_INSTALL_DIR" -type f -name 'libruckig.so*' -print -quit)"
+if [ -z "$RUCKIG_BUILT_LIB" ]; then
+    echo "ERROR: libruckig.so was not installed under $RUCKIG_INSTALL_DIR" >&2
+    exit 1
+fi
+if [ ! -d "$RUCKIG_INSTALL_DIR/include/ruckig" ]; then
+    echo "ERROR: Ruckig headers were not installed under $RUCKIG_INSTALL_DIR" >&2
+    exit 1
+fi
+
+install -m 0755 "$RUCKIG_BUILT_LIB" "$RUCKIG_TARGET_LIB"
+rm -rf "${RUCKIG_DIR}/include/ruckig"
+cp -R "$RUCKIG_INSTALL_DIR/include/ruckig" "${RUCKIG_DIR}/include/ruckig"
+
+LDD_OUTPUT="$(ldd "$RUCKIG_TARGET_LIB" 2>&1 || true)"
+printf '%s\n' "$LDD_OUTPUT"
+if printf '%s\n' "$LDD_OUTPUT" | grep -Eq 'version .+ not found|not found'; then
+    echo "ERROR: rebuilt libruckig.so still has unresolved runtime dependencies" >&2
+    exit 1
+fi
+
+echo "Ruckig $RUCKIG_COMMIT is compatible with this runner."
+echo "library: $RUCKIG_TARGET_LIB"

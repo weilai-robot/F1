@@ -1,0 +1,67 @@
+{
+  "component_logs": {
+    "aimrt": {
+      "errors": [],
+      "warnings": [],
+      "error_count": 0,
+      "warn_count": 0
+    },
+    "lidar_bridge": {
+      "errors": [],
+      "warnings": [],
+      "error_count": 0,
+      "warn_count": 0
+    },
+    "fastlio": {
+      "errors": [],
+      "warnings": [
+        "[fastlio_mapping-1] [WARN] [1784017739.662094854] [laser_mapping]: No point, skip this scan!"
+      ],
+      "error_count": 0,
+      "warn_count": 1
+    },
+    "open3d_loc": {
+      "errors": [
+        "[global_localization_node-2] \u001b[37;1m2026-07-14 16:28:59.350 \u001b[31;1m[\u001b[37;1mRTPS_TRANSPORT_SHM\u001b[31;1m Error] \u001b[37mFailed init_port fastrtps_port7425: open_and_lock_file failed\u001b[34;1m -> Function \u001b[36mopen_port_internal\u001b[m",
+        "[global_localization_node-2] [ERROR] [1784017740.616881097] [global_localization_node]: [GetTransformMatrix]: \"imu_link\" passed to lookupTransform argument source_frame does not exist."
+      ],
+      "warnings": [
+        "[static_transform_publisher-1] [WARN] [1784017739.312839042] []: Old-style arguments are deprecated; see --help for new-style arguments",
+        "[global_localization_node-2] [WARN] [1784017740.617034873] [global_localization_node]: initialize finished"
+      ],
+      "error_count": 2,
+      "warn_count": 2
+    },
+    "nav2": {
+      "errors": [
+        "\u001b[37;1m2026-07-14 16:29:02.430 \u001b[31;1m[\u001b[37;1mRTPS_TRANSPORT_SHM\u001b[31;1m Error] \u001b[37mFailed init_port fastrtps_port7425: open_and_lock_file failed\u001b[34;1m -> Function \u001b[36mopen_port_internal\u001b[m",
+        "[component_container_isolated-5] \u001b[37;1m2026-07-14 16:29:02.782 \u001b[31;1m[\u001b[37;1mRTPS_TRANSPORT_SHM\u001b[31;1m Error] \u001b[37mFailed init_port fastrtps_port7425: open_and_lock_file failed\u001b[34;1m -> Function \u001b[36mopen_port_internal\u001b[m",
+        "[odom_bridge.py-1] \u001b[37;1m2026-07-14 16:29:03.305 \u001b[31;1m[\u001b[37;1mRTPS_TRANSPORT_SHM\u001b[31;1m Error] \u001b[37mFailed init_port fastrtps_port7425: open_and_lock_file failed\u001b[34;1m -> Function \u001b[36mopen_port_internal\u001b[m",
+        "[component_container_isolated-5] [INFO] [1784017744.687524252] [voxel_grid]: Error, this implementation can only support up to 16 z values (25)",
+        "[component_container_isolated-5] [INFO] [1784017744.788748260] [voxel_grid]: Error, this implementation can only support up to 16 z values (25)",
+        "[component_container_isolated-5] [INFO] [1784017744.850965422] [voxel_grid]: Error, this implementation can only support up to 16 z values (25)",
+        "[component_container_isolated-5] [ERROR] [1784017777.798530880] [controller_server]: Resulting plan has 0 poses in it.",
+        "[component_container_isolated-5] [WARN] [1784017777.798674509] [controller_server]: [follow_path] [ActionServer] Aborting handle.",
+        "[component_container_isolated-5] [ERROR] [1784017778.073001271] [controller_server]: Resulting plan has 0 poses in it.",
+        "[component_container_isolated-5] [WARN] [1784017778.073154272] [controller_server]: [follow_path] [ActionServer] Aborting handle."
+      ],
+      "warnings": [
+        "[static_transform_publisher-2] [WARN] [1784017742.757793461] []: Old-style arguments are deprecated; see --help for new-style arguments",
+        "[static_transform_publisher-4] [WARN] [1784017742.765040355] []: Old-style arguments are deprecated; see --help for new-style arguments",
+        "[static_transform_publisher-3] [WARN] [1784017742.768785651] []: Old-style arguments are deprecated; see --help for new-style arguments",
+        "[component_container_isolated-5] [WARN] [1784017745.199792273] [controller_server]: Parameter controller_server.verbose not found",
+        "[component_container_isolated-5] [WARN] [1784017760.010876029] [controller_server]: No goal checker was specified in parameter 'current_goal_checker'. Server will use only plugin loaded general_goal_checker . This warning will appear once."
+      ],
+      "error_count": 80,
+      "warn_count": 49
+    },
+    "leg_odom": {
+      "errors": [
+        "\u001b[37;1m2026-07-14 16:29:07.282 \u001b[31;1m[\u001b[37;1mRTPS_TRANSPORT_SHM\u001b[31;1m Error] \u001b[37mFailed init_port fastrtps_port7425: open_and_lock_file failed\u001b[34;1m -> Function \u001b[36mopen_port_internal\u001b[m"
+      ],
+      "warnings": [],
+      "error_count": 1,
+      "warn_count": 0
+    }
+  }
+}
