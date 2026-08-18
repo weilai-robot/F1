@@ -41,10 +41,11 @@ fi
 ls motion_control/czy/real_data/ || { echo "FATAL: real data not found" >&2; exit 3; }
 
 # --- python deps (image ships torch; mujoco/optuna are pip-only) ----------
-python -m pip install -q --no-input mujoco optuna pyyaml matplotlib 2>&1 | tail -1 || true
+python -m pip install -q --no-input mujoco optuna cmaes pyyaml matplotlib 2>&1 | tail -1 || true
 python - <<'PY'
-import mujoco, optuna, yaml, numpy
-print("deps OK:", "mujoco", mujoco.__version__, "| optuna", optuna.__version__)
+import mujoco, optuna, cmaes, yaml, numpy
+print("deps OK:", "mujoco", mujoco.__version__, "| optuna", optuna.__version__,
+      "| cmaes", cmaes.__version__)
 PY
 
 # --- stage 0: dataset ------------------------------------------------------
