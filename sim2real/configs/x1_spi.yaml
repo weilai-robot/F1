@@ -9,7 +9,7 @@
 
 model:
   mjcf: "motion_control/module/sim_module/model/mjcf/xyber_x1_flat.xml"
-  base_body: "link_base"
+  base_body: "x1-body"
   base_body_key: "base"          # key inside params.bodies
   foot_bodies: ["link_left_ankle_roll", "link_right_ankle_roll"]
 

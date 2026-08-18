@@ -91,7 +91,11 @@ class MuJoCoRollouter:
                 continue
             self.j_qpos_adr.append(self.model.jnt_qposadr[jid])
             self.j_dof_adr.append(self.model.jnt_dofadr[jid])
+            # MJCF actuator names drop the "_joint" suffix of joint names
+            stem = jn[:-6] if jn.endswith("_joint") else jn
             act = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, f"motor_{jn}")
+            if act < 0:
+                act = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, f"motor_{stem}")
             self.j_ctrl_adr.append(act if act >= 0 else None)
         if missing:
             raise ValueError(f"joints missing from MJCF: {missing}")
