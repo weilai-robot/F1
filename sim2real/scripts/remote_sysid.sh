@@ -25,6 +25,16 @@ if [ ! -d motion_control/czy ]; then
   done
 fi
 if [ ! -d motion_control/czy ]; then
+  # robust fallback: any sibling dir that contains the real-data tree
+  for CAND in ../*/ ../../*/; do
+    if [ -d "${CAND}czy/real_data" ]; then
+      rm -rf motion_control
+      ln -s "$(cd "$CAND" && pwd)" motion_control
+      break
+    fi
+  done
+fi
+if [ ! -d motion_control/czy ]; then
   # last resort: init the git submodule (requires git access)
   git submodule update --init motion_control || true
 fi
