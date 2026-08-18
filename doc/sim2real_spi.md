@@ -240,3 +240,27 @@ sim2real/
 - Stage-2 需要一个**多行为策略**作为命令载体；当前 X1 仅 3 维 cmd_vel 行走策略，命令子空间小 → 激励多样性受限，建议后续训练 WTW 式多行为策略后再跑 Stage-2
 - 踝并联机构在 MJCF 中以两个独立铰链近似，残余模型误差会部分被 κ_ankle 吸收
 - 摩擦/接触参数暂不在辨识空间（论文也只辨识惯量+电机）；可作为扩展维度
+
+---
+
+## 5. 首轮远端运行结果（2026-08-18，TASK_20260818_041）
+
+gradmotion A10 (ESKU000004) + Isaac Gym 镜像 V000124 (py3.8)，`remote_sysid.sh` 全自动完成。数据：28 clips（round_exp kp40/kd3 ×2 + walk_diag ×1，dt≈10ms）。
+
+| 指标 | 值 |
+|---|---|
+| nominal 参数预测代价 | **3,039,218** |
+| CMA-ES 最优代价 | **118,019**（**↓25.8×**） |
+| pelvis 质量 | 4.304 → **6.973 kg**（+62%，吸收电池/装载等未建模质量） |
+| κ_tanh（hip_pitch / hip_rolleyaw / knee / ankle） | 62.0 / 22.4 / 150.1 / 22.1（全部在搜索盒内，辨识良好） |
+| κs（电机线性增益） | 0.536（真实出力约为标称 54%，提示模型力矩偏乐观） |
+
+**弱可观测方向（工程判断，已在导出时钳制）**：无动捕下 com_y/z（raw ±0.19/−0.20）与惯量（raw eig 至 2.27 kg·m²）超出 7 kg 骨盆的物理合理域——由质量-惯量-增益相关性吸收模型误差。`apply_params.py` 导出 URDF/MJCF 时钳制 com 每轴 ±0.15 m、惯量 eig ∈ [0.005, 1.0]，raw 值完整保留在 `dr_x1_spi.json` 的 `raw` 块与 `report.md` 中（可用 `--no-clamp` 关闭）。
+
+产物（本地 `sim2real/`，均由 numpy 级脚本生成）：
+- `results/identified_params.{pt,json}` —— 远端回传的辨识结果
+- `export/x1_identified.urdf` / `xyber_x1_identified.xml` —— 回写后的骨盆惯量
+- `export/dr_x1_spi.json` —— 以辨识值为中心的 DR 配置（质量 ±5%、com ±0.03 m）
+- `export/report.md` —— 人读报告
+
+远端重训衔接：`x1_identified.urdf` → `agibot_x1_train/resources/robots/x1/urdf/x1.urdf`；`dr_x1_spi.json` 范围替换 `x1_dh_stand_config.py` 的 domain_rand 段；κ/κs 用于部署侧力矩限幅与 actuator 模型校准。
