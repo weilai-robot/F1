@@ -55,9 +55,8 @@ def main() -> None:
     mjcf = (ROOT / cfg["model"]["mjcf"]).resolve()
     rollouter = MuJoCoRollouter(mjcf, base_body=cfg["model"]["base_body"],
                                 foot_bodies=tuple(cfg["model"]["foot_bodies"]))
-    # map config body key -> rollout internal key
-    body_key = cfg["model"].get("base_body_key", "base")
     kmap = kappa_map_from_cfg(cfg)
+    space_cfg_body_name = cfg["bodies"][0]["name"]
     weights = CostWeights.from_dict(cfg["cost"])
     joint_mask = np.zeros(29, dtype=bool)
     for j in LEG_JOINTS:
@@ -65,10 +64,13 @@ def main() -> None:
     cost_fn = PredictionCost(weights=weights, joint_mask=joint_mask)
 
     def evaluate(params: dict) -> float:
-        # rollout expects params["bodies"][base_key]; remap
-        remapped = {"bodies": {rollouter._base_name: params["bodies"][body_key]},
-                    "motors": params["motors"], "kappa_s": params["kappa_s"]}
-        sims = rollouter.rollout_clips(clips, remapped, kmap)
+        # rollout looks up params["bodies"]["base"]; config key may differ
+        bodies = dict(params["bodies"])
+        if rollouter._base_name not in bodies:
+            bodies[rollouter._base_name] = bodies[space_cfg_body_name]
+        p = {"bodies": bodies, "motors": params["motors"],
+             "kappa_s": params["kappa_s"]}
+        sims = rollouter.rollout_clips(clips, p, kmap)
         return sum(cost_fn.evaluate(sim, {"quat": c["ref_quat"], "gyro": c["ref_gyro"],
                                           "q": c["ref_q"], "qd": c["ref_qd"],
                                           "tau": c["ref_tau"]})
@@ -77,8 +79,6 @@ def main() -> None:
     # sanity: nominal-parameter cost
     space = build_space(cfg)
     nom = space.nominal_params()
-    nom["bodies"][body_key] = nom["bodies"][space.bodies[0].body_name]
-    del nom["bodies"][space.bodies[0].body_name]
     cost0 = evaluate(nom)
     print(f"[spi] nominal-params prediction cost: {cost0:.4f}")
 
