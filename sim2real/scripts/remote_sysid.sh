@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# gradmotion remote bootstrap: install deps + run the full SPI sysid pipeline.
+# startScript form:
+#   gm-run F1/sim2real/scripts/remote_sysid.sh
+#
+# Layout on the platform: repos are cloned side by side:
+#   ./F1/                (this repo, branch dev/sim2real-spi)
+#   ./Humanoid_motion/   (submodule content: real data + MJCF)
+# We symlink ./F1/motion_control -> ../Humanoid_motion so the config's
+# "motion_control/..." paths resolve.
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"          # .../F1/sim2real/scripts
+F1_ROOT="$(cd "$HERE/../.." && pwd)"           # .../F1
+cd "$F1_ROOT"
+
+# --- locate sibling Humanoid_motion checkout and link it -------------------
+if [ ! -d motion_control/czy ]; then
+  for CAND in "../Humanoid_motion" "../../Humanoid_motion" "Humanoid_motion"; do
+    if [ -d "$CAND/czy" ]; then
+      rm -rf motion_control
+      ln -s "$(cd "$CAND" && pwd)" motion_control
+      break
+    fi
+  done
+fi
+if [ ! -d motion_control/czy ]; then
+  # last resort: init the git submodule (requires git access)
+  git submodule update --init motion_control || true
+fi
+ls motion_control/czy/real_data/ || { echo "FATAL: real data not found" >&2; exit 3; }
+
+# --- python deps (image ships torch; mujoco/optuna are pip-only) ----------
+python -m pip install -q --no-input mujoco optuna pyyaml matplotlib 2>&1 | tail -1 || true
+python - <<'PY'
+import mujoco, optuna, yaml, numpy
+print("deps OK:", "mujoco", mujoco.__version__, "| optuna", optuna.__version__)
+PY
+
+# --- stage 0: dataset ------------------------------------------------------
+python sim2real/scripts/prepare_dataset.py \
+  --config sim2real/configs/x1_spi.yaml \
+  --out sim2real/data/x1_clips.npz
+
+# --- stage 1: SPI identification ------------------------------------------
+python sim2real/scripts/run_spi.py \
+  --config sim2real/configs/x1_spi.yaml \
+  --dataset sim2real/data/x1_clips.npz \
+  --out-dir logs/spi_sysid
+
+# --- diagnostics: mass landscape ------------------------------------------
+python sim2real/scripts/mass_landscape.py \
+  --config sim2real/configs/x1_spi.yaml \
+  --dataset sim2real/data/x1_clips.npz \
+  --out-dir logs/mass_landscape || true
+
+# --- apply params (URDF/MJCF patch + DR config) ---------------------------
+python sim2real/scripts/apply_params.py \
+  --params logs/spi_sysid/gm_play/identified_params.json \
+  --out-dir sim2real/export || true
+
+echo "remote_sysid: ALL DONE"
+ls -R logs/ | head -40

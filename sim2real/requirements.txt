@@ -1,0 +1,8 @@
+# SPI sysid pipeline runtime deps.
+# NOTE: per project policy nothing is installed locally; these are installed
+# inside the gradmotion remote image by sim2real/scripts/remote_sysid.sh.
+numpy>=1.24
+pyyaml>=6.0
+mujoco>=3.0
+optuna>=3.0
+matplotlib>=3.7
