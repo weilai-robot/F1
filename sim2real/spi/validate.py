@@ -29,7 +29,8 @@ import numpy as np
 from .param_space import physical_violations
 
 EFFECTIVE_RATIO = 0.70          # best/nominal val cost must be <= this
-ACCEL_RMS_MAX = 1.5             # m/s^2, val-set IMU specific-force RMS
+ACCEL_RMS_MAX = 15.0            # m/s^2, val-set IMU specific-force RMS (无动捕开环现实界)
+ACCEL_IMPROVE_RATIO = 0.35      # best RMS <= nominal*this (改善 >=65%)
 BOUNDARY_FRACTION = 0.02        # within 2% of a search-box edge -> WARN
 
 
@@ -140,21 +141,22 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
         "detail": "all body params inside configured ranges" if ok2 else f"violations: {viol}",
     })
 
-    # 3. IMU accel term: enabled + improves + absolute RMS bound on val
+    # 3. IMU accel term: enabled + improves (>=65% vs nominal) + bounded RMS
     rms_best = accel_rms(val_costs["best"], accel_weight, n_val_steps)
     rms_nom = accel_rms(val_costs["nominal"], accel_weight, n_val_steps)
     if accel_weight <= 0 or rms_best is None:
         pass  # accel term disabled -> check skipped
     else:
+        improve_ratio = float(vcfg.get("accel_improve_ratio", 0.35))
         improved = (rms_nom is None or rms_nom < 0.01
-                    or rms_best <= rms_nom * 1.05)
+                    or rms_best <= rms_nom * improve_ratio)
         ok3 = bool(improved and rms_best <= accel_max)
         checks.append({
             "id": "ACCEL",
             "ok": ok3,
             "detail": (f"val accel RMS: best={round(rms_best, 3)} "
                        f"nominal={None if rms_nom is None else round(rms_nom, 3)} m/s^2 "
-                       f"(max {accel_max})"),
+                       f"(max {accel_max}, improve>={1 - improve_ratio:.0%})"),
         })
 
     for c in checks:
@@ -182,5 +184,6 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
         "criteria": {
             "effective_ratio": eff_ratio,
             "accel_rms_max": accel_max,
+            "accel_improve_ratio": float(vcfg.get("accel_improve_ratio", 0.35)),
         },
     }

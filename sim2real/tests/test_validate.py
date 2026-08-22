@@ -115,6 +115,20 @@ class TestAssess(unittest.TestCase):
         acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
         self.assertFalse(acc["ok"])
 
+    def test_fail_when_accel_not_improving_enough(self):
+        # 绝对 RMS 达标但相对 nominal 改善不足（<65%）-> FAIL
+        good = mk_params()
+        vn = dict(SIG, quat=100.0, accel=1.0 * 1000 * 3 * 20.0 ** 2)   # rms 20
+        vb = dict(SIG, quat=10.0, accel=1.0 * 1000 * 3 * 12.0 ** 2)    # rms 12 <15
+        r = self._run(good, vn, vb)
+        acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
+        self.assertFalse(acc["ok"])   # 12 > 20*0.35=7
+        # 相对改善足够（20 -> 6, 6<7 且 <15）-> PASS
+        vb2 = dict(SIG, quat=10.0, accel=1.0 * 1000 * 3 * 6.0 ** 2)
+        r2 = self._run(good, vn, vb2)
+        acc2 = next(c for c in r2["checks"] if c["id"] == "ACCEL")
+        self.assertTrue(acc2["ok"])
+
     def test_accel_disabled_skips_check(self):
         good = mk_params()
         vn = dict(SIG, quat=100.0)
