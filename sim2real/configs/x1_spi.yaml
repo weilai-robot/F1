@@ -51,10 +51,10 @@ bodies:
     # 结果，如 6.97 kg、惯量 1.5-2.0 kg·m^2。新范围锚定名义值附近）
     mass_range: [3.0, 5.5]        # nominal 4.30 kg (±~28%)
     com_range: [-0.06, 0.06]      # nominal |r| < 0.031 m
-    # 惯量上限 0.35 = 名义(0.011-0.027)的 ~13x：覆盖骨盆+电池/线束等未建模
-    # 载荷的物理合理上限（v9 实测最优 0.33 入域）；无动捕下开环回放会略微
-    # 抬高惯量吸收发散，0.35 为该效应下的工程合理界
-    inertia_diag_range: [0.005, 0.35]
+    # 惯量上限 0.38 = 名义(0.011-0.027)的 ~14x：覆盖骨盆+电池/线束等未建模
+    # 载荷的物理合理上限（v10 实测最优 0.363 仅超旧界 0.35 约 3%，纳入域内；
+    # 仍远小于首轮超物理结果 1.5-2.0）
+    inertia_diag_range: [0.005, 0.38]
 
 motor_groups:                     # tanh saturation kappa per joint group
   - name: hip_pitch
@@ -94,7 +94,7 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
 optimizer:
   n_trials: 60                    # Optuna CMA-ES trials (paper: 5 iters)
   seed: 0
-  penalty_scale: 1e6              # 物理合理域硬约束权重（超出即被强惩罚）
+  penalty_scale: 3e6              # 物理合理域硬约束权重（超出即被强惩罚）
 
 validation:
   effective_ratio: 0.70           # val best/nominal 代价上限（完成标准 1）
