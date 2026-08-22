@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 
-from spi.cost import CostWeights, PredictionCost, quat_err, per_signal_cost
+from spi.cost import CostWeights, PredictionCost, quat_err, per_signal_cost, box_filter
 
 N = 12  # steps
 
@@ -63,8 +63,9 @@ class TestPredictionCost(unittest.TestCase):
         ref = make_ref()
         sim = {k: v.copy() for k, v in ref.items()}
         sim["accel"] = ref["accel"] + 0.3
-        c1 = PredictionCost(weights=CostWeights(base_accel=1.0))
-        c2 = PredictionCost(weights=CostWeights(base_accel=2.0))
+        # filter off (win=1) so the analytic value holds
+        c1 = PredictionCost(weights=CostWeights(base_accel=1.0, accel_filter_win=1))
+        c2 = PredictionCost(weights=CostWeights(base_accel=2.0, accel_filter_win=1))
         e1, e2 = c1.evaluate(sim, ref), c2.evaluate(sim, ref)
         self.assertAlmostEqual(e2, 2.0 * e1, places=9)
         # expected analytic value: weight * n * 3 * 0.09
@@ -75,7 +76,7 @@ class TestPredictionCost(unittest.TestCase):
         sim = {k: v.copy() for k, v in ref.items()}
         ref["accel"][3] = np.nan
         sim["accel"] = ref["accel"] + 0.5
-        c = PredictionCost(weights=CostWeights(base_accel=1.0))
+        c = PredictionCost(weights=CostWeights(base_accel=1.0, accel_filter_win=1))
         self.assertAlmostEqual(c.evaluate(sim, ref), 1.0 * (N - 1) * 3 * 0.25, places=9)
 
     def test_accel_disabled_when_weight_zero(self):
@@ -84,6 +85,36 @@ class TestPredictionCost(unittest.TestCase):
         sim["accel"] = ref["accel"] + 5.0
         c = PredictionCost(weights=CostWeights(base_accel=0.0))
         self.assertAlmostEqual(c.evaluate(sim, ref), 0.0, places=9)
+
+    def test_accel_box_filter_smooths_spikes(self):
+        # 单帧冲击被 box 滤波摊薄（RMS 降 sqrt(win) 倍）：代价显著下降
+        ref = make_ref()
+        sim = {k: v.copy() for k, v in ref.items()}
+        spike = np.zeros_like(ref["accel"])
+        spike[5] = [50.0, 0.0, 0.0]        # 单帧 50 m/s^2 冲击
+        sim["accel"] = ref["accel"] + spike
+        raw = PredictionCost(weights=CostWeights(base_accel=1.0, accel_filter_win=1))
+        filt = PredictionCost(weights=CostWeights(base_accel=1.0, accel_filter_win=5))
+        c_raw = raw.evaluate(sim, ref)
+        c_filt = filt.evaluate(sim, ref)
+        self.assertLess(c_filt, c_raw / 4.0)
+
+    def test_box_filter_identity_for_win1(self):
+        a = np.random.default_rng(0).normal(size=(20, 3))
+        np.testing.assert_allclose(box_filter(a, 1), a)
+
+    def test_box_filter_constant_preserved(self):
+        a = np.full((30, 3), 9.8)
+        out = box_filter(a, 10)
+        np.testing.assert_allclose(out, 9.8, atol=1e-12)
+
+    def test_box_filter_preserves_length_and_edges(self):
+        a = np.random.default_rng(1).normal(size=(23, 3))
+        out = box_filter(a, 7)
+        self.assertEqual(out.shape, a.shape)
+        # edge-pad: 边缘样本不被 0 填充拉低（首尾仍在信号范围内）
+        self.assertTrue(np.all(out[0] >= a[:4].min(axis=0) - 1e-9))
+        self.assertTrue(np.all(out[0] <= a[:4].max(axis=0) + 1e-9))
 
     def test_per_signal_breakdown_sums_to_total(self):
         ref = make_ref()

@@ -32,6 +32,11 @@ class CostWeights:
     # IMU 3-axis specific force (m/s^2, body frame). No paper counterpart:
     # replaces the missing base linear dynamics term, constrains mass/CoM.
     base_accel: float = 1.0
+    # box-filter window (samples @100Hz, 10 = 0.1 s) applied to BOTH sim and
+    # ref specific force before scoring: removes contact-impact spikes that
+    # dominate the raw signal in open-loop replays and carry no identifiability
+    # information (低频动力学才包含质量/质心信息)
+    accel_filter_win: int = 10
     # joint prediction
     q: float = 3.0
     qd: float = 0.1
@@ -46,7 +51,10 @@ class CostWeights:
             for k, v in d.items():
                 if not hasattr(w, k):
                     raise KeyError(f"unknown cost weight '{k}'")
-                setattr(w, k, float(v))
+                if isinstance(getattr(w, k), int):
+                    setattr(w, k, int(v))
+                else:
+                    setattr(w, k, float(v))
         return w
 
 
@@ -56,6 +64,28 @@ def quat_err(q: np.ndarray, q_ref: np.ndarray) -> np.ndarray:
     q_ref = q_ref / np.maximum(np.linalg.norm(q_ref, axis=-1, keepdims=True), 1e-12)
     dot = np.sum(q * q_ref, axis=-1)
     return 1.0 - dot ** 2
+
+
+def box_filter(a: np.ndarray, win: int) -> np.ndarray:
+    """Moving-average (box) filter per column; win=1 -> identity.
+
+    Edges are extended by replication (np.pad mode='edge') so constant
+    signals stay constant and clip boundaries are not distorted. The output
+    has the same length as the input.
+    """
+    win = int(win)
+    if win <= 1:
+        return a
+    a = np.asarray(a, dtype=float)
+    n = a.shape[0]
+    pad = win // 2
+    k = np.ones(win) / win
+    out = np.empty_like(a)
+    for i in range(a.shape[1]):
+        p = np.pad(a[:, i], (pad, pad), mode="edge")
+        y = np.convolve(p, k, mode="same")
+        out[:, i] = y[pad:pad + n]
+    return out
 
 
 def clip_cost(cost: np.ndarray) -> float:
@@ -82,8 +112,10 @@ class PredictionCost:
             d2 = np.sum((sim["gyro"] - ref["gyro"]) ** 2, axis=1)
             c += w.base_angvel * np.sum(np.nan_to_num(d2))
         if w.base_accel > 0 and ref.get("accel") is not None:
-            d2 = np.sum((sim["accel"] - ref["accel"]) ** 2, axis=1)
-            ok = np.isfinite(ref["accel"]).all(axis=1) & np.isfinite(sim["accel"]).all(axis=1)
+            sim_a = box_filter(sim["accel"], w.accel_filter_win)
+            ref_a = box_filter(ref["accel"], w.accel_filter_win)
+            d2 = np.sum((sim_a - ref_a) ** 2, axis=1)
+            ok = np.isfinite(ref_a).all(axis=1) & np.isfinite(sim_a).all(axis=1)
             c += w.base_accel * float(np.sum(d2[ok]))
         mask = self.joint_mask
         if mask is None:
@@ -130,8 +162,10 @@ def per_signal_cost(cost_fn: PredictionCost, sim: Dict[str, np.ndarray],
         d2 = np.sum((sim["gyro"] - ref["gyro"]) ** 2, axis=1)
         out["angvel"] = float(w.base_angvel * np.sum(np.nan_to_num(d2)))
     if w.base_accel > 0 and ref.get("accel") is not None:
-        d2 = np.sum((sim["accel"] - ref["accel"]) ** 2, axis=1)
-        ok = np.isfinite(ref["accel"]).all(axis=1) & np.isfinite(sim["accel"]).all(axis=1)
+        sim_a = box_filter(sim["accel"], w.accel_filter_win)
+        ref_a = box_filter(ref["accel"], w.accel_filter_win)
+        d2 = np.sum((sim_a - ref_a) ** 2, axis=1)
+        ok = np.isfinite(ref_a).all(axis=1) & np.isfinite(sim_a).all(axis=1)
         out["accel"] = float(w.base_accel * float(np.sum(d2[ok])))
     mask = cost_fn.joint_mask
     if mask is None:

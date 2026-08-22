@@ -123,6 +123,24 @@ class TestAssess(unittest.TestCase):
         self.assertEqual(r["verdict"], "PASS")
         self.assertNotIn("ACCEL", {c["id"] for c in r["checks"]})
 
+    def test_config_thresholds_apply(self):
+        # config validation.accel_rms_max / effective_ratio 生效
+        cfg = dict(CFG, validation={"accel_rms_max": 0.4, "effective_ratio": 0.5})
+        good = mk_params()
+        vn = dict(SIG, quat=100.0)
+        # best 0.68*250=170 但 ratio 0.68 > 0.5 -> EFFECTIVENESS FAIL
+        vb = dict(SIG, quat=40.0, q=10.0, accel=1.0 * 1000 * 3 * 0.2 ** 2)
+        r = assess(cfg, good, NOMINAL,
+                   {"nominal": dict(SIG), "best": dict(SIG)},
+                   {"nominal": vn, "best": vb}, 1000, accel_weight=1.0)
+        self.assertEqual(r["verdict"], "FAIL")
+        eff = next(c for c in r["checks"] if c["id"] == "EFFECTIVENESS")
+        self.assertFalse(eff["ok"])
+        # accel rms 0.346 <= 0.4 -> ACCEL ok
+        acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
+        self.assertTrue(acc["ok"])
+        self.assertEqual(r["criteria"]["accel_rms_max"], 0.4)
+
     def test_boundary_warning_on_kappa_s(self):
         p = mk_params()
         p["kappa_s"] = 0.501  # 贴盒底

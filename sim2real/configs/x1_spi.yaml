@@ -82,6 +82,7 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
   base_quat: 2.0
   base_angvel: 0.25
   base_accel: 1.0                 # IMU 3-axis specific force (m/s^2, body frame)
+  accel_filter_win: 10            # 比力低通盒滤波窗口 (100Hz -> 0.1s)，滤接触冲击
   q: 3.0
   qd: 0.1
   tau: 0.002
@@ -90,7 +91,11 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
 optimizer:
   n_trials: 60                    # Optuna CMA-ES trials (paper: 5 iters)
   seed: 0
-  penalty_scale: 1e4              # 物理合理域硬约束权重（超出 mass/com/inertia 范围）
+  penalty_scale: 1e5              # 物理合理域硬约束权重（陡峭二次罚，超出即被拒绝）
+
+validation:
+  effective_ratio: 0.70           # val best/nominal 代价上限（完成标准 1）
+  accel_rms_max: 1.5              # val 比力 RMS 上限 m/s^2（完成标准 3）
 
 active:                           # SPI-Active stage 2
   command_dims: [0, 1, 2]         # vx, vy, wz (X1 cmd_vel)

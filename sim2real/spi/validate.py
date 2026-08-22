@@ -112,6 +112,9 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
     Returns the full report; exit_code 0 = PASS, 1 = FAIL (WARN does not block).
     """
     body_cfg = cfg["bodies"]
+    vcfg = cfg.get("validation", {})
+    eff_ratio = float(vcfg.get("effective_ratio", EFFECTIVE_RATIO))
+    accel_max = float(vcfg.get("accel_rms_max", ACCEL_RMS_MAX))
     checks: List[Dict] = []
     verdict = "PASS"
     exit_code = 0
@@ -120,12 +123,12 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
     vn = sum(val_costs["nominal"].values())
     vb = sum(val_costs["best"].values())
     ratio = (vb / vn) if vn > 0 else float("inf")
-    ok1 = vn > 0 and ratio <= EFFECTIVE_RATIO
+    ok1 = vn > 0 and ratio <= eff_ratio
     checks.append({
         "id": "EFFECTIVENESS",
         "ok": bool(ok1),
         "detail": (f"val cost best={vb:.1f} vs nominal={vn:.1f} "
-                   f"(ratio {ratio:.3f} <= {EFFECTIVE_RATIO})"),
+                   f"(ratio {ratio:.3f} <= {eff_ratio})"),
     })
 
     # 2. physical plausibility
@@ -145,13 +148,13 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
     else:
         improved = (rms_nom is None or rms_nom < 0.01
                     or rms_best <= rms_nom * 1.05)
-        ok3 = bool(improved and rms_best <= ACCEL_RMS_MAX)
+        ok3 = bool(improved and rms_best <= accel_max)
         checks.append({
             "id": "ACCEL",
             "ok": ok3,
             "detail": (f"val accel RMS: best={round(rms_best, 3)} "
                        f"nominal={None if rms_nom is None else round(rms_nom, 3)} m/s^2 "
-                       f"(max {ACCEL_RMS_MAX})"),
+                       f"(max {accel_max})"),
         })
 
     for c in checks:
@@ -177,7 +180,7 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
         },
         "accel_rms_val": (None if rms_best is None else round(rms_best, 3)),
         "criteria": {
-            "effective_ratio": EFFECTIVE_RATIO,
-            "accel_rms_max": ACCEL_RMS_MAX,
+            "effective_ratio": eff_ratio,
+            "accel_rms_max": accel_max,
         },
     }

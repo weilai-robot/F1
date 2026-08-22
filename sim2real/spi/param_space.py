@@ -291,16 +291,17 @@ def physical_violations(params: Dict, bodies_cfg: Sequence[Dict]) -> Dict[str, D
 
 
 def physical_range_penalty(params: Dict, bodies_cfg: Sequence[Dict],
-                           scale: float = 1e4) -> float:
-    """Hard constraint: quadratic penalty per unit of violation.
+                           scale: float = 1e5) -> float:
+    """Hard constraint: steep quadratic penalty per unit of violation.
 
-    Units: mass [kg]^2, com [m]^2, inertia [kg·m^2]^2. With the default scale
-    1e4, a violation of ~1.7 kg·m^2 (the overshoot of the pre-constraint run)
-    costs ~3e4 per axis — comparable to the prediction-cost scale (~1e5), so
-    the optimizer is pushed back into the physically plausible box.
+    Units: mass [kg]^2, com [m]^2, inertia [kg·m^2]^2. The v^2*max(v,1) form
+    makes small violations cheap but large ones effectively rejected: at the
+    default scale 1e5 a 1-unit violation costs 1e5, a 2-unit violation 8e5 —
+    comparable to the prediction cost scale (~1e5-1e6), so the CMA-ES optimum
+    cannot escape into implausible mass/inertia values.
     """
     total = 0.0
     for body, viol in physical_violations(params, bodies_cfg).items():
         for v in viol.values():
-            total += v * v
+            total += v * v * max(v, 1.0)
     return scale * total

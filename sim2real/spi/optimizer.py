@@ -53,7 +53,7 @@ def run_spi(clips: List[Dict], cfg: Dict, evaluate: Callable[[Dict], float],
 
     evaluate(params) -> prediction cost over clips (regularization added here:
     paper Tab.3 reg terms with the 0.1 global scale). The physically-plausible
-    range penalty (config optimizer.penalty_scale, default 1e4) is added to the
+    range penalty (config optimizer.penalty_scale, default 1e5) is added to the
     objective so the identified body params stay inside the configured
     mass/com/inertia boxes.
     Returns {"best_params", "best_cost", "history"}.
@@ -64,7 +64,7 @@ def run_spi(clips: List[Dict], cfg: Dict, evaluate: Callable[[Dict], float],
     space = build_space(cfg)
     bodies_cfg = cfg["bodies"]
     pen_scale = (penalty_scale if penalty_scale is not None
-                 else float(cfg["optimizer"].get("penalty_scale", 1e4)))
+                 else float(cfg["optimizer"].get("penalty_scale", 1e5)))
 
     sampler = optuna.samplers.CmaEsSampler(seed=seed)
     study = optuna.create_study(direction="minimize", sampler=sampler)
