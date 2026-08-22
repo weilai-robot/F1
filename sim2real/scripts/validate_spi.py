@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -33,6 +34,35 @@ from spi.dataset import FULL_JOINT_ORDER, JIDX, LEG_JOINTS, load_clips  # noqa: 
 from spi.optimizer import build_space  # noqa: E402
 from spi.rollout import MuJoCoRollouter  # noqa: E402
 from spi.validate import assess, split_clips  # noqa: E402
+
+
+def _parse_nd(s: str) -> np.ndarray:
+    """Parse a numpy repr string like '[-0.06 -0.02 -0.001]' or the 3x3
+    '[[a b c] [d e f] [g h i]]' (space-separated, array2string style)."""
+    flat = re.sub(r"[\[\]\n]", " ", s)
+    return np.fromstring(flat, sep=" ")
+
+
+def coerce_params(raw: Dict) -> Dict:
+    """Normalize params loaded from identified_params.json.
+
+    run_spi.py serializes with json.dumps(..., default=str), which turns
+    np.ndarray values (com, inertia) into their repr *string*; coerce them
+    back into arrays so MuJoCo accepts them.
+    """
+    out = {"bodies": {}, "motors": dict(raw.get("motors", {})),
+           "kappa_s": raw.get("kappa_s", 1.0)}
+    for name, b in raw["bodies"].items():
+        com = b["com"]
+        if isinstance(com, str):
+            com = _parse_nd(com)
+        inertia = b["inertia"]
+        if isinstance(inertia, str):
+            inertia = _parse_nd(inertia).reshape(3, 3)
+        out["bodies"][name] = {"mass": float(b["mass"]),
+                               "com": np.asarray(com, dtype=float),
+                               "inertia": np.asarray(inertia, dtype=float)}
+    return out
 
 
 def kappa_map_from_cfg(cfg) -> dict:
@@ -72,7 +102,7 @@ def main() -> None:
 
     with open(args.params) as f:
         payload = json.load(f)
-    params = payload["best_params"]
+    params = coerce_params(payload["best_params"])
 
     mjcf = (ROOT / cfg["model"]["mjcf"]).resolve()
     rollouter = MuJoCoRollouter(mjcf, base_body=cfg["model"]["base_body"],

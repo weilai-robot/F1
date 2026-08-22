@@ -14,6 +14,13 @@ HERE="$(cd "$(dirname "$0")" && pwd)"          # .../F1/sim2real/scripts
 F1_ROOT="$(cd "$HERE/../.." && pwd)"           # .../F1
 cd "$F1_ROOT"
 
+# mode: full pipeline (default) or --validate-only (dataset + validation +
+# apply; skips the ~15 min CMA-ES identification, reuses uploaded params)
+MODE="${1:-full}"
+if [ "$MODE" = "--validate-only" ]; then
+  echo "remote_sysid: VALIDATE-ONLY mode (skip identification)"
+fi
+
 # --- locate sibling Humanoid_motion checkout and link it -------------------
 if [ ! -d motion_control/czy ]; then
   for CAND in "../Humanoid_motion" "../../Humanoid_motion" "Humanoid_motion"; do
@@ -53,11 +60,16 @@ python sim2real/scripts/prepare_dataset.py \
   --config sim2real/configs/x1_spi.yaml \
   --out sim2real/data/x1_clips.npz
 
-# --- stage 1: SPI identification ------------------------------------------
-python sim2real/scripts/run_spi.py \
-  --config sim2real/configs/x1_spi.yaml \
-  --dataset sim2real/data/x1_clips.npz \
-  --out-dir logs/spi_sysid
+if [ "$MODE" != "--validate-only" ]; then
+  # --- stage 1: SPI identification ----------------------------------------
+  python sim2real/scripts/run_spi.py \
+    --config sim2real/configs/x1_spi.yaml \
+    --dataset sim2real/data/x1_clips.npz \
+    --out-dir logs/spi_sysid
+else
+  echo "remote_sysid: [validate-only] params file must exist from a previous run"
+  ls -la logs/spi_sysid/gm_play/identified_params.json
+fi
 
 # --- stage 1.5: validation (completion criteria, 完成标准) ----------------
 # exit code: 0=PASS 1=FAIL 2=error; run after artifacts so logs always exist
