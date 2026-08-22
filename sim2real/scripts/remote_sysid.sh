@@ -59,6 +59,19 @@ python sim2real/scripts/run_spi.py \
   --dataset sim2real/data/x1_clips.npz \
   --out-dir logs/spi_sysid
 
+# --- stage 1.5: validation (completion criteria, 完成标准) ----------------
+# exit code: 0=PASS 1=FAIL 2=error; run after artifacts so logs always exist
+python sim2real/scripts/validate_spi.py \
+  --config sim2real/configs/x1_spi.yaml \
+  --dataset sim2real/data/x1_clips.npz \
+  --params logs/spi_sysid/gm_play/identified_params.json \
+  --out-dir logs/spi_sysid
+VALIDATE_RC=$?
+echo "remote_sysid: validation exit code = $VALIDATE_RC"
+if [ "$VALIDATE_RC" -ne 0 ] && [ "$VALIDATE_RC" -ne 1 ]; then
+  echo "WARN: validate_spi crashed (rc=$VALIDATE_RC), continuing for diagnostics" >&2
+fi
+
 # --- diagnostics: mass landscape ------------------------------------------
 python sim2real/scripts/mass_landscape.py \
   --config sim2real/configs/x1_spi.yaml \
@@ -70,5 +83,8 @@ python sim2real/scripts/apply_params.py \
   --params logs/spi_sysid/gm_play/identified_params.json \
   --out-dir sim2real/export || true
 
-echo "remote_sysid: ALL DONE"
+echo "remote_sysid: ALL DONE (validation rc=$VALIDATE_RC)"
 ls -R logs/ | head -40
+
+# propagate the validation verdict as the task exit code: 0 PASS / 1 FAIL
+exit "$VALIDATE_RC"

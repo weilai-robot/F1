@@ -8,13 +8,17 @@
 
 ```
 真实日志 (motion_control/czy/**/*.csv, 100Hz)
-   │ prepare_dataset.py          变长 clips (H~U(1s,2s)), 初态对齐
+   │ prepare_dataset.py          变长 clips (H~U(1s,2s)), 初态对齐（含 IMU 三轴比力）
    ▼
 sim2real/data/x1_clips.npz
    │ run_spi.py                  Optuna CMA-ES × MuJoCo 开环回放
    │                             log-Cholesky (m,r,I) + tanh 电机 κ + κs
+   │                             train/val 划分，val 为 holdout
    ▼
 logs/spi_sysid/gm_play/identified_params.json|.pt
+   │ validate_spi.py             完成标准验证：val 提升/物理合理域/IMU 比力 RMS
+   ▼
+logs/spi_sysid/validation.json  (verdict: PASS/FAIL, 退出码 0/1)
    │ apply_params.py             回写 URDF/MJCF + 生成 DR 配置
    ▼
 sim2real/export/{x1_identified.urdf, xyber_x1_identified.xml, dr_x1_spi.json}
@@ -37,7 +41,7 @@ gm-run F1/sim2real/scripts/remote_sysid.sh
 ### 本地（仅 numpy 级，无需安装）
 
 ```bash
-python3 -m unittest discover -s sim2real/tests   # 26 个单元测试
+python3 -m unittest discover -s sim2real/tests   # 43 个单元测试
 python3 sim2real/scripts/prepare_dataset.py ...  # 数据准备仅需 numpy+pyyaml
 ```
 
@@ -49,24 +53,27 @@ MuJoCo rollout / CMA-ES 优化需要 `mujoco optuna`，按上面远程方式跑�
 sim2real/
 ├── configs/x1_spi.yaml        # 参数空间/代价权重/clip/active 全部可配
 ├── spi/
-│   ├── param_space.py         # log-Cholesky ↔ (m,r,I)；tanh 电机模型
-│   ├── dataset.py             # 真实 CSV → clips（并联踝=力矩指令，串联=位置指令）
-│   ├── rollout.py             # MuJoCo 开环回放（初态对齐/惯量注入）
-│   ├── cost.py                # 论文 Table 3 代价（无动捕项可关）
-│   └── optimizer.py           # Optuna CMA-ES 驱动
+│   ├── param_space.py         # log-Cholesky ↔ (m,r,I)；tanh 电机模型；物理合理域罚
+│   ├── dataset.py             # 真实 CSV → clips（并联踝=力矩指令，串联=位置指令；含 IMU 比力）
+│   ├── rollout.py             # MuJoCo 开环回放（初态对齐/惯量注入/IMU 比力预测）
+│   ├── cost.py                # 论文 Table 3 代价（无动捕项可关；+IMU 比力项）
+│   ├── optimizer.py           # Optuna CMA-ES 驱动（+物理合理域硬约束）
+│   └── validate.py            # 完成标准判定（numpy 级，可单测）
 ├── active/
 │   ├── fim.py                 # 有限差分 FIM（delta_param/ksync_steps）
 │   ├── bezier.py              # Bézier 命令重参数化
 │   └── command_opt.py         # tr(F⁻¹)+终止惩罚 命令优化
-├── scripts/                   # prepare/run_spi/mass_landscape/apply/active/remote_sysid.sh
-└── tests/                     # numpy 级单测（26）
+├── scripts/                   # prepare/run_spi/validate_spi/mass_landscape/apply/active/remote_sysid.sh
+└── tests/                     # numpy 级单测（43）
 ```
 
 ## 关键适配（X1 vs 论文）
 
 | 项 | 决策 |
 |---|---|
-| 无动捕 | base_pos/base_linvel 代价默认 0，保留 IMU 姿态/角速度 + 关节全项 |
+| 无动捕 | base_pos/base_linvel 代价默认 0；改用 **IMU 三轴比力**（imu_accel_*，日志已有）对比仿真 Rᵀ(a−g)，约束基座平移动力学（质量/质心） |
+| 物理合理域 | 参数范围收紧（质量 3.0–5.5 kg、质心 ±0.06 m、惯量 0.005–0.15 kg·m²），优化目标加入超域硬罚（penalty_scale=1e4），杜绝首轮 6.97 kg / 惯量 1.5–2.0 的超物理结果 |
+| 完成标准 | `validate_spi.py`：holdout 验证集代价较 nominal 降 ≥30%、物理参数全部在域内、IMU 比力 RMS < 1.5 m/s²；输出 `validation.json` 与 PASS/FAIL 退出码 |
 | 仿真器 | MuJoCo（仓库既有 MJCF），非 Isaac Gym |
 | 执行器 | 串联髋/膝：驱动器 PD 回放；并联踝：τ_des_lpf 直接回放；统一过 κ·tanh 饱和 |
 | 辨识对象 | 骨盆 link_base (4.30 kg) + 4 组电机 κ（hip_pitch/hip_rolleyaw/knee/ankle）+ κs |

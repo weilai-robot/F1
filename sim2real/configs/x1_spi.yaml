@@ -35,6 +35,7 @@ data:
   clip_h_min_s: 1.0               # H ~ U(H_min, H_max) (paper: avg 1.5 s)
   clip_h_max_s: 2.0
   max_clips: 60                   # subsample clips for one CMA-ES evaluation
+  val_ratio: 0.2                  # holdout clips for validation (完成标准)
   seed: 0
 
 bodies:
@@ -46,9 +47,11 @@ bodies:
         - [0.02680559, -5.49e-06, 5.389e-05]
         - [-5.49e-06, 0.01083128, -0.00011229]
         - [5.389e-05, -0.00011229, 0.02180955]
-    mass_range: [2.0, 10.0]       # paper G1 pelvis 1-10 scaled to X1 nominal 4.3
-    com_range: [-0.15, 0.15]      # paper G1 ±0.2 (pelvis is short on X1)
-    inertia_diag_range: [0.005, 1.0]
+    # 物理合理域（评审收紧：旧范围 2-10 kg / ±0.15 m / 0.005-1.0 允许超物理域
+    # 结果，如 6.97 kg、惯量 1.5-2.0 kg·m^2。新范围锚定名义值附近）
+    mass_range: [3.0, 5.5]        # nominal 4.30 kg (±~28%)
+    com_range: [-0.06, 0.06]      # nominal |r| < 0.031 m
+    inertia_diag_range: [0.005, 0.15]   # nominal 0.011-0.027 kg·m^2
 
 motor_groups:                     # tanh saturation kappa per joint group
   - name: hip_pitch
@@ -78,6 +81,7 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
   base_linvel: 0.0
   base_quat: 2.0
   base_angvel: 0.25
+  base_accel: 1.0                 # IMU 3-axis specific force (m/s^2, body frame)
   q: 3.0
   qd: 0.1
   tau: 0.002
@@ -86,6 +90,7 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
 optimizer:
   n_trials: 60                    # Optuna CMA-ES trials (paper: 5 iters)
   seed: 0
+  penalty_scale: 1e4              # 物理合理域硬约束权重（超出 mass/com/inertia 范围）
 
 active:                           # SPI-Active stage 2
   command_dims: [0, 1, 2]         # vx, vy, wz (X1 cmd_vel)

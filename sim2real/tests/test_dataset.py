@@ -59,6 +59,9 @@ class TestDataset(unittest.TestCase):
                             kd={"left_hip_pitch_joint": 3.0})
             self.assertEqual(log.q.shape, (300, 29))
             self.assertAlmostEqual(log.dt, 0.01, places=5)
+            # IMU 3-axis specific force parsed (评审点：加速度必须被使用)
+            self.assertEqual(log.imu_accel.shape, (300, 3))
+            np.testing.assert_allclose(log.imu_accel[0], [0.1, -0.1, 9.8], atol=1e-9)
             # ankle parallel -> MODE_TAU, hip -> MODE_POS
             i_ankle = FULL_JOINT_ORDER.index("left_ankle_pitch_joint")
             i_hip = FULL_JOINT_ORDER.index("left_hip_pitch_joint")
@@ -83,6 +86,8 @@ class TestDataset(unittest.TestCase):
             c0, c0b = clips[0], clips2[0]
             np.testing.assert_allclose(c0["q0"], c0b["q0"])
             np.testing.assert_allclose(c0["ref_q"], c0b["ref_q"])
+            np.testing.assert_allclose(c0["ref_accel"], c0b["ref_accel"])
+            self.assertEqual(c0["ref_accel"].shape, (c0["n"], 3))
             out.unlink()
         finally:
             tmp.unlink()
@@ -98,6 +103,9 @@ class TestDataset(unittest.TestCase):
         self.assertAlmostEqual(log.dt * 1e3, 9.6, delta=1.0)
         clips = segment_clips(log, h_min_s=1.0, h_max_s=2.0)
         self.assertGreater(len(clips), 5)
+        # real CSV contains imu_accel columns and they are finite
+        self.assertTrue(np.isfinite(log.imu_accel).all())
+        self.assertGreater(float(np.abs(log.imu_accel[:, 2]).mean()), 8.0)  # ~g on z
 
 
 if __name__ == "__main__":

@@ -15,7 +15,8 @@ from typing import Callable, Dict, List, Optional
 import numpy as np
 
 from .cost import CostWeights
-from .param_space import BodyParams, MotorGroup, ParamSpace, phi_to_physical
+from .param_space import (BodyParams, MotorGroup, ParamSpace,
+                          physical_range_penalty, phi_to_physical)
 
 
 def build_space(cfg: Dict) -> ParamSpace:
@@ -46,24 +47,33 @@ def build_space(cfg: Dict) -> ParamSpace:
 def run_spi(clips: List[Dict], cfg: Dict, evaluate: Callable[[Dict], float],
             n_trials: int = 60, seed: int = 0,
             study_path: Optional[Path] = None,
-            reg_scale: float = 0.1) -> Dict:
+            reg_scale: float = 0.1,
+            penalty_scale: Optional[float] = None) -> Dict:
     """Run CMA-ES identification.
 
     evaluate(params) -> prediction cost over clips (regularization added here:
-    paper Tab.3 reg terms with the 0.1 global scale).
+    paper Tab.3 reg terms with the 0.1 global scale). The physically-plausible
+    range penalty (config optimizer.penalty_scale, default 1e4) is added to the
+    objective so the identified body params stay inside the configured
+    mass/com/inertia boxes.
     Returns {"best_params", "best_cost", "history"}.
     """
     import optuna
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     space = build_space(cfg)
+    bodies_cfg = cfg["bodies"]
+    pen_scale = (penalty_scale if penalty_scale is not None
+                 else float(cfg["optimizer"].get("penalty_scale", 1e4)))
 
     sampler = optuna.samplers.CmaEsSampler(seed=seed)
     study = optuna.create_study(direction="minimize", sampler=sampler)
 
     def objective(trial):
         params = space.sample(trial)
-        return evaluate(params) + reg_scale * space.regularization(params)
+        return (evaluate(params)
+                + reg_scale * space.regularization(params)
+                + physical_range_penalty(params, bodies_cfg, pen_scale))
 
     study.optimize(objective, n_trials=n_trials)
 

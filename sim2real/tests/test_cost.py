@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 
-from spi.cost import CostWeights, PredictionCost, quat_err
+from spi.cost import CostWeights, PredictionCost, quat_err, per_signal_cost
 
 N = 12  # steps
 
@@ -13,6 +13,7 @@ def make_ref():
     rng = np.random.default_rng(0)
     q = rng.normal(size=(N, 4)); q /= np.linalg.norm(q, axis=1, keepdims=True)
     return {"quat": q, "gyro": rng.normal(size=(N, 3)),
+            "accel": rng.normal(size=(N, 3)),
             "q": rng.normal(size=(N, 29)) * 0.1,
             "qd": rng.normal(size=(N, 29)),
             "tau": rng.normal(size=(N, 29))}
@@ -57,6 +58,45 @@ class TestPredictionCost(unittest.TestCase):
         sim["tau"][:, :17] = 123.0
         c = PredictionCost(weights=CostWeights())
         self.assertAlmostEqual(c.evaluate(sim, ref), 0.0, places=9)
+
+    def test_accel_term_scales_with_weight(self):
+        ref = make_ref()
+        sim = {k: v.copy() for k, v in ref.items()}
+        sim["accel"] = ref["accel"] + 0.3
+        c1 = PredictionCost(weights=CostWeights(base_accel=1.0))
+        c2 = PredictionCost(weights=CostWeights(base_accel=2.0))
+        e1, e2 = c1.evaluate(sim, ref), c2.evaluate(sim, ref)
+        self.assertAlmostEqual(e2, 2.0 * e1, places=9)
+        # expected analytic value: weight * n * 3 * 0.09
+        self.assertAlmostEqual(e1, 1.0 * N * 3 * 0.3 ** 2, places=9)
+
+    def test_accel_nan_ref_masked(self):
+        ref = make_ref()
+        sim = {k: v.copy() for k, v in ref.items()}
+        ref["accel"][3] = np.nan
+        sim["accel"] = ref["accel"] + 0.5
+        c = PredictionCost(weights=CostWeights(base_accel=1.0))
+        self.assertAlmostEqual(c.evaluate(sim, ref), 1.0 * (N - 1) * 3 * 0.25, places=9)
+
+    def test_accel_disabled_when_weight_zero(self):
+        ref = make_ref()
+        sim = {k: v.copy() for k, v in ref.items()}
+        sim["accel"] = ref["accel"] + 5.0
+        c = PredictionCost(weights=CostWeights(base_accel=0.0))
+        self.assertAlmostEqual(c.evaluate(sim, ref), 0.0, places=9)
+
+    def test_per_signal_breakdown_sums_to_total(self):
+        ref = make_ref()
+        sim = {k: v.copy() for k, v in ref.items()}
+        sim["q"][:, 17:] += 0.1
+        sim["gyro"] += 0.2
+        sim["accel"] += 0.3
+        sim["tau"] += 1.0
+        c = PredictionCost(weights=CostWeights(),
+                           joint_mask=np.arange(29) >= 17)
+        parts = per_signal_cost(c, sim, ref)
+        self.assertAlmostEqual(sum(parts.values()), c.evaluate(sim, ref), places=6)
+        self.assertIn("accel", parts)
 
     def test_masked_joints_excluded(self):
         ref = make_ref()

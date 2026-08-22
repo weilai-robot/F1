@@ -264,3 +264,35 @@ gradmotion A10 (ESKU000004) + Isaac Gym 镜像 V000124 (py3.8)，`remote_sysid.s
 - `export/report.md` —— 人读报告
 
 远端重训衔接：`x1_identified.urdf` → `agibot_x1_train/resources/robots/x1/urdf/x1.urdf`；`dr_x1_spi.json` 范围替换 `x1_dh_stand_config.py` 的 domain_rand 段；κ/κs 用于部署侧力矩限幅与 actuator 模型校准。
+
+---
+
+## 6. 评审整改（2026-08-22）
+
+### 6.1 评审结论核实
+
+评审两条结论经代码与首轮结果逐条核对，**均属实**：
+
+| 评审结论 | 核实证据 |
+|---|---|
+| 15 参数中 10 个为本体参数，可信度差 | 15 = 骨盆 log-Cholesky φ∈R¹⁰ + 4 组 κ + κs；无动捕 → `base_pos/base_linvel` 权重为 0，基座平移动力学仅靠关节力矩+姿态间接可观 |
+| 辨识未用 IMU 三轴加速度 | `imu_accel_*` 列存在于全部日志，但 `dataset.py` 从未解析、代价函数无对应项 |
+| 参数可信度低 | 首轮结果：质量 6.97 kg（+62%）、com_y/z ±0.19/−0.20（名义 ±0.03）、惯量 eig 1.5–2.0 kg·m²（名义 0.011–0.027，超 50×）；κs 0.536 贴盒底——典型"参数吸收模型误差"补偿形态 |
+| 需更多数据/动捕才精确 | 数据仅 28 clips×3 文件（2 激励 + 1 行走），无动捕（受硬件约束，无法在本轮消除） |
+
+### 6.2 整改内容（无动捕/无新数据约束下的最大化）
+
+1. **启用 IMU 三轴比力代价**（直接回应评审点）：`dataset.py` 解析 `imu_accel_*`；`rollout.py` 用 MuJoCo `qacc` 预测比力 `Rᵀ(a−g)`（体坐标系，与既有 quat/gyro 对齐约定一致）；`cost.py` 新增 `base_accel=1.0` 项。真实数据静置校验通过：实测比力 ≈ Rᵀ·g（z 轴 9.5–9.8 m/s²）。此约束直接可观基座平移动力学（质量/质心）。
+2. **物理合理域硬约束**：搜索盒收紧为质量 3.0–5.5 kg / com ±0.06 m / 惯量 0.005–0.15 kg·m²，并在目标函数加超域二次罚（`penalty_scale=1e4`，与代价量级匹配）。旧结果（6.97 kg、惯量 1.5–2.0）在新目标下会被罚 ~1e5 量级而不可达。
+3. **完成标准（validation）**：`run_spi.py` 按 seed 划分 train/val（默认 20% holdout），`validate_spi.py` 输出 `validation.json` 与 PASS/FAIL 退出码：
+   - EFFECTIVENESS：val 集 best 代价 ≤ nominal 的 70%（防过拟合/补偿）；
+   - PHYSICAL：全部物理参数在合理域内；
+   - ACCEL：val 集比力 RMS ≤ 1.5 m/s² 且不劣于 nominal；
+   - BOUNDARY（WARN）：参数贴搜索盒边界时告警（κs 贴底=补偿信号）。
+   - 附每参数可信度分级（高/中/低，按偏离名义值比例）。
+4. **测试**：单测 26 → 43（加速度解析/代价/罚函数/判定逻辑全覆盖），本地 numpy 级通过。
+5. **遗留局限（需动捕/更多工况数据才能根治，已文档化）**：无动捕 → 基座绝对位姿不可观；摩擦/接触参数不在辨识空间；单工况数据多样性有限。后续接入动捕或 SLAM 全局位姿后开启 `base_pos/base_linvel` 代价即可进一步收紧质量/质心。
+
+### 6.3 整改后验证
+
+`remote_sysid.sh` 流水线新增 stage 1.5 `validate_spi.py`，任务退出码 = 验证判定（0=PASS/1=FAIL），产物 `logs/spi_sysid/validation.json` 经 gradmotion SDK 回传。

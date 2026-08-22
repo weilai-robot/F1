@@ -6,7 +6,8 @@ import numpy as np
 
 from spi.param_space import (phi_search_box, phi_to_physical, physical_to_phi,
                              phi_to_U, tanh_motor_torque, ParamSpace, BodyParams,
-                             MotorGroup)
+                             MotorGroup, physical_violations,
+                             physical_range_penalty)
 
 # X1 pelvis nominal (from xyber_x1_serial.xml)
 M0 = 4.3041648
@@ -95,6 +96,41 @@ class TestParamSpace(unittest.TestCase):
         s = self._space()
         d = json.loads(s.to_json(s.nominal_params()))
         self.assertAlmostEqual(d["bodies"]["base"]["mass"], M0, places=6)
+
+
+class TestPhysicalRangePenalty(unittest.TestCase):
+    def _cfg_body(self):
+        return {"name": "base", "mass_range": (3.0, 5.5),
+                "com_range": (-0.06, 0.06), "inertia_diag_range": (0.005, 0.15)}
+
+    def _params(self, mass=M0, com=None, inertia=None):
+        return {"bodies": {"base": {"mass": mass,
+                                    "com": np.asarray(com if com is not None else COM0),
+                                    "inertia": np.asarray(inertia if inertia is not None else I0)}}}
+
+    def test_nominal_no_violation(self):
+        cfg = [self._cfg_body()]
+        self.assertEqual(physical_violations(self._params(), cfg), {})
+        self.assertEqual(physical_range_penalty(self._params(), cfg), 0.0)
+
+    def test_out_of_range_detected(self):
+        cfg = [self._cfg_body()]
+        # 旧首轮辨识结果：质量 6.97 kg、com_y/z ±0.19/-0.20、惯量 1.5-2.0 —— 必须被标记
+        bad = self._params(mass=6.97,
+                           com=[0.06, 0.19, -0.20],
+                           inertia=np.diag([1.5, 1.2, 2.0]))
+        viol = physical_violations(bad, cfg)
+        self.assertIn("base", viol)
+        v = viol["base"]
+        self.assertGreater(v["mass"], 1.4)
+        self.assertIn("com_y", v)
+        self.assertIn("inertia_z", v)
+        self.assertGreater(physical_range_penalty(bad, cfg), 1e4)
+
+    def test_inertia_boundary_in_range(self):
+        cfg = [self._cfg_body()]
+        p = self._params(inertia=np.diag([0.13, 0.02, 0.14]))
+        self.assertEqual(physical_violations(p, cfg), {})
 
 
 if __name__ == "__main__":

@@ -67,6 +67,7 @@ class RobotLog:
     dt: float                     # median sample period [s]
     imu_quat: np.ndarray          # (N,4) w,x,y,z
     imu_gyro: np.ndarray          # (N,3) rad/s (body frame)
+    imu_accel: np.ndarray         # (N,3) specific force m/s^2 (body frame)
     q: np.ndarray                 # (N,29) joint pos, LEG_JOINTS+HOLD order? -> full 29 (rl_x1 order)
     qd: np.ndarray                # (N,29)
     tau_meas: np.ndarray          # (N,29) measured effort (nan for unlogged)
@@ -127,6 +128,7 @@ def parse_csv(path: str | Path, kp: Dict[str, float], kd: Dict[str, float],
 
     imu_quat = np.array([[getf(r, f"imu_quat_{c}") for c in "wxyz"] for r in rows])
     imu_gyro = np.array([[getf(r, f"imu_gyro_{c}") for c in "xyz"] for r in rows])
+    imu_accel = np.array([[getf(r, f"imu_accel_{c}") for c in "xyz"] for r in rows])
     cmd = np.array([[getf(r, f"cmd_linear_x"), getf(r, f"cmd_linear_y"),
                      getf(r, f"cmd_angular_z")] for r in rows])
 
@@ -165,7 +167,8 @@ def parse_csv(path: str | Path, kp: Dict[str, float], kd: Dict[str, float],
     for jn, v in kd.items():
         kd_v[JIDX[jn]] = v
 
-    return RobotLog(t=t, dt=dt, imu_quat=imu_quat, imu_gyro=imu_gyro, q=q, qd=qd,
+    return RobotLog(t=t, dt=dt, imu_quat=imu_quat, imu_gyro=imu_gyro,
+                    imu_accel=imu_accel, q=q, qd=qd,
                     tau_meas=tau_meas, target_pos=target_pos, target_tau=target_tau,
                     mode=mode, cmd=cmd, clip_id=clip_id, kp=kp_v, kd=kd_v)
 
@@ -177,7 +180,7 @@ def segment_clips(log: RobotLog, h_min_s: float = 1.0, h_max_s: float = 2.0,
     Splits also on clip_id discontinuities (episode markers). Non-finite
     reference rows at clip boundaries are dropped. Each clip dict:
       {q0, qd0, quat0, gyro0, ctrl_target_pos, ctrl_target_tau, mode,
-       ref_quat, ref_gyro, ref_q, ref_qd, ref_tau, n, dt, kp, kd}
+       ref_quat, ref_gyro, ref_accel, ref_q, ref_qd, ref_tau, n, dt, kp, kd}
     """
     rng = np.random.default_rng(seed)
     clips: List[Dict] = []
@@ -207,6 +210,7 @@ def segment_clips(log: RobotLog, h_min_s: float = 1.0, h_max_s: float = 2.0,
                 mode=log.mode[idx].copy(),
                 ref_quat=log.imu_quat[idx].copy(),
                 ref_gyro=log.imu_gyro[idx].copy(),
+                ref_accel=log.imu_accel[idx].copy(),
                 ref_q=log.q[idx].copy(),
                 ref_qd=log.qd[idx].copy(),
                 ref_tau=log.tau_meas[idx].copy(),
@@ -225,7 +229,7 @@ def save_clips(clips: List[Dict], meta: Dict, out_path: str | Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     n_max = max(c["n"] for c in clips)
     keys = ["ctrl_target_pos", "ctrl_target_tau", "mode", "ref_quat", "ref_gyro",
-            "ref_q", "ref_qd", "ref_tau", "cmd"]
+            "ref_accel", "ref_q", "ref_qd", "ref_tau", "cmd"]
 
     def pad(arr: np.ndarray, n_max: int) -> np.ndarray:
         if arr.shape[0] == n_max:
@@ -263,7 +267,7 @@ def load_clips(path: str | Path) -> tuple[List[Dict], Dict]:
             n=int(n), dt=float(z["dt"][i]), kp=z["kp"][i], kd=z["kd"][i],
         )
         for k in ["ctrl_target_pos", "ctrl_target_tau", "mode", "ref_quat",
-                  "ref_gyro", "ref_q", "ref_qd", "ref_tau", "cmd"]:
+                  "ref_gyro", "ref_accel", "ref_q", "ref_qd", "ref_tau", "cmd"]:
             clip[k] = z[k][i][sl]
         clips.append(clip)
     return clips, meta

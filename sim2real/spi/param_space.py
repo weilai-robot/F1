@@ -248,3 +248,59 @@ class ParamSpace:
                 return {k: conv(v) for k, v in o.items()}
             return o
         return json.dumps(conv(params), indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Physical plausibility enforcement
+# ---------------------------------------------------------------------------
+
+def physical_violations(params: Dict, bodies_cfg: Sequence[Dict]) -> Dict[str, Dict[str, float]]:
+    """Signed violation magnitudes of body physical params vs configured ranges.
+
+    bodies_cfg entries are the parsed yaml body dicts (name/mass_range/com_range/
+    inertia_diag_range). Returns {body_name: {param: violation>0}} — empty dict
+    when everything is inside the (physically plausible) ranges. The phi-space
+    search box maps mass/com exactly but only anchors inertia, so inertia can
+    exceed its intended range — this check closes that gap.
+    """
+    out: Dict[str, Dict[str, float]] = {}
+    for b in bodies_cfg:
+        p = params["bodies"][b["name"]]
+        viol: Dict[str, float] = {}
+        m_lo, m_hi = b["mass_range"]
+        if p["mass"] < m_lo:
+            viol["mass"] = m_lo - p["mass"]
+        elif p["mass"] > m_hi:
+            viol["mass"] = p["mass"] - m_hi
+        c_lo, c_hi = b["com_range"]
+        for i, ax in enumerate("xyz"):
+            if p["com"][i] < c_lo:
+                viol[f"com_{ax}"] = c_lo - p["com"][i]
+            elif p["com"][i] > c_hi:
+                viol[f"com_{ax}"] = p["com"][i] - c_hi
+        i_lo, i_hi = b["inertia_diag_range"]
+        lam = np.linalg.eigvalsh(0.5 * (np.asarray(p["inertia"]) + np.asarray(p["inertia"]).T))
+        for i, ax in enumerate("xyz"):
+            if lam[i] < i_lo:
+                viol[f"inertia_{ax}"] = i_lo - lam[i]
+            elif lam[i] > i_hi:
+                viol[f"inertia_{ax}"] = lam[i] - i_hi
+        if viol:
+            out[b["name"]] = viol
+    return out
+
+
+def physical_range_penalty(params: Dict, bodies_cfg: Sequence[Dict],
+                           scale: float = 1e4) -> float:
+    """Hard constraint: quadratic penalty per unit of violation.
+
+    Units: mass [kg]^2, com [m]^2, inertia [kg·m^2]^2. With the default scale
+    1e4, a violation of ~1.7 kg·m^2 (the overshoot of the pre-constraint run)
+    costs ~3e4 per axis — comparable to the prediction-cost scale (~1e5), so
+    the optimizer is pushed back into the physically plausible box.
+    """
+    total = 0.0
+    for body, viol in physical_violations(params, bodies_cfg).items():
+        for v in viol.values():
+            total += v * v
+    return scale * total

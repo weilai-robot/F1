@@ -2,13 +2,16 @@
 
 J(theta, {c_k}) = sum_k sum_t  [ w_quat  * (1 - <q, q_r>^2)
                                + w_w     * ||w - w_r||^2
+                               + w_a     * ||a_imu - a_imu,r||^2   (body frame)
                                + w_q     * ||q_j - q_j,r||^2   (masked joints)
                                + w_qd    * ||qd - qd_r||^2     (masked joints)
                                + w_tau   * ||tau - tau_r||^2   (finite refs)
                                + reg_scale * regularization(theta) ]
 
 Paper Tab.3 coefficients with global scaling (vel x0.5, torque x0.2, reg x0.1).
-X1 has no motion capture -> base position / linear-velocity weights default 0.
+X1 has no motion capture -> base position / linear-velocity weights default 0;
+instead the logged IMU 3-axis specific force (imu_accel_*) is compared against
+the simulated Rᵀ(a−g) to constrain the base translational dynamics (mass/CoM).
 """
 
 from __future__ import annotations
@@ -26,6 +29,9 @@ class CostWeights:
     base_linvel: float = 0.0   # 2.0*0.5; 0 on X1
     base_quat: float = 2.0
     base_angvel: float = 0.5 * 0.5
+    # IMU 3-axis specific force (m/s^2, body frame). No paper counterpart:
+    # replaces the missing base linear dynamics term, constrains mass/CoM.
+    base_accel: float = 1.0
     # joint prediction
     q: float = 3.0
     qd: float = 0.1
@@ -65,8 +71,8 @@ class PredictionCost:
     joint_mask: Optional[np.ndarray] = None   # bool (29,) - logged leg joints
 
     def evaluate(self, sim: Dict[str, np.ndarray], ref: Dict[str, np.ndarray]) -> float:
-        """sim/ref: dicts with quat (n,4), gyro (n,3), q (n,29), qd (n,29),
-        tau (n,29). NaN reference entries are excluded per-term."""
+        """sim/ref: dicts with quat (n,4), gyro (n,3), accel (n,3), q (n,29),
+        qd (n,29), tau (n,29). NaN reference entries are excluded per-term."""
         w = self.weights
         c = 0.0
         n = sim["quat"].shape[0]
@@ -75,6 +81,10 @@ class PredictionCost:
         if w.base_angvel > 0 and ref.get("gyro") is not None:
             d2 = np.sum((sim["gyro"] - ref["gyro"]) ** 2, axis=1)
             c += w.base_angvel * np.sum(np.nan_to_num(d2))
+        if w.base_accel > 0 and ref.get("accel") is not None:
+            d2 = np.sum((sim["accel"] - ref["accel"]) ** 2, axis=1)
+            ok = np.isfinite(ref["accel"]).all(axis=1) & np.isfinite(sim["accel"]).all(axis=1)
+            c += w.base_accel * float(np.sum(d2[ok]))
         mask = self.joint_mask
         if mask is None:
             mask = np.ones(sim["q"].shape[1], dtype=bool)
@@ -104,4 +114,38 @@ def total_cost(cost_fn: PredictionCost, clips: List[Dict], sims: List[Dict],
 
 def clip_refs(clip: Dict) -> Dict[str, np.ndarray]:
     return {"quat": clip["ref_quat"], "gyro": clip["ref_gyro"],
-            "q": clip["ref_q"], "qd": clip["ref_qd"], "tau": clip["ref_tau"]}
+            "accel": clip.get("ref_accel"), "q": clip["ref_q"],
+            "qd": clip["ref_qd"], "tau": clip["ref_tau"]}
+
+
+def per_signal_cost(cost_fn: PredictionCost, sim: Dict[str, np.ndarray],
+                    ref: Dict[str, np.ndarray]) -> Dict[str, float]:
+    """Break the prediction cost down per signal (for validation reports)."""
+    w = cost_fn.weights
+    out: Dict[str, float] = {}
+    n = sim["quat"].shape[0]
+    if w.base_quat > 0:
+        out["quat"] = float(w.base_quat * np.sum(quat_err(sim["quat"], ref["quat"])))
+    if w.base_angvel > 0 and ref.get("gyro") is not None:
+        d2 = np.sum((sim["gyro"] - ref["gyro"]) ** 2, axis=1)
+        out["angvel"] = float(w.base_angvel * np.sum(np.nan_to_num(d2)))
+    if w.base_accel > 0 and ref.get("accel") is not None:
+        d2 = np.sum((sim["accel"] - ref["accel"]) ** 2, axis=1)
+        ok = np.isfinite(ref["accel"]).all(axis=1) & np.isfinite(sim["accel"]).all(axis=1)
+        out["accel"] = float(w.base_accel * float(np.sum(d2[ok])))
+    mask = cost_fn.joint_mask
+    if mask is None:
+        mask = np.ones(sim["q"].shape[1], dtype=bool)
+    if w.q > 0:
+        d2 = np.sum((sim["q"][:, mask] - ref["q"][:, mask]) ** 2, axis=1)
+        ok = np.isfinite(ref["q"][:, mask]).all(axis=1)
+        out["q"] = float(w.q * float(np.sum(d2[ok])))
+    if w.qd > 0:
+        d2 = np.sum((sim["qd"][:, mask] - ref["qd"][:, mask]) ** 2, axis=1)
+        ok = np.isfinite(ref["qd"][:, mask]).all(axis=1)
+        out["qd"] = float(w.qd * float(np.sum(d2[ok])))
+    if w.tau > 0 and ref.get("tau") is not None:
+        err2 = (sim["tau"] - ref["tau"]) ** 2
+        ok = np.isfinite(ref["tau"]) & np.isfinite(sim["tau"])
+        out["tau"] = float(w.tau * float(np.sum(err2[ok])))
+    return out

@@ -9,7 +9,8 @@ For each clip:
       serial joints (hip/knee):  tau_PD = kp (q_des - q) - kd qdot  [sim state]
       parallel ankles:           tau    = tau_des_lpf (log)
     then the tanh actuator model  tau_m = kappa_s * kappa * tanh(tau_PD / kappa)
-  * logs simulated quat / gyro / q / qd / tau at the data-sample rate.
+  * logs simulated quat / gyro / accel (IMU specific force Rᵀ(a−g), body
+    frame) / q / qd / tau at the data-sample rate.
 
 All mujoco imports are lazy: this module is only imported when actually
 running sysid (remote image or any machine with mujoco installed), so the
@@ -29,6 +30,20 @@ from .param_space import tanh_motor_torque
 
 def _quat_wxyz_to_xyzw(q):
     return np.array([q[1], q[2], q[3], q[0]])
+
+
+def quat_rotate_inv(q_wxyz, v):
+    """Rotate world-frame vector v into the body frame of quaternion q (wxyz).
+
+    Used to predict the IMU specific force reading:  a_body = R^T (a - g).
+    """
+    q = np.asarray(q_wxyz, dtype=float)
+    q = q / np.linalg.norm(q)
+    w, x, y, z = q
+    R = np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+                  [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+                  [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]])
+    return R @ v
 
 
 def mat2quat_wxyz(R: np.ndarray) -> np.ndarray:
@@ -201,7 +216,9 @@ class MuJoCoRollouter:
         n = clip["n"]
         sim_steps = max(1, int(round(clip["dt"] / self.model.opt.timestep)))
         out = {"quat": np.zeros((n, 4)), "gyro": np.zeros((n, 3)),
-               "q": np.zeros((n, 29)), "qd": np.zeros((n, 29)), "tau": np.zeros((n, 29))}
+               "accel": np.zeros((n, 3)), "q": np.zeros((n, 29)),
+               "qd": np.zeros((n, 29)), "tau": np.zeros((n, 29))}
+        g_world = np.asarray(self.model.opt.gravity, dtype=float)
 
         for row in range(n):
             tau = self._motor_torques(clip, row, self.data.qpos, self.data.qvel,
@@ -217,6 +234,11 @@ class MuJoCoRollouter:
             fd = self.free_dofadr
             out["quat"][row] = self.data.qpos[fq + 3:fq + 7]
             out["gyro"][row] = self.data.qvel[fd + 3:fd + 6]
+            # IMU specific force: body-frame acceleration minus gravity.
+            # data.qacc holds the accelerations used by the last mj_step
+            # (world frame, includes gravity and contacts).
+            a_world = self.data.qacc[fd:fd + 3]
+            out["accel"][row] = quat_rotate_inv(out["quat"][row], a_world - g_world)
             for i in range(29):
                 out["q"][row, i] = self.data.qpos[self.j_qpos_adr[i]]
                 out["qd"][row, i] = self.data.qvel[self.j_dof_adr[i]]
