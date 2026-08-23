@@ -92,9 +92,12 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
   reg_scale: 0.1
 
 optimizer:
-  n_trials: 60                    # Optuna CMA-ES trials (paper: 5 iters)
+  n_trials: 100                   # Optuna CMA-ES trials（v12 提高以降低单轮方差）
   seed: 0
-  penalty_scale: 3e6              # 物理合理域硬约束权重（超出即被强惩罚）
+  # 物理合理域硬约束权重：1e8 下 com 超域 0.05 m 罚 25 万，与 accel 项
+  # 数十万收益同量级，CMA-ES 无法再以超域换预测精度（v11 实测 3e6 太软：
+  # com_y 超域 0.115 m 仅罚 ~9k）
+  penalty_scale: 1e8
 
 validation:
   effective_ratio: 0.70           # val best/nominal 代价上限（完成标准 1）
