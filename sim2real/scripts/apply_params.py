@@ -36,6 +36,14 @@ NOMINAL_PELVIS = {  # from MJCF x1-body / URDF base_link
 COM_CLAMP = 0.15      # m, per axis, around nominal com
 I_MIN, I_MAX = 0.005, 1.0   # kg m^2, eigenvalue clamp
 
+
+def _parse_nd(s) -> np.ndarray:
+    """Coerce a value that may be a list or a numpy-repr *string* (produced by
+    json.dumps(..., default=str) in run_spi.py) into a float array."""
+    if isinstance(s, str):
+        return np.fromstring(re.sub(r"[\[\]\n]", " ", s), sep=" ")
+    return np.asarray(s, dtype=float)
+
 DR_TEMPLATE = {
     "randomize_base_mass": True,
     "added_mass_range_comment": "centred on identified mass, +/-5% (paper nominal DR)",
@@ -147,8 +155,8 @@ def main() -> None:
     p = payload["best_params"]["bodies"]["base"]
     # coercion: JSON round-trips may deliver strings (run_spi json default=str)
     mass_raw = float(p["mass"])
-    com_raw = np.asarray(p["com"], dtype=float)
-    I_raw = np.asarray(p["inertia"], dtype=float)
+    com_raw = np.asarray(_parse_nd(p["com"]), dtype=float)
+    I_raw = np.asarray(_parse_nd(p["inertia"]), dtype=float).reshape(3, 3)
 
     mass, com, I, notes = clamp_physical(mass_raw, com_raw, I_raw,
                                          clamp=not args.no_clamp)
