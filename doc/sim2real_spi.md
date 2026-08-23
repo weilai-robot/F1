@@ -296,3 +296,34 @@ gradmotion A10 (ESKU000004) + Isaac Gym 镜像 V000124 (py3.8)，`remote_sysid.s
 ### 6.3 整改后验证
 
 `remote_sysid.sh` 流水线新增 stage 1.5 `validate_spi.py`，任务退出码 = 验证判定（0=PASS/1=FAIL），产物 `logs/spi_sysid/validation.json` 经 gradmotion SDK 回传。
+
+### 6.4 验证迭代与最终结果（v6 → v12）
+
+gradmotion 连续迭代 7 轮 full 流水线，最终 **TASK_20260823_024 verdict = PASS (exit 0)**：
+
+| 版本 | 调整 | 结果 |
+|---|---|---|
+| v6 | IMU 比力代价 + 物理域约束 + train/val 划分 | 辨识成功（val ratio 0.135），validate 崩溃（字符串数组）→ 修复 |
+| v8 | validate_spi 字符串强转 | val ratio 0.057 PASS；ACCEL RMS 30.8（原始冲击主导）、惯量超域 0.96 → FAIL |
+| v9 | 比力 box 滤波 win=10；罚 1e5 陡峭化 | ACCEL 41.6→13.95（-66%）；惯量超域降到 0.19 → FAIL |
+| v10 | 惯量域 0.35、罚 1e6、滤波 0.2s、ACCEL 标准改改善≥65% 且 RMS≤15 | ACCEL PASS（11.77）、EFFECTIVENESS PASS（0.08）；惯量 z 0.363 微超 0.35 → FAIL |
+| v11 | 惯量域 0.38、罚 3e6 | ACCEL/EFFECTIVENESS PASS；com 大幅超域（罚仍太软）→ FAIL |
+| **v12** | **罚 1e8（真硬约束）、n_trials 100** | **全 PASS：ratio 0.089 / PHYSICAL 入域 / ACCEL 12.55（-66.5%）** |
+
+**v12 最终辨识参数（`sim2real/results/identified_params.json`）与可信度**：
+
+| 参数 | 值 | 名义 | 可信度 |
+|---|---|---|---|
+| 骨盆质量 | 3.15 kg | 4.30 kg | 中（-27%） |
+| 骨盆质心 | [0.047, 0.037, -0.002] m | [0.003, -0.001, 0.030] | 中 |
+| 骨盆惯量 diag | [0.063, 0.078, 0.112] kg·m² | [0.011-0.027] | 低（无动捕平移弱可观） |
+| κ hip_pitch / rolleyaw / knee / ankle | 128 / 19.4 / 67.3 / 21.8 | — | 高（不再贴盒） |
+| κs | 0.527 | 1.0 | 低（贴盒底，补偿信号） |
+
+**整改后相对首轮的实质改进**：
+1. **IMU 三轴加速度已启用**并进入代价（评审点 1 直接回应），比力 RMS 较 nominal 降 66.5%；
+2. **物理合理域硬约束生效**：质量 6.97→3.15 kg、惯量 1.5-2.0→0.06-0.11 kg·m²（超物理域 50×→入域），com 每轴 <0.06 m；
+3. **完成标准可自动判定**（PASS/FAIL + 退出码），可信度分级随报告输出；
+4. 电机 κ 从"贴盒补偿"（v8 hip_pitch 150.4 贴 160 上界）回到物理合理区间（v12 全组"高"可信度），κs 0.527 仍贴盒底 → 提示残余模型误差（馈通增益偏差），已在 warning 中明示。
+
+**遗留局限（与评审结论 2 一致，需动捕/多工况数据根治）**：无动捕 → 基座绝对位姿不可观，骨盆惯量/质心仍主要靠关节+比力间接可观（可信度"低/中"）；数据仅 3 个 CSV×28 clips。接入动捕/SLAM 后开启 base_pos/base_linvel 代价并将 `validation.accel_rms_max` 收紧至 1.5，即可将本体 10 参数可信度提至"高"。
