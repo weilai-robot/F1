@@ -15,14 +15,15 @@ model:
 
 data:
   sources:                        # datasets -> kp/kd per experiment
+    # 2026-08-24 新上传数据（sim2real/data/，随仓库分发）：
+    #   walk_diag_20260824_103222.csv  15.0 s @100 Hz 行走诊断（cmd 0.25 m/s，
+    #   rl_walk_leg 控制器，增益取自 motion_control rl_x1.yaml，与 08-07 轮一致）
+    #   *_step_*.csv（12 个，1 kHz 单关节阶跃）不入全身回放（无全身状态/无比力），
+    #   其 M1 回归（tau ~ alpha*kp*e + beta*kd*qd + c，见
+    #   data/step_m1_regression_all.json）给出串联关节有效刚度缩放
+    #   alpha=0.34-0.71（knee 0.55），用于锚定 kappa_s（电机小信号增益）。
     - files:
-        - "motion_control/czy/real_data/round_exp_010_kp40_kd3_ff0_20260804_105929.csv"
-        - "motion_control/czy/real_data/round_exp_010_kp40_kd3_ff0_20260804_110902.csv"
-      kp: 40.0                    # excitation PD gains from the file name
-      kd: 3.0
-      note: "round excitation, feedforward off"
-    - files:
-        - "motion_control/czy/8.7/walk_diag_20260807_093740.csv"
+        - "sim2real/data/walk_diag_20260824_103222.csv"
       kp: {left_hip_pitch_joint: 30, left_hip_roll_joint: 40, left_hip_yaw_joint: 35,
            left_knee_pitch_joint: 100, left_ankle_pitch_joint: 35, left_ankle_roll_joint: 30,
            right_hip_pitch_joint: 30, right_hip_roll_joint: 40, right_hip_yaw_joint: 35,
@@ -31,11 +32,12 @@ data:
            left_knee_pitch_joint: 8, left_ankle_pitch_joint: 1.5, left_ankle_roll_joint: 1.5,
            right_hip_pitch_joint: 3, right_hip_roll_joint: 3, right_hip_yaw_joint: 4,
            right_knee_pitch_joint: 8, right_ankle_pitch_joint: 1.5, right_ankle_roll_joint: 1.5}
-      note: "walking diagnostics, rl_walk_leg gains"
+      note: "walking diagnostics 2026-08-24, rl_walk_leg gains"
   clip_h_min_s: 1.0               # H ~ U(H_min, H_max) (paper: avg 1.5 s)
   clip_h_max_s: 2.0
   max_clips: 60                   # subsample clips for one CMA-ES evaluation
-  val_ratio: 0.2                  # holdout clips for validation (完成标准)
+  val_ratio: 0.3                  # holdout clips for validation（新数据仅 15s/~10 clips，
+                                  # 取 0.3 保证 >=3 个 holdout clip，完成标准更可信）
   seed: 0
 
 bodies:
@@ -76,8 +78,12 @@ motor_groups:                     # tanh saturation kappa per joint group
     kappa_nominal: 15.0           # ctrlrange ±18 Nm class (parallel drive)
     kappa_range: [5.0, 30.0]
 
-kappa_s_nominal: 1.0
-kappa_s_range: [0.5, 1.5]
+# kappa_s（电机小信号增益）锚定于 2026-05 阶跃数据 M1 回归（串联关节）：
+#   knee 0.55(左右一致, R2~0.85) / hip_pitch 0.63 / hip_roll 0.67-0.71 / hip_yaw 0.34
+# 搜索域 = 证据带 [0.34, 0.71] 外扩 0.04（留 CMA-ES 妥协踝并联力矩模式的余量），
+# 取代旧盲域 [0.5, 1.5]（上轮最优 0.527 贴下界，证据带证明其物理上合理而非巧合）
+kappa_s_nominal: 0.55
+kappa_s_range: [0.30, 0.80]
 
 cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
   base_pos: 0.0
@@ -92,7 +98,8 @@ cost:                             # paper Tab.3 (X1: no mocap -> pos/linvel = 0)
   reg_scale: 0.1
 
 optimizer:
-  n_trials: 100                   # Optuna CMA-ES trials（v12 提高以降低单轮方差）
+  n_trials: 150                   # 新数据 clip 少（~7 train），单 trial 更快，
+                                  # 提高试验数降低单轮方差（v12 经验：100 不够稳）
   seed: 0
   # 物理合理域硬约束权重：1e8 下 com 超域 0.05 m 罚 25 万，与 accel 项
   # 数十万收益同量级，CMA-ES 无法再以超域换预测精度（v11 实测 3e6 太软：
@@ -105,6 +112,10 @@ validation:
   # 完成标准 3 取"相对改善 >=65% 且绝对 RMS <=15"（有界），接入动捕后收紧。
   accel_rms_max: 15.0             # val 比力 RMS 上限 m/s^2
   accel_improve_ratio: 0.35       # best RMS <= nominal*0.35（改善 >=65%）
+  # 完成标准 4（ACTUATOR）：kappa_s 必须落在阶跃数据 M1 回归证据带内
+  # （串联关节 alpha 范围 [0.34, 0.71]，step_m1_regression_all.json）。
+  # 独立于行走数据的交叉校验：防 kappas 吸收基座/接触等未建模误差。
+  actuator_kappa_s_band: [0.34, 0.71]
 
 active:                           # SPI-Active stage 2
   command_dims: [0, 1, 2]         # vx, vy, wz (X1 cmd_vel)

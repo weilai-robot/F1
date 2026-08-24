@@ -28,3 +28,9 @@ tools/agent_loop/
 # --- Test data ---
 test_logs/data_csv/
 reports/
+
+# --- sim2real SPI data ---
+# 1 kHz 单关节阶跃原始数据 (~330MB) 仅本地保存；M1 回归结论已固化为 json 入库
+sim2real/data/*_step_*.csv
+sim2real/data/x1_clips.npz
+sim2real/.venv/

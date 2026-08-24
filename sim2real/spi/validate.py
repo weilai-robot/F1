@@ -12,7 +12,11 @@ Completion criteria (see also configs/x1_spi.yaml -> validation):
                     物理合理域内（physical_violations 为空）。
   3. ACCEL          验证集 IMU 比力预测 RMS 优于 nominal 且 < 1.5 m/s^2
                     （评审点：辨识必须利用 IMU 三轴加速度）。
-  4. BOUNDARY(WARN) 无参数贴搜索盒边界（提示参数吸收模型误差而非真实物理量）。
+  4. ACTUATOR       kappa_s 落在阶跃数据 M1 回归证据带内（串联关节有效刚度
+                    缩放 alpha，独立于行走数据的交叉校验；防 kappa_s 吸收
+                    基座/接触等未建模误差）。带由 validation.actuator_kappa_s_band
+                    配置，缺省 [0.34, 0.71]。
+  5. BOUNDARY(WARN) 无参数贴搜索盒边界（提示参数吸收模型误差而非真实物理量）。
 
 Credibility grades (informational, 高/中/低 by deviation from nominal):
   mass |d|/nominal <20% 高 <40% 中;  com max|d| <30mm 高 <60mm 中;
@@ -31,6 +35,7 @@ from .param_space import physical_violations
 EFFECTIVE_RATIO = 0.70          # best/nominal val cost must be <= this
 ACCEL_RMS_MAX = 15.0            # m/s^2, val-set IMU specific-force RMS (无动捕开环现实界)
 ACCEL_IMPROVE_RATIO = 0.35      # best RMS <= nominal*this (改善 >=65%)
+ACTUATOR_KAPPA_S_BAND = (0.34, 0.71)  # 串联关节阶跃 M1 回归 alpha 带（κs 独立证据）
 BOUNDARY_FRACTION = 0.02        # within 2% of a search-box edge -> WARN
 
 
@@ -159,6 +164,19 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
                        f"(max {accel_max}, improve>={1 - improve_ratio:.0%})"),
         })
 
+    # 4. actuator consistency: kappa_s inside the step-data regression band
+    #    (independent evidence, independent of the walking trajectories)
+    ks = float(params.get("kappa_s", 1.0))
+    ks_lo, ks_hi = vcfg.get("actuator_kappa_s_band", ACTUATOR_KAPPA_S_BAND)
+    ks_lo, ks_hi = float(ks_lo), float(ks_hi)
+    ok4 = bool(ks_lo <= ks <= ks_hi)
+    checks.append({
+        "id": "ACTUATOR",
+        "ok": ok4,
+        "detail": (f"kappa_s={ks:.3f} vs step-regression band "
+                   f"[{ks_lo}, {ks_hi}] (serial alpha: knee .55 / hip .34-.71)"),
+    })
+
     for c in checks:
         if not c["ok"]:
             verdict = "FAIL"
@@ -185,5 +203,6 @@ def assess(cfg: Dict, params: Dict, nominal: Dict,
             "effective_ratio": eff_ratio,
             "accel_rms_max": accel_max,
             "accel_improve_ratio": float(vcfg.get("accel_improve_ratio", 0.35)),
+            "actuator_kappa_s_band": [ks_lo, ks_hi],
         },
     }

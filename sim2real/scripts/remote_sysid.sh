@@ -45,7 +45,13 @@ if [ ! -d motion_control/czy ]; then
   # last resort: init the git submodule (requires git access)
   git submodule update --init motion_control || true
 fi
-ls motion_control/czy/real_data/ || { echo "FATAL: real data not found" >&2; exit 3; }
+# 辨识数据源自 2026-08-24 起随仓库分发（sim2real/data/），real_data 目录不再是
+# 硬依赖；但 MJCF 模型仍来自 motion_control（或兄弟仓库软链）
+MJCF_PATH="motion_control/module/sim_module/model/mjcf/xyber_x1_flat.xml"
+if [ ! -f "$MJCF_PATH" ]; then
+  echo "FATAL: MJCF not found at $MJCF_PATH" >&2
+  exit 3
+fi
 
 # --- python deps (image ships torch; mujoco/optuna are pip-only) ----------
 python -m pip install -q --no-input mujoco optuna cmaes pyyaml matplotlib 2>&1 | tail -1 || true

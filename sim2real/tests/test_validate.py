@@ -20,18 +20,18 @@ CFG = {
                 "inertia_diag_range": (0.005, 0.15)}],
     "motor_groups": [{"name": "knee", "joints": ["left_knee_pitch_joint"],
                       "kappa_nominal": 120.0, "kappa_range": (40.0, 160.0)}],
-    "kappa_s_nominal": 1.0, "kappa_s_range": (0.5, 1.5),
+    "kappa_s_nominal": 0.55, "kappa_s_range": (0.3, 0.8),
 }
 
 NOMINAL = {"bodies": {"base": {"mass": M0, "com": COM0, "inertia": I0}},
-           "motors": {"knee": 120.0}, "kappa_s": 1.0}
+           "motors": {"knee": 120.0}, "kappa_s": 0.55}
 
 SIG = {"quat": 0.0, "angvel": 0.0, "accel": 0.0, "q": 0.0, "qd": 0.0, "tau": 0.0}
 
 
 def mk_params(**kw):
     p = {"bodies": {"base": {"mass": M0, "com": COM0.copy(), "inertia": I0.copy()}},
-         "motors": {"knee": 120.0}, "kappa_s": 1.0}
+         "motors": {"knee": 120.0}, "kappa_s": 0.55}
     if "mass" in kw:
         p["bodies"]["base"]["mass"] = kw["mass"]
     return p
@@ -78,7 +78,7 @@ class TestAssess(unittest.TestCase):
         self.assertEqual(r["verdict"], "PASS", r)
         self.assertEqual(r["exit_code"], 0)
         ok_ids = {c["id"] for c in r["checks"] if c["ok"]}
-        self.assertEqual(ok_ids, {"EFFECTIVENESS", "PHYSICAL", "ACCEL"})
+        self.assertEqual(ok_ids, {"EFFECTIVENESS", "PHYSICAL", "ACCEL", "ACTUATOR"})
 
     def test_fail_when_no_holdout_improvement(self):
         good = mk_params()
@@ -157,22 +157,48 @@ class TestAssess(unittest.TestCase):
 
     def test_boundary_warning_on_kappa_s(self):
         p = mk_params()
-        p["kappa_s"] = 0.501  # 贴盒底
+        p["kappa_s"] = 0.306  # 贴盒底 (range [0.3, 0.8])
         warns = boundary_warnings(p, CFG)
         self.assertTrue(any("kappa_s" in w for w in warns))
         p2 = mk_params()
         self.assertEqual(boundary_warnings(p2, CFG), [])
 
+    def test_fail_when_kappa_s_outside_actuator_band(self):
+        # 完成标准 4（ACTUATOR）：kappa_s 落在搜索盒内但超出阶跃回归证据带
+        # [0.34, 0.71] -> FAIL（防 kappa_s 吸收未建模误差）
+        out = mk_params()
+        out["kappa_s"] = 0.79  # in search box [0.3, 0.8], outside band
+        vn = dict(SIG, quat=200.0, q=50.0)
+        vb = dict(SIG, quat=40.0, q=10.0,
+                  accel=1.0 * 1000 * 3 * 0.2 ** 2)
+        r = self._run(out, vn, vb)
+        self.assertEqual(r["verdict"], "FAIL")
+        act = next(c for c in r["checks"] if c["id"] == "ACTUATOR")
+        self.assertFalse(act["ok"])
+        self.assertIn("0.790", act["detail"])
+
+    def test_actuator_band_from_config(self):
+        # validation.actuator_kappa_s_band 可配置
+        cfg = dict(CFG, validation={"actuator_kappa_s_band": [0.4, 0.6]})
+        p = mk_params()  # kappa_s = 0.55 in band -> ok
+        vn = dict(SIG, quat=200.0, q=50.0)
+        vb = dict(SIG, quat=40.0, q=10.0, accel=1.0 * 1000 * 3 * 0.2 ** 2)
+        r = assess(cfg, p, NOMINAL, {"nominal": dict(SIG), "best": dict(SIG)},
+                   {"nominal": vn, "best": vb}, 1000, accel_weight=1.0)
+        act = next(c for c in r["checks"] if c["id"] == "ACTUATOR")
+        self.assertTrue(act["ok"])
+        self.assertEqual(r["criteria"]["actuator_kappa_s_band"], [0.4, 0.6])
+
 
 class TestCredibility(unittest.TestCase):
     def test_grades(self):
         g = credibility_grade(NOMINAL, NOMINAL, CFG["bodies"],
-                              CFG["motor_groups"], 1.0)
+                              CFG["motor_groups"], 0.55)
         self.assertEqual(g["base.mass"], "高")
         self.assertEqual(g["kappa.knee"], "高")
         self.assertEqual(g["kappa_s"], "高")
         mid = mk_params(mass=M0 * 1.3)
-        g2 = credibility_grade(mid, NOMINAL, CFG["bodies"], CFG["motor_groups"], 1.0)
+        g2 = credibility_grade(mid, NOMINAL, CFG["bodies"], CFG["motor_groups"], 0.55)
         self.assertEqual(g2["base.mass"], "中")
 
 
