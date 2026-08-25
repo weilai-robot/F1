@@ -132,6 +132,29 @@ class TestPhysicalRangePenalty(unittest.TestCase):
         p = self._params(inertia=np.diag([0.13, 0.02, 0.14]))
         self.assertEqual(physical_violations(p, cfg), {})
 
+    def test_offdiag_violation_detected(self):
+        # v13 漏洞复现：特征值在域内但非对角 -0.082（主轴旋转 ~40°）必须被标记
+        cfg = [dict(self._cfg_body(), inertia_offdiag_max=0.03)]
+        bad_I = np.array([[0.233, 0.043, 0.020],
+                          [0.043, 0.093, -0.082],
+                          [0.020, -0.082, 0.253]])
+        bad = self._params(inertia=bad_I)
+        viol = physical_violations(bad, cfg)
+        self.assertIn("base", viol)
+        self.assertIn("inertia_yz", viol["base"])
+        self.assertAlmostEqual(viol["base"]["inertia_yz"], 0.052, places=3)
+        self.assertGreater(physical_range_penalty(bad, cfg), 1e2)
+        # 无该配置键时不检查（向后兼容；矩阵特征值须在 diag 域内以隔离该效应）
+        odd = self._params(inertia=np.array([[0.06, 0.04, 0.0],
+                                             [0.04, 0.06, 0.0],
+                                             [0.0, 0.0, 0.05]]))
+        self.assertEqual(physical_violations(odd, [self._cfg_body()]), {})
+        # 小非对角（<= 上界）不违规
+        ok = self._params(inertia=np.array([[0.02, 0.01, 0.0],
+                                            [0.01, 0.02, 0.0],
+                                            [0.0, 0.0, 0.02]]))
+        self.assertEqual(physical_violations(ok, cfg), {})
+
 
 if __name__ == "__main__":
     unittest.main()

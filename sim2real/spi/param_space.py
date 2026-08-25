@@ -279,12 +279,23 @@ def physical_violations(params: Dict, bodies_cfg: Sequence[Dict]) -> Dict[str, D
             elif p["com"][i] > c_hi:
                 viol[f"com_{ax}"] = p["com"][i] - c_hi
         i_lo, i_hi = b["inertia_diag_range"]
-        lam = np.linalg.eigvalsh(0.5 * (np.asarray(p["inertia"]) + np.asarray(p["inertia"]).T))
+        I = 0.5 * (np.asarray(p["inertia"]) + np.asarray(p["inertia"]).T)
+        lam = np.linalg.eigvalsh(I)
         for i, ax in enumerate("xyz"):
             if lam[i] < i_lo:
                 viol[f"inertia_{ax}"] = i_lo - lam[i]
             elif lam[i] > i_hi:
                 viol[f"inertia_{ax}"] = lam[i] - i_hi
+        # off-diagonal (product-of-inertia) bound: v13 exposed the loophole that
+        # eigenvalues stay in-range while a large off-diagonal rotates the
+        # principal axes ~40 deg away from the body frame — physically
+        # implausible for a pelvis and a signature of absorbing model error.
+        od_max = b.get("inertia_offdiag_max")
+        if od_max is not None:
+            od = [I[0, 1], I[0, 2], I[1, 2]]
+            for v, nm in zip(od, ["inertia_xy", "inertia_xz", "inertia_yz"]):
+                if abs(v) > od_max:
+                    viol[nm] = abs(v) - od_max
         if viol:
             out[b["name"]] = viol
     return out

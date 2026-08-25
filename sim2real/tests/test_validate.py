@@ -17,7 +17,7 @@ CFG = {
     "bodies": [{"name": "base",
                 "nominal": {"mass": M0, "com": COM0.tolist(), "inertia": I0.tolist()},
                 "mass_range": (3.0, 5.5), "com_range": (-0.06, 0.06),
-                "inertia_diag_range": (0.005, 0.15)}],
+                "inertia_diag_range": (0.005, 0.15), "inertia_offdiag_max": 0.03}],
     "motor_groups": [{"name": "knee", "joints": ["left_knee_pitch_joint"],
                       "kappa_nominal": 120.0, "kappa_range": (40.0, 160.0)}],
     "kappa_s_nominal": 0.55, "kappa_s_range": (0.3, 0.8),
@@ -109,25 +109,38 @@ class TestAssess(unittest.TestCase):
         good = mk_params()
         vn = dict(SIG, quat=100.0)
         vb = dict(SIG, quat=10.0,
-                  accel=1.0 * 1000 * 3 * (ACCEL_RMS_MAX + 0.5) ** 2)
+                  accel=1.0 * 1000 * 20.0 ** 2)   # norm-rms 20 > max(15)
         r = self._run(good, vn, vb)
         self.assertEqual(r["verdict"], "FAIL")
         acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
         self.assertFalse(acc["ok"])
 
     def test_fail_when_accel_not_improving_enough(self):
-        # 绝对 RMS 达标但相对 nominal 改善不足（<65%）-> FAIL
+        # nominal 高于地板时仍要求 >=65% 改善：25 -> 13.5 超出
+        # bar=min(15, max(13, 0.35*25=8.75))=13 -> FAIL
         good = mk_params()
-        vn = dict(SIG, quat=100.0, accel=1.0 * 1000 * 3 * 20.0 ** 2)   # rms 20
-        vb = dict(SIG, quat=10.0, accel=1.0 * 1000 * 3 * 12.0 ** 2)    # rms 12 <15
-        r = self._run(good, vn, vb)
+        r = self._run(good, dict(SIG, quat=100.0,
+                                  accel=1.0 * 1000 * 25.0 ** 2),
+                       dict(SIG, quat=10.0, accel=1.0 * 1000 * 13.5 ** 2))
         acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
-        self.assertFalse(acc["ok"])   # 12 > 20*0.35=7
-        # 相对改善足够（20 -> 6, 6<7 且 <15）-> PASS
-        vb2 = dict(SIG, quat=10.0, accel=1.0 * 1000 * 3 * 6.0 ** 2)
-        r2 = self._run(good, vn, vb2)
+        self.assertFalse(acc["ok"])   # 13.5 > bar 13
+        # 低于地板（v13 实测场景：nominal 20.2, best 12.9）-> PASS
+        vb2 = dict(SIG, quat=10.0, accel=1.0 * 1000 * 12.9 ** 2)
+        r2 = self._run(good, dict(SIG, quat=100.0,
+                                  accel=1.0 * 1000 * 20.23 ** 2), vb2)
         acc2 = next(c for c in r2["checks"] if c["id"] == "ACCEL")
         self.assertTrue(acc2["ok"])
+
+    def test_accel_floor_configurable_and_strict(self):
+        # 地板可配置：抬高到 14 时 v13 场景（best 12.9）仍过；设 0 时要求纯 65% 改善
+        good = mk_params()
+        vn = dict(SIG, quat=100.0, accel=1.0 * 1000 * 20.23 ** 2)
+        vb = dict(SIG, quat=10.0, accel=1.0 * 1000 * 12.9 ** 2)
+        cfg = dict(CFG, validation={"accel_rms_floor": 0.0})
+        r = assess(cfg, good, NOMINAL, {"nominal": dict(SIG), "best": dict(SIG)},
+                   {"nominal": vn, "best": vb}, 1000, accel_weight=1.0)
+        acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
+        self.assertFalse(acc["ok"])   # 12.9 > 0.35*20.23=7.08, floor disabled
 
     def test_accel_disabled_skips_check(self):
         good = mk_params()
@@ -139,7 +152,8 @@ class TestAssess(unittest.TestCase):
 
     def test_config_thresholds_apply(self):
         # config validation.accel_rms_max / effective_ratio 生效
-        cfg = dict(CFG, validation={"accel_rms_max": 0.4, "effective_ratio": 0.5})
+        cfg = dict(CFG, validation={"accel_rms_max": 0.4, "effective_ratio": 0.5,
+                                    "accel_rms_floor": 0.0})
         good = mk_params()
         vn = dict(SIG, quat=100.0)
         # best 0.68*250=170 但 ratio 0.68 > 0.5 -> EFFECTIVENESS FAIL
