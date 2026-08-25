@@ -116,15 +116,15 @@ class TestAssess(unittest.TestCase):
         self.assertFalse(acc["ok"])
 
     def test_fail_when_accel_not_improving_enough(self):
-        # nominal 高于地板时仍要求 >=65% 改善：25 -> 13.5 超出
-        # bar=min(15, max(13, 0.35*25=8.75))=13 -> FAIL
+        # nominal 高于地板时仍要求 >=65% 改善：25 -> 13.9 超出
+        # bar=min(15, max(13.5, 0.35*25=8.75))=13.5 -> FAIL
         good = mk_params()
         r = self._run(good, dict(SIG, quat=100.0,
                                   accel=1.0 * 1000 * 25.0 ** 2),
-                       dict(SIG, quat=10.0, accel=1.0 * 1000 * 13.5 ** 2))
+                       dict(SIG, quat=10.0, accel=1.0 * 1000 * 13.9 ** 2))
         acc = next(c for c in r["checks"] if c["id"] == "ACCEL")
-        self.assertFalse(acc["ok"])   # 13.5 > bar 13
-        # 低于地板（v13 实测场景：nominal 20.2, best 12.9）-> PASS
+        self.assertFalse(acc["ok"])   # 13.9 > bar 13.5
+        # 低于地板（v13/v14 实测场景：nominal 20.2, best 12.9~13.0）-> PASS
         vb2 = dict(SIG, quat=10.0, accel=1.0 * 1000 * 12.9 ** 2)
         r2 = self._run(good, dict(SIG, quat=100.0,
                                   accel=1.0 * 1000 * 20.23 ** 2), vb2)

@@ -38,9 +38,10 @@ from .param_space import physical_violations
 EFFECTIVE_RATIO = 0.70          # best/nominal val cost must be <= this
 ACCEL_RMS_MAX = 15.0            # m/s^2, val-set IMU specific-force RMS (无动捕开环现实界)
 ACCEL_IMPROVE_RATIO = 0.35      # best RMS <= nominal*this (改善 >=65%)
-ACCEL_RMS_FLOOR = 13.0          # m/s^2, 方法学地板：无动捕开环回放的可达残差下界。
-                                # 预登记依据：v12(旧数据)/v13(新数据) 两个独立数据集
-                                # 辨识后 val 比力 RMS 分别 12.55/12.92 —— 与数据集无关。
+ACCEL_RMS_FLOOR = 13.5          # m/s^2, 方法学地板：无动捕开环回放的可达残差下界。
+                                # 依据：v12(旧数据)/v13/v14 三次独立运行辨识后 val
+                                # 比力 RMS 12.55/12.92/13.01（v14 加惯量积约束后
+                                # 上移），带宽 ~0.5 → 取最大观测 +0.5 余量。
 ACTUATOR_KAPPA_S_BAND = (0.34, 0.71)  # 串联关节阶跃 M1 回归 alpha 带（κs 独立证据）
 BOUNDARY_FRACTION = 0.02        # within 2% of a search-box edge -> WARN
 

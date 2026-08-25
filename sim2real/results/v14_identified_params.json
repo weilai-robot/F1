@@ -1,0 +1,24 @@
+{
+  "source": "TASK_20260825_018 (v14: accel floor criterion + inertia offdiag bound; commit 093d8df)",
+  "note": "best_params reconstructed from the task log printout (numpy array repr, 8 significant digits - ample for re-validation rollouts). Raw .pt artifact: upload/2026/8/25/identified_params_20260825090202A413.pt",
+  "best_cost": 167958.6977,
+  "nominal_cost": 724826.6116,
+  "val_cost_best": 85029.4345,
+  "val_cost_nominal": 289895.5826,
+  "best_params": {
+    "bodies": {
+      "base": {
+        "mass": 3.783057355443195,
+        "com": "[ 0.0012128  -0.00819587 -0.01617872]",
+        "inertia": "[[ 0.04149982 -0.01499885  0.00744952]\n [-0.01499885  0.13362132 -0.00667513]\n [ 0.00744952 -0.00667513  0.11200078]]"
+      }
+    },
+    "motors": {
+      "hip_pitch": 71.09175899234774,
+      "hip_rolleyaw": 30.43982673952897,
+      "knee": 89.44574326343829,
+      "ankle": 13.141874141303514
+    },
+    "kappa_s": 0.433956520358212
+  }
+}

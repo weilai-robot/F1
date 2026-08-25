@@ -73,7 +73,15 @@ if [ "$MODE" != "--validate-only" ]; then
     --dataset sim2real/data/x1_clips.npz \
     --out-dir logs/spi_sysid
 else
-  echo "remote_sysid: [validate-only] params file must exist from a previous run"
+  echo "remote_sysid: [validate-only] params must come from a previous run"
+  # fresh container has no logs/ — fall back to the repo-committed params file
+  # (reconstructed from the identification task log; same payload format)
+  if [ ! -f logs/spi_sysid/gm_play/identified_params.json ]; then
+    mkdir -p logs/spi_sysid/gm_play
+    cp sim2real/results/v14_identified_params.json \
+       logs/spi_sysid/gm_play/identified_params.json
+    echo "remote_sysid: [validate-only] restored params from sim2real/results/"
+  fi
   ls -la logs/spi_sysid/gm_play/identified_params.json
 fi
 
