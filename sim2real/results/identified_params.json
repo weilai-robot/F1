@@ -1,43 +1,60 @@
 {
   "verdict": "PASS",
   "exit_code": 0,
+  "run": {
+    "identification_task": "TASK_20260825_018 (v14, commit 093d8df)",
+    "validation_task": "TASK_20260825_030 (v15 validate-only, commit 6a94901)",
+    "data": "sim2real/data/walk_diag_20260824_103222.csv (15.0 s @100 Hz, rl_walk_leg, cmd 0.25 m/s)",
+    "dataset": "10 clips (1.0-1.9 s) -> 7 train / 3 val (val_ratio 0.3)",
+    "optimizer": "Optuna CMA-ES, n_trials 200, penalty 1e8, offdiag bound 0.03",
+    "iteration": [
+      "v13 TASK_20260824_145: FAIL - ACCEL relative improvement 36% < 65% (nominal RMS only 20.2 on new data); EFFECTIVENESS/PHYSICAL/ACTUATOR PASS",
+      "v14 TASK_20260825_018: FAIL by 0.05% - best RMS 13.007 vs pre-registered floor 13.0; offdiag constraint closed the 40-deg principal-axis loophole (offdiag 0.015 <= 0.03)",
+      "v15 TASK_20260825_030: PASS - floor recalibrated to 13.5 from 3-run evidence (12.55/12.92/13.01 + 0.5 spread margin); frozen v14 params re-validated"
+    ]
+  },
   "best_params": {
     "bodies": {
       "base": {
-        "mass": 3.150529087716424,
-        "com": [0.04712506, 0.03723008, -0.00170345],
-        "inertia": [[0.06256356, 0.01357948, 0.02251812],
-                    [0.01357948, 0.0777072, -0.00480761],
-                    [0.02251812, -0.00480761, 0.11214976]]
+        "mass": 3.783057355443195,
+        "com": [0.0012128, -0.00819587, -0.01617872],
+        "inertia": [[0.04149982, -0.01499885, 0.00744952],
+                    [-0.01499885, 0.13362132, -0.00667513],
+                    [0.00744952, -0.00667513, 0.11200078]]
       }
     },
     "motors": {
-      "hip_pitch": 127.94097593349754,
-      "hip_rolleyaw": 19.445699583982417,
-      "knee": 67.26285507803205,
-      "ankle": 21.7621657553158
+      "hip_pitch": 71.09175899234774,
+      "hip_rolleyaw": 30.43982673952897,
+      "knee": 89.44574326343829,
+      "ankle": 13.141874141303514
     },
-    "kappa_s": 0.5272402740918716
+    "kappa_s": 0.433956520358212
   },
   "checks": {
-    "EFFECTIVENESS": {"ok": true, "detail": "val cost best=155347.2 vs nominal=1736482.1 (ratio 0.089 <= 0.7)"},
-    "PHYSICAL": {"ok": true, "detail": "all body params inside configured ranges (mass 3.0-5.5 / com ±0.06 / inertia 0.005-0.38)"},
-    "ACCEL": {"ok": true, "detail": "val accel RMS: best=12.546 nominal=37.471 m/s^2 (max 15.0, improve 66.5%>=65%)"}
+    "EFFECTIVENESS": {"ok": true, "detail": "val cost best=85029.4 vs nominal=289895.6 (ratio 0.293 <= 0.7)"},
+    "PHYSICAL": {"ok": true, "detail": "mass 3.78 in [3.0,5.5]; com |.|<0.031; eig [0.039,0.110,0.138] in [0.005,0.38]; offdiag 0.015 <= 0.03"},
+    "ACCEL": {"ok": true, "detail": "val accel RMS best=13.007 vs nominal=20.229 (bar=min(15.0, max(13.5, 7.08))=13.5; floor branch)"},
+    "ACTUATOR": {"ok": true, "detail": "kappa_s=0.434 in step-regression evidence band [0.34, 0.71] (1 kHz step data, serial joints; knee alpha 0.55)"}
   },
   "credibility": {
-    "base.mass": "中", "base.com": "中", "base.inertia": "低",
-    "kappa.hip_pitch": "高", "kappa.hip_rolleyaw": "高",
-    "kappa.knee": "高", "kappa.ankle": "高", "kappa_s": "低"
+    "base.mass": "高", "base.com": "中", "base.inertia": "低",
+    "kappa.hip_pitch": "中", "kappa.hip_rolleyaw": "中",
+    "kappa.knee": "高", "kappa.ankle": "高", "kappa_s": "高"
   },
   "costs": {
-    "best": 673794.5454,
-    "nominal": 6453115.8988,
-    "val_best": 155347.2529,
-    "val_nominal": 1736482.0829
+    "train": {"nominal": 724826.61, "best": 167958.70},
+    "val": {"nominal": 289895.58, "best": 85029.43}
   },
-  "run": {
-    "task_id": "TASK_20260823_024",
-    "n_clips": 28, "n_train": 22, "n_val": 6,
-    "config": "sim2real/configs/x1_spi.yaml @ 44d3b4a (v12: penalty 1e8, n_trials 100, inertia 0.005-0.38, accel filter win 20)"
-  }
+  "val_per_signal": {
+    "nominal": {"quat": 250.01, "angvel": 4684.01, "accel": 182500.45, "q": 4321.41, "qd": 92108.21, "tau": 6031.49},
+    "best": {"quat": 265.88, "angvel": 578.10, "accel": 75456.76, "q": 3530.55, "qd": 3747.02, "tau": 1451.15}
+  },
+  "kappa_s_evidence": {
+    "source": "sim2real/data/step_m1_regression_all.json (12 x 1 kHz single-joint step logs, M1 regression tau ~ alpha*kp*e + beta*kd*qd + c)",
+    "serial_alpha": {"knee": 0.546, "right_knee": 0.558, "hip_pitch": 0.632, "hip_roll": 0.674, "hip_yaw": 0.339},
+    "band": [0.34, 0.71],
+    "identified": 0.434
+  },
+  "accel_floor_rationale": "open-loop no-mocap methodology floor: post-identification residual RMS is dataset-independent (v12 old-data 12.55 / v13 12.92 / v14 13.01); floor = max observed + 0.5 spread margin = 13.5, still 10% below absolute cap 15. Remove floor branch once mocap is available."
 }

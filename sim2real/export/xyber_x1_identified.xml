@@ -66,7 +66,7 @@
 
   <worldbody>
     <body name = "x1-body" pos = "0 0 0.7">
-      <inertial pos="0.05991240 0.14936561 -0.11976591" mass="6.97335497" diaginertia="0.91461047 1.00000000 1.00000000" quat="0.62819656 0.40570972 0.57878798 0.32522789"/>
+      <inertial pos="0.00121280 -0.00819587 -0.01617872" mass="3.78305736" diaginertia="0.03857225 0.11022465 0.13832502" quat="0.59188263 -0.80135926 -0.03455344 0.07939988"/>
       <freejoint name="floating_base"/>
       <geom type="mesh" rgba="0.8 0.4 0 1" mesh="mesh_base_link_simple" />
       <geom type="mesh" rgba="0.8 0.4 0 1" mesh="mesh_base_link_simple" class = "collision"/>

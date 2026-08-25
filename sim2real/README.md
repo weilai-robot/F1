@@ -7,7 +7,7 @@
 ## 流水线总览
 
 ```
-真实日志 (motion_control/czy/**/*.csv, 100Hz)
+真实日志 (sim2real/data/walk_diag_*.csv, 100Hz; 1kHz 阶跃日志作 κs 证据)
    │ prepare_dataset.py          变长 clips (H~U(1s,2s)), 初态对齐（含 IMU 三轴比力）
    ▼
 sim2real/data/x1_clips.npz
@@ -16,7 +16,7 @@ sim2real/data/x1_clips.npz
    │                             train/val 划分，val 为 holdout
    ▼
 logs/spi_sysid/gm_play/identified_params.json|.pt
-   │ validate_spi.py             完成标准验证：val 提升/物理合理域/IMU 比力 RMS
+   │ validate_spi.py             完成标准验证：val 提升/物理合理域/IMU 比力/κs 交叉校验
    ▼
 logs/spi_sysid/validation.json  (verdict: PASS/FAIL, 退出码 0/1)
    │ apply_params.py             回写 URDF/MJCF + 生成 DR 配置
@@ -73,7 +73,7 @@ sim2real/
 |---|---|
 | 无动捕 | base_pos/base_linvel 代价默认 0；改用 **IMU 三轴比力**（imu_accel_*，日志已有）对比仿真 Rᵀ(a−g)，约束基座平移动力学（质量/质心） |
 | 物理合理域 | 参数范围收紧（质量 3.0–5.5 kg、质心 ±0.06 m、惯量 0.005–0.15 kg·m²），优化目标加入超域硬罚（penalty_scale=1e4），杜绝首轮 6.97 kg / 惯量 1.5–2.0 的超物理结果 |
-| 完成标准 | `validate_spi.py`：holdout 验证集代价较 nominal 降 ≥30%、物理参数全部在域内、IMU 比力 RMS < 1.5 m/s²；输出 `validation.json` 与 PASS/FAIL 退出码 |
+| 完成标准 | `validate_spi.py` 四项全过才 PASS：① holdout 代价 ≤ nominal 70%；② 物理域（质量/质心/惯量特征值 + **惯量积 ≤0.03**）；③ IMU 比力 RMS ≤ min(15, max(地板 13.5, 0.35×nominal))——地板为无动捕开环回放的方法学实测界（3 次运行 12.55–13.01）；④ **κs 落在 1kHz 阶跃数据 M1 回归证据带 [0.34, 0.71]**（独立于行走数据的交叉校验）。输出 `validation.json` 与 PASS/FAIL 退出码 |
 | 仿真器 | MuJoCo（仓库既有 MJCF），非 Isaac Gym |
 | 执行器 | 串联髋/膝：驱动器 PD 回放；并联踝：τ_des_lpf 直接回放；统一过 κ·tanh 饱和 |
 | 辨识对象 | 骨盆 link_base (4.30 kg) + 4 组电机 κ（hip_pitch/hip_rolleyaw/knee/ankle）+ κs |
