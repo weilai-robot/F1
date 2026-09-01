@@ -1,0 +1,2 @@
+10:00:05 | cpu_some: some avg10=0.10 avg60=0.20 avg300=0.10 total=1 | mem: full avg10=0.00 avg60=0.00 avg300=0.00 total=0 some avg10=0.00 avg60=0.00 avg300=0.00 total=0 | io_some: some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+10:00:10 | cpu_some: some avg10=1.10 avg60=2.20 avg300=1.00 total=9 | mem: full avg10=0.00 avg60=0.00 avg300=0.00 total=0 some avg10=0.00 avg60=0.00 avg300=0.00 total=0 | io_some: some avg10=0.00 avg60=0.00 avg300=0.00 total=0

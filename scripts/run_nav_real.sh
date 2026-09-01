@@ -232,18 +232,18 @@ tmux new-window -t "${SESSION_NAME}" -n "record"
 echo -e "${GREEN}  [record] 数据采集提示（手动）${NC}"
 tmux send-keys -t "${SESSION_NAME}:record" "source ${ROS_SETUP_BASH}" Enter
 tmux send-keys -t "${SESSION_NAME}:record" \
-  "echo '=== 真机导航检查 ===
+  "echo '=== 真机导航检查 / 录包 ===
   TF:   ros2 run tf2_ros tf2_echo map odom
         ros2 run tf2_ros tf2_echo odom base_footprint
   LIO:  ros2 topic hz /Odometry
-  Cloud: ros2 topic hz /cloud_registered_body
   Mode: ros2 topic info /stand_mode -v
   手动切模式 (须 source AimRT ros2_setup，用本仓库脚本):
     ./switch_x1_mode.sh stand
     ./switch_x1_mode.sh walk
     ./switch_x1_mode.sh ready   # zero→stand→walk
   停止: ./switch_x1_mode.sh stand ，再让 /cmd_vel 归零
-  Bag:  ros2 bag record /cmd_vel /Odometry /tf /cloud_registered_body -o real_run_NNN'" Enter
+  录包: cd ${SCRIPT_DIR} && ./record_nav_test.sh -d 60 <label>
+        ./record_nav_test.sh --nav -d 120 walk   # 含 cmd_vel'" Enter
 
 # --- 完成 ---
 echo ""

@@ -172,12 +172,17 @@ class MetricsCalculator:
         else:
             m["completion_time_s"] = None
 
-        # 路径效率: 直线距离 / 累计位移
+        # 路径效率: 直线距离 / 本 trial 内累计位移(非仿真终身累计)
         if len(self.gt_data) >= 2:
             start_x, start_y = self.gt_data[0][1], self.gt_data[0][2]
             straight_dist = math.sqrt((goal_x - start_x)**2 + (goal_y - start_y)**2)
-            cum_dist = final_gt[9]
-            m["path_efficiency"] = round(straight_dist / max(cum_dist, 0.01), 3) if cum_dist > 0.01 else None
+            first_cum = self.gt_data[0][9]
+            trial_dist = final_gt[9] - first_cum  # BUG-1 修: 本 trial 窗口内的位移, 非终身累计
+            if trial_dist > 0.01:
+                eff = straight_dist / trial_dist
+                m["path_efficiency"] = round(min(max(eff, 0.0), 1.0), 3)  # clip [0, 1]
+            else:
+                m["path_efficiency"] = None  # 没动, 不算
         else:
             m["path_efficiency"] = None
 

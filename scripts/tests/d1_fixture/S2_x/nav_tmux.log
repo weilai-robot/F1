@@ -1,0 +1,8 @@
+[ mapping ]: time: IMU + Map: 0.010 ave total: 0.068 icp: 0.040
+[ mapping ]: time: IMU + Map: 0.010 ave total: 0.075 icp: 0.040
+[ mapping ]: time: IMU + Map: 0.010 ave total: 0.072 icp: 0.041
+
+
+time_this_loc: 0.105, time_last: 0.100,
+time_diff: 0.005 s, sleep 5 ms
+[WARN] [controller_server]: Controller missed its requested rate (10.000000Hz)
