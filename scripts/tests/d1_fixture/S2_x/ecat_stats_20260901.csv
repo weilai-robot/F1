@@ -1,0 +1,2 @@
+wall_ts,steady_ns,dc_cnt,dc_dev_avg_ns,dc_dev_abs_min_ns,dc_dev_abs_max_ns,cycle_cnt,cycle_late_avg_ns,cycle_late_max_ns,cycle_overruns,wkc_bad_polls
+20260901_101000,2e15,10000,300,50,6200,10000,5,80,12,2
