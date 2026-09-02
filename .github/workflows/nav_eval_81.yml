@@ -63,6 +63,8 @@ jobs:
     env:
       CONDA_BASE: /home/robot/miniconda3
       CONDA_ENV: nav
+      CC: gcc-13
+      CXX: g++-13
 
     steps:
       # ── 1. Checkout (不清理 build/) ─────────────────────
@@ -94,7 +96,6 @@ jobs:
           fi
           echo "CONDA_SH=$CONDA_SH" >> "$GITHUB_OUTPUT"
           source "$CONDA_SH"
-          conda activate "$CONDA_ENV"
           echo "::notice::Python=$(which python3)  ROS2=$(ros2 --version 2>/dev/null || echo ok)"
 
       # ── 3. 在 Runner 本机编译 Ruckig ──────────────────
@@ -103,8 +104,7 @@ jobs:
         id: ruckig
         shell: bash
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
+          source /opt/ros/humble/setup.bash
           RUCKIG_SOURCE_SHA="$(./scripts/build_ruckig.sh --print-commit)"
           ./scripts/build_ruckig.sh
           echo "source_sha=${RUCKIG_SOURCE_SHA}" >> "$GITHUB_OUTPUT"
@@ -114,8 +114,7 @@ jobs:
       - name: Build motion_control
         shell: bash
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
+          source /opt/ros/humble/setup.bash
           MC_SHA="$(git ls-tree HEAD motion_control | awk '{print $3}')"
           BUILD_DRIVER_SHA="$(sha256sum CMakeLists.txt scripts/build.sh scripts/build_ruckig.sh | sha256sum | awk '{print $1}')"
           EXPECTED="${MC_SHA}:${{ steps.ruckig.outputs.source_sha }}:${BUILD_DRIVER_SHA}"
@@ -137,8 +136,7 @@ jobs:
       - name: Build navigation
         shell: bash
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
+          source /opt/ros/humble/setup.bash
           # 增量构建: 检查关键产物是否存在
           NAV_SETUP="${{ github.workspace }}/navigation/install/setup.bash"
           if [ -f "$NAV_SETUP" ] && [ "${{ inputs.rebuild_nav }}" != "true" ]; then
@@ -160,8 +158,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          source "${{ steps.conda.outputs.CONDA_SH }}"
-          conda activate "$CONDA_ENV"
+          source /opt/ros/humble/setup.bash
           SCENARIO="${{ inputs.scenario || 'all' }}"
           echo "scenario=${SCENARIO}" >> "$GITHUB_OUTPUT"
           ./scripts/ci_nav_test.sh "$SCENARIO"
