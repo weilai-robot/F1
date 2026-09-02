@@ -14,7 +14,7 @@
 #   gh run download <run_id> -n nav-results-<run_id>
 #   或 python3 scripts/fetch_ci_results.py
 # ============================================================
-name: Nav Eval
+name: Nav Eval (81)
 
 on:
   push:
@@ -57,12 +57,12 @@ permissions:
 
 jobs:
   nav-eval:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, navigation]
     timeout-minutes: 40
 
     env:
-      CONDA_BASE: ${{ vars.CONDA_BASE || '~/Anaconda' }}
-      CONDA_ENV: ${{ vars.CONDA_ENV || 'F1' }}
+      CONDA_BASE: /home/robot/miniconda3
+      CONDA_ENV: nav
 
     steps:
       # ── 1. Checkout (不清理 build/) ─────────────────────
