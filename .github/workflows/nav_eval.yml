@@ -57,7 +57,7 @@ permissions:
 
 jobs:
   nav-eval:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, navigation]
     timeout-minutes: 40
 
     env:
