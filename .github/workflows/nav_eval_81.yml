@@ -105,6 +105,7 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
+          export PATH=/usr/bin:/bin:$PATH
           RUCKIG_SOURCE_SHA="$(./scripts/build_ruckig.sh --print-commit)"
           ./scripts/build_ruckig.sh
           echo "source_sha=${RUCKIG_SOURCE_SHA}" >> "$GITHUB_OUTPUT"
@@ -115,6 +116,7 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
+          export PATH=/usr/bin:/bin:$PATH
           MC_SHA="$(git ls-tree HEAD motion_control | awk '{print $3}')"
           BUILD_DRIVER_SHA="$(sha256sum CMakeLists.txt scripts/build.sh scripts/build_ruckig.sh | sha256sum | awk '{print $1}')"
           EXPECTED="${MC_SHA}:${{ steps.ruckig.outputs.source_sha }}:${BUILD_DRIVER_SHA}"
@@ -137,6 +139,7 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
+          export PATH=/usr/bin:/bin:$PATH
           # 增量构建: 检查关键产物是否存在
           NAV_SETUP="${{ github.workspace }}/navigation/install/setup.bash"
           if [ -f "$NAV_SETUP" ] && [ "${{ inputs.rebuild_nav }}" != "true" ]; then
@@ -159,6 +162,7 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/humble/setup.bash
+          export PATH=/usr/bin:/bin:$PATH
           SCENARIO="${{ inputs.scenario || 'all' }}"
           echo "scenario=${SCENARIO}" >> "$GITHUB_OUTPUT"
           ./scripts/ci_nav_test.sh "$SCENARIO"
