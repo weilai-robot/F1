@@ -69,16 +69,21 @@ log "环境快照 -> $SNAP"
 log "启动后台采集 (间隔 ${INTERVAL}s) ..."
 
 # 2.1 每线程 CPU (含线程落核, 判定大脑各组件实际占用)
-pidstat -t -h -p ALL $INTERVAL > "$OUT/pidstat_threads.log" 2>&1 &
+#     2026-09-02: 改有限次数 + LC_ALL=C —— 无限时长被 SIGTERM kill 会丢 stdio 缓冲且
+#     sysstat 工具的 "Average:" 汇总块只在自然结束时输出(此前隔离核检查恒 NA 的根因)。
+#     次数取 DUR/INTERVAL-1, 保证在主循环结束前自然退出并落盘汇总。
+N1=$((DUR/INTERVAL - 1)); [ "$N1" -ge 1 ] || N1=1
+LC_ALL=C pidstat -t -h -p ALL $INTERVAL $N1 > "$OUT/pidstat_threads.log" 2>&1 &
 P1=$!
 # 2.2 每进程内存 RSS (FastLIO ikd-tree 增长 / Nav2 内存泄漏)
-pidstat -r -p ALL $((INTERVAL*6)) > "$OUT/pidstat_mem.log" 2>&1 &
+N6=$((DUR/(INTERVAL*6) - 1)); [ "$N6" -ge 1 ] || N6=1
+LC_ALL=C pidstat -r -p ALL $((INTERVAL*6)) $N6 > "$OUT/pidstat_mem.log" 2>&1 &
 P2=$!
 # 2.3 每核利用率 (验证隔离核空闲 + 非隔离核是否打满)
-mpstat -P ALL $INTERVAL > "$OUT/mpstat.log" 2>&1 &
+LC_ALL=C mpstat -P ALL $INTERVAL $N1 > "$OUT/mpstat.log" 2>&1 &
 P3=$!
 # 2.4 swap 活动 + 运行队列
-vmstat $INTERVAL > "$OUT/vmstat.log" 2>&1 &
+LC_ALL=C vmstat $INTERVAL $N1 > "$OUT/vmstat.log" 2>&1 &
 P4=$!
 # 2.5 PSI 压力 (CPU/内存/io, "资源不够"的最直接内核证据)
 ( while :; do
@@ -162,19 +167,21 @@ echo "----------------------------------------------------------------"
 swapsio=$(awk 'NR>2 && ($7>0 || $8>0){c++} END{print c+0}' "$OUT/vmstat.log")
 [ "$swapsio" = "0" ] && R1="PASS  swap 无换入换出" || R1="FAIL  swap 活动出现 ${swapsio} 次(si/so>0) — 会造成实时缺页抖动"
 echo " 1. $R1"
-# b) 内存余量
-minmem=$(awk '{gsub("MB","",$2); if(min==""||$2+0<min) min=$2} END{printf "%.2f", min}' "$OUT/mem.log" 2>/dev/null)
+# b) 内存余量 (mem.log 行格式 "HH:MM:SS MemAvailable=NNNNMB Slab=NNNNMB", 2026-09-02 修复:
+#    原解析取 $2 整串 "MemAvailable=NNNNMB" 数值强转恒 0 → 永远 FAIL)
+minmem=$(awk '{split($2,a,"="); v=a[2]+0; if(v>0 && (min==""||v<min)) min=v} END{printf "%.2f", min+0}' "$OUT/mem.log" 2>/dev/null)
 awk -v m="$minmem" 'BEGIN{exit !(m+0>2048)}' && R2="PASS  MemAvailable 最低 ${minmem}MB (>2GiB)" \
                                         || R2="FAIL  MemAvailable 最低 ${minmem}MB (<2GiB) — 内存不足"
 echo " 2. $R2"
 # c) PSI CPU some avg60 峰值 (有线程排队等CPU)
-maxpsi=$(grep -o 'avg60=[0-9.]*' "$OUT/psi.log" 2>/dev/null | cut -d= -f2 | sort -n | tail -1)
+#    2026-09-02 修复: 限定 cpu_some 段——原 grep 全文 avg60 会混入 mem/io 的值串到 cpu 名下
+maxpsi=$(grep -o 'cpu_some: some avg10=[0-9.]* avg60=[0-9.]*' "$OUT/psi.log" 2>/dev/null | grep -o 'avg60=[0-9.]*' | cut -d= -f2 | sort -n | tail -1)
 [ -z "$maxpsi" ] && maxpsi=-1
 awk -v m="$maxpsi" 'BEGIN{exit !(m+0<=5.0)}' && R3="PASS  PSI cpu some avg60 峰值 ${maxpsi:-NA}% (<=5%)" \
                                           || R3="FAIL  PSI cpu some avg60 峰值 ${maxpsi}% (>5%) — CPU 明显排队, 大脑线程被饿"
 echo " 3. $R3"
-# d) PSI memory
-maxpsimem=$(grep -o 'some avg60=[0-9.]*' "$OUT/psi.log" 2>/dev/null | grep -o 'avg60=[0-9.]*' | cut -d= -f2 | sort -n | tail -1)
+# d) PSI memory (2026-09-02 修复: 限定 mem 段的 some avg60, 原解析混入 cpu/io)
+maxpsimem=$(grep -o 'mem: [^|]*' "$OUT/psi.log" 2>/dev/null | grep -o 'some avg10=[0-9.]* avg60=[0-9.]*' | grep -o 'avg60=[0-9.]*' | cut -d= -f2 | sort -n | tail -1)
 [ -z "$maxpsimem" ] && maxpsimem=-1
 awk -v m="$maxpsimem" 'BEGIN{exit !(m+0<=0.1)}' && R4="PASS  PSI memory 基本为 0" \
                                             || R4="FAIL  PSI memory avg60 峰值 ${maxpsimem}% — 存在内存回收压力"
