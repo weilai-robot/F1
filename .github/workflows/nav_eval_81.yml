@@ -177,7 +177,7 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
           # 尝试读取 batch summary
-          BATCH_FILE=$(ls -t reports/batch_summary_*.json 2>/dev/null | head -1)
+          BATCH_FILE=$(ls -t reports/batch_summary_*.json 2>/dev/null | head -1 || true)
           if [ -n "$BATCH_FILE" ]; then
             python3 -c "
           import json, sys
