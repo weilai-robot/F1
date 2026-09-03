@@ -213,8 +213,8 @@ cecho "  启动 mujoco_lidar_bridge..."
 export MUJOCO_LIDAR_SRC="${NAV_DIR}/sim/MuJoCo-LiDAR/src"
 python3 "${NAV_DIR}/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py" \
     --ros-args -p model_path:="${MODEL_PATH}" \
-               -p output_type:=pointcloud2 \
-               -p downsample:=1 \
+               -p output_type:=custom \
+               -p downsample:=5 \
                -p lidar_hz:=10 \
     > "$CI_LOG_DIR/lidar_bridge.log" 2>&1 &
 PIDS+=($!)
