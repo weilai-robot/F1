@@ -221,7 +221,15 @@ PIDS+=($!)
 sleep 3
 check_pid_alive "${PIDS[-1]}" "lidar_bridge" "$CI_LOG_DIR/lidar_bridge.log" || exit 1
 
-# [3] FastLIO2
+# [3] livox IMU 200Hz 转发 (FastLIO 需要 /livox/imu_200, 对齐 run_mujoco_nav.sh)
+cecho "  启动 livox_imu_throttle..."
+ros2 run humanoid_sim livox_imu_throttle.py \
+    > "$CI_LOG_DIR/livox_imu_throttle.log" 2>&1 &
+PIDS+=($!)
+sleep 1
+check_pid_alive "${PIDS[-1]}" "livox_imu_throttle" "$CI_LOG_DIR/livox_imu_throttle.log" || exit 1
+
+# [4] FastLIO2
 cecho "  启动 fast_lio..."
 ros2 launch fast_lio mapping_sim_module.launch.py \
     > "$CI_LOG_DIR/fastlio.log" 2>&1 &
@@ -254,13 +262,13 @@ if ! wait_for_action "navigate_to_pose" 30 "Nav2"; then
     exit 1
 fi
 
-# [6] 腿里程计
-cecho "  启动 leg_odom..."
-ros2 run humanoid_sim leg_odom_node.py \
-    --ros-args -p model_path:="${MODEL_PATH}" \
-    > "$CI_LOG_DIR/leg_odom.log" 2>&1 &
-PIDS+=($!)
-sleep 2
+# [7] 腿里程计 (当前不需要, 对齐 run_mujoco_nav.sh 注释掉)
+# cecho "  启动 leg_odom..."
+# ros2 run humanoid_sim leg_odom_node.py \
+#     --ros-args -p model_path:="${MODEL_PATH}" \
+#     > "$CI_LOG_DIR/leg_odom.log" 2>&1 &
+# PIDS+=($!)
+# sleep 2
 
 cecho "${G}  ✓ 全链路启动完成 (${#PIDS[@]} 个进程)${N}"
 
