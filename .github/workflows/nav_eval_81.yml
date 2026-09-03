@@ -197,7 +197,7 @@ jobs:
           " >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "结果解析失败" >> "$GITHUB_STEP_SUMMARY"
           else
             # 单场景
-            SINGLE=$(ls -t reports/*.json 2>/dev/null | grep -v batch_summary | head -1)
+            SINGLE=$(ls -t reports/*/result.json 2>/dev/null | head -1)
             if [ -n "$SINGLE" ]; then
               python3 -c "
           import json
