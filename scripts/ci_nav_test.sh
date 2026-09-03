@@ -421,7 +421,7 @@ print(sum(1 for x in r if not x.get('metrics',{}).get('success')))
         [ "$FAIL_COUNT" -gt 0 ] && NAV_PASS=false
     fi
 else
-    LATEST_JSON="$(ls -t "$REPORT_DIR"/*.json 2>/dev/null | grep -v batch_summary | head -1)"
+    LATEST_JSON="$(ls -t "$REPORT_DIR"/*/result.json "$REPORT_DIR"/*.json 2>/dev/null | grep -v batch_summary | head -1)"
     if [ -n "$LATEST_JSON" ]; then
         SUCCESS=$(python3 -c "
 import json
