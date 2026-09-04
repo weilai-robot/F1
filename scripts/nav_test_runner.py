@@ -617,13 +617,16 @@ class NavTestNode(Node):
         result_future.add_done_callback(self._result_cb)
 
     def resend_goal_if_lost(self) -> bool:
-        """goal 发出后 12s 未被接受 → 重发 (最多 3 次)。
-        返回 True 表示本次调用触发了重发。"""
+        """goal 发出后 4s 未被接受 → 重发 (最多 3 次)。
+        返回 True 表示本次调用触发了重发。
+        4s 依据: 严格门禁 plan_time≤5s; 响应丢失时 12s 看门狗虽救回场景
+        但 plan_time 12.1s 必挂 (run 33849167188 F)。NavFn 首次规划最慢
+        ~2s, 4s 已是 20 个控制周期, 不会误杀慢规划。"""
         if (self._goal_accepted or self.finished
                 or self._goal_send_time is None
                 or self._goal_attempts >= 3):
             return False
-        if time.monotonic() - self._goal_send_time < 12.0:
+        if time.monotonic() - self._goal_send_time < 4.0:
             return False
         self.get_logger().warn(
             f"goal 响应丢失 ({time.monotonic() - self._goal_send_time:.0f}s 未接受), "
