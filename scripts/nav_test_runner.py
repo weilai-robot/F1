@@ -46,7 +46,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 
 from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import Twist, PoseStamped
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path, OccupancyGrid
 from nav2_msgs.action import NavigateToPose
 from action_msgs.msg import GoalStatus
 
@@ -476,6 +476,18 @@ class NavTestNode(Node):
                                   self._cmd_vel_cb, 10)
         self.create_subscription(Odometry, "/Odometry",
                                   self._odom_cb, sensor_qos)
+        # 全局规划路径 (NavFn 输出) — 观测绕路根因
+        self.plan_paths = []       # [(sim_t, [(x,y), ...])]
+        self.create_subscription(Path, "/plan",
+                                 self._plan_cb, QoSProfile(
+                                     reliability=ReliabilityPolicy.RELIABLE,
+                                     durability=DurabilityPolicy.VOLATILE, depth=5))
+        # 全局 costmap 快照 (最新一份)
+        self.global_costmap = None
+        self.create_subscription(OccupancyGrid, "/global_costmap/costmap",
+                                 self._costmap_cb, QoSProfile(
+                                     reliability=ReliabilityPolicy.RELIABLE,
+                                     durability=DurabilityPolicy.TRANSIENT_LOCAL, depth=1))
 
         # Nav2 action client
         self._action_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
@@ -499,6 +511,20 @@ class NavTestNode(Node):
     def _odom_cb(self, msg: Odometry):
         sim_t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         self.metrics.add_odom(sim_t, msg.pose.pose.position.x, msg.pose.pose.position.y)
+
+    def _plan_cb(self, msg: Path):
+        """记录全局规划路径 (只保留最近 5 条 + 首条, 防内存膨胀)"""
+        pts = [(round(p.pose.position.x, 3), round(p.pose.position.y, 3))
+               for p in msg.poses]
+        t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        if len(self.plan_paths) == 0 or len(self.plan_paths) < 5:
+            self.plan_paths.append((t, pts))
+        else:
+            self.plan_paths[-1] = (t, pts)
+
+    def _costmap_cb(self, msg: OccupancyGrid):
+        """保留最新全局 costmap (快照用)"""
+        self.global_costmap = msg
 
     def _timeout_check(self):
         if self.finished:
@@ -750,6 +776,48 @@ def export_timeseries(metrics: MetricsCalculator, trial_dir: str) -> dict:
     return {"json": json_path, "csv": csv_paths}
 
 
+def export_planner_observability(node, trial_dir: str) -> dict:
+    """落盘全局规划观测: /plan 路径 + global costmap 快照 (诊断绕路根因)"""
+    out = {}
+    # 1. 全局路径
+    if node.plan_paths:
+        plan_doc = {"captured": len(node.plan_paths),
+                    "paths": [{"stamp": t, "n": len(pts), "points": pts}
+                              for t, pts in node.plan_paths]}
+        p = os.path.join(trial_dir, "global_plans.json")
+        with open(p, "w") as f:
+            json.dump(plan_doc, f, ensure_ascii=False)
+        out["global_plans"] = p
+    # 2. global costmap 快照 (PGM)
+    cm = node.global_costmap
+    if cm is not None:
+        w, h = cm.info.width, cm.info.height
+        res = cm.info.resolution
+        ox, oy = cm.info.origin.position.x, cm.info.origin.position.y
+        # OccupancyGrid data: -1 未知, 0-100 占据概率, row-major 从左下角
+        # PGM: 上=+y, 灰度 254=free 205=unknown 0=occupied
+        rows = []
+        for gy in range(h - 1, -1, -1):
+            row = bytearray(w)
+            for gx in range(w):
+                v = cm.data[gy * w + gx]
+                row[gx] = 0 if v > 65 else (205 if v < 0 else 254)
+            rows.append(bytes(row))
+        pgm = os.path.join(trial_dir, "global_costmap_snapshot.pgm")
+        with open(pgm, "wb") as f:
+            f.write(f"P5\n{w} {h}\n255\n".encode())
+            for r in rows:
+                f.write(r)
+        yaml_p = os.path.join(trial_dir, "global_costmap_snapshot.yaml")
+        with open(yaml_p, "w") as f:
+            f.write(f"image: global_costmap_snapshot.pgm\nresolution: {res}\n"
+                    f"origin: [{ox}, {oy}, 0]\nnegate: 0\noccupied_thresh: 0.65\n"
+                    f"free_thresh: 0.25\n")
+        out["global_costmap"] = pgm
+        out["global_costmap_yaml"] = yaml_p
+    return out
+
+
 def update_latest_symlink(report_dir: str, trial_dir: str) -> None:
     """reports/latest → 本次试验目录。"""
     link_path = os.path.join(report_dir, "latest")
@@ -979,8 +1047,12 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
     diagnostics = node.metrics.extract_diagnostics(
         params["goal_x"], params["goal_y"], node.result_status)
 
+    # 规划观测落盘 (/plan + costmap 快照)
+    obs_paths = export_planner_observability(node, trial_dir)
+
     cpu_mem = parse_pidstat(pidstat_path) if os.path.exists(pidstat_path) else {}
     metrics["cpu_mem"] = cpu_mem
+    metrics["planner_obs"] = {k: os.path.basename(v) for k, v in obs_paths.items()}
 
     try:
         node.destroy_node()
