@@ -17,7 +17,8 @@
 #
 # 用法:
 #   ./run_nav_real.sh                 # 导航大脑（不含 AimRT / nav_state）
-#   ./run_nav_real.sh --rviz          # FastLIO 弹 RViz（默认不弹）
+#   ./run_nav_real.sh                 # 导航大脑（FastLIO 默认弹 RViz）
+#   ./run_nav_real.sh --no-rviz       # FastLIO 不弹 RViz
 #
 # 前置:
 #   1. ./build_nav.sh              （navigation workspace）
@@ -50,8 +51,8 @@ launch_cleanup() {
 trap launch_cleanup EXIT
 
 # --- 参数 ---
-# 默认不弹 FastLIO RViz；需要时传 --rviz
-RVIZ_ARG="rviz:=false"
+# 默认弹 FastLIO RViz（调试用）；不需要时传 --no-rviz
+RVIZ_ARG="rviz:=true"
 for arg in "$@"; do
   case "$arg" in
     --no-aimrt) ;;       # 兼容旧参数：小脑已默认不启
