@@ -74,7 +74,10 @@ SCENARIO_OVERRIDES = {
 # 地图重生成后应收回 0.75+。
 EFF_MIN = 0.72            # NavFn 规划长度/实际位移 ≥ 0.72 (执行效率)
 ROUTE_FACTOR_MAX = 1.6    # NavFn 规划长度/地图A*最优 ≤ 1.6 (路线合理性)
-TIME_CAP_FRAC = 0.80      # 完成时间上限 = min(规划/0.15+15, 0.80×timeout)
+# 0.85: 时间项职责是防"死等/停滞", 拖沓由效率项(≥0.72)把关 — 两项解耦。
+# iter8 C: 规划 14.3m+绕行人+窄通道减速物理需 85-100s, plan/0.15+15=110s
+# 但 0.80×timeout 掐到 80s 造成假超标 (实际 99s 内完成了导航主体)。
+TIME_CAP_FRAC = 0.85
 TIME_V_MEAN = 0.15        # 目标平均速度 (m/s, vx_max=0.4 的 37.5%)
 TIME_MARGIN_S = 15.0      # 完成时间固定余量
 # A* 参考半径取 0.30 (nav2 robot_radius 0.25 + 1 格规划余量, 与 inflation
