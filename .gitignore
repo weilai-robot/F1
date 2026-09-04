@@ -28,3 +28,9 @@ tools/agent_loop/
 # --- Test data ---
 test_logs/data_csv/
 reports/
+
+# --- CI runtime artifacts (self-hosted runner writes into repo worktree) ---
+ci_logs/
+.ci_logs_*/
+.ci_r*/
+ci_r*/
