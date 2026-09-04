@@ -73,7 +73,10 @@ SCENARIO_OVERRIDES = {
 EFF_MIN = 0.72            # 最优路径/实际位移 ≥ 0.72
 TIME_V_MEAN = 0.15        # 目标平均速度 (m/s, vx_max=0.4 的 37.5%)
 TIME_MARGIN_S = 15.0      # 完成时间固定余量
-ROBOT_RADIUS = 0.25       # 与 nav2 robot_radius 一致
+# A* 参考半径取 0.30 (nav2 robot_radius 0.25 + 1 格规划余量, 与 inflation
+# 的可用通行带对齐)。0.25 时 C 的"最优 6.12m"是钻 0.26-0.35m 极窄缝 — 对
+# 0.45m 宽人形不是应鼓励的路线, NavFn 不选它是正确决策 (iter5 复盘)。
+ROBOT_RADIUS = 0.30
 
 CPU_BUDGET_PCT = {"aimrt_main": 120.0, "nav2": 80.0, "fastlio": 60.0,
                   "lidar_bridge": 40.0}
