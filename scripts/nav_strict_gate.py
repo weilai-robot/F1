@@ -259,8 +259,10 @@ def gate_batch(report_dir: str, report_only: bool) -> int:
           + ("" if navmap else " (⚠无地图, 效率退化直线基准)"))
     for row in gate_result["scenarios"]:
         icon = "✅" if row["pass"] else "❌"
-        fails = [c["metric"] for c in row["checks"] if not c["pass"]]
-        print(f"  {icon} {row['scenario']}" + (f"  失败项: {', '.join(fails)}" if fails else ""))
+        fails = [f"{c['metric']}={c['value']}{c['op']}{c['threshold']}"
+                 if c["value"] is not None else f"{c['metric']}=MISSING"
+                 for c in row["checks"] if not c["pass"]]
+        print(f"  {icon} {row['scenario']}" + (f"  失败: {'; '.join(fails)}" if fails else ""))
     print(f"[strict-gate] 明细: {os.path.join(report_dir, 'strict_gate.json')}")
 
     return 0 if (report_only or gate_result["pass_all"]) else 1

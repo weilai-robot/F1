@@ -37,6 +37,14 @@ MODEL_PATH="${BUILD_DIR}/cfg/sim_module/model/mjcf/xyber_x1_nav.xml"
 
 mkdir -p "$CI_LOG_DIR" "$REPORT_DIR"
 
+# ── 清理历史试验目录 (防 artifact 无限膨胀 → 上传超时/失败) ──
+# run 33842468439: reports/ 累积 538 文件, 上传 50MB+ TLS 断连失败
+# 保留本次运行所需: 只清 trial 子目录与旧 batch summary (保留最近 2 个)
+ls -t "$REPORT_DIR" 2>/dev/null | grep -E '^[A-Za-z_]+_[0-9]{8}_[0-9]{6}$' \
+    | tail -n +7 | while read -r o; do rm -rf "$REPORT_DIR/$o"; done || true
+ls -t "$REPORT_DIR"/batch_summary_*.json 2>/dev/null \
+    | tail -n +3 | xargs -r rm -f || true
+
 # ── 参数解析 ──────────────────────────────────────────────
 SCENARIO="${1:-all}"
 
