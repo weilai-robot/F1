@@ -435,10 +435,34 @@ print(str(r.get('metrics',{}).get('success',False)).lower())
 fi
 
 if [ "$NAV_PASS" = true ]; then
-    cecho "${G}[ci] ✓ 导航测试通过${N}"
-    exit 0
+    cecho "${G}[ci] ✓ 导航测试通过 (宽松标准: 无摔倒+无碰撞+误差<0.35m)${N}"
 else
-    cecho "${R}[ci] ✗ 导航测试失败 (详见上方指标)${N}"
+    cecho "${R}[ci] ✗ 导航测试失败 (宽松标准, 详见上方指标)${N}"
     cecho "${Y}  报告: ${REPORT_DIR}/${N}"
-    exit 1
+fi
+
+# ============================================================
+#  7. 观测报告 + 严格标准门禁
+#  STRICT_NAV=0 可跳过严格判定 (仅宽松标准)
+# ============================================================
+export MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/mplcache}"
+
+cecho "\n${B}[ci] 7/7 观测报告 + 严格标准门禁${N}"
+
+cecho "  生成观测报告 (轨迹/指令/漂移图 + 异常检测)..."
+python3 "${SCRIPT_DIR}/analyze_nav_trials.py" --report-dir "$REPORT_DIR" \
+    || cecho "${Y}  (观测报告生成失败, 不影响判定)${N}"
+
+if [ "${STRICT_NAV:-1}" = "1" ]; then
+    cecho "  应用严格测试标准..."
+    if python3 "${SCRIPT_DIR}/nav_strict_gate.py" --report-dir "$REPORT_DIR"; then
+        cecho "${G}[ci] ✓✓ 严格标准全部通过${N}"
+        exit 0
+    else
+        cecho "${R}[ci] ✗ 严格标准未通过 (见 reports/strict_gate.json / strict_gate.md)${N}"
+        exit 1
+    fi
+else
+    cecho "${Y}  STRICT_NAV=0, 跳过严格判定${N}"
+    [ "$NAV_PASS" = true ] && exit 0 || exit 1
 fi

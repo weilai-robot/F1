@@ -120,7 +120,8 @@ class MetricsCalculator:
                 self.odom_paired_data.append(
                     (sim_time, best_gt[1], best_gt[2], x, y, drift))
 
-    def compute_metrics(self, goal_x: float, goal_y: float, timeout_sec: float) -> dict:
+    def compute_metrics(self, goal_x: float, goal_y: float, timeout_sec: float,
+                        success_dist: float = 0.35) -> dict:
         """计算全部指标"""
         m = {}
 
@@ -139,7 +140,8 @@ class MetricsCalculator:
         goal_dist = math.sqrt((final_x - goal_x)**2 + (final_y - goal_y)**2)
 
         m["position_error_m"] = round(goal_dist, 3)
-        m["success"] = (not self.fall_detected) and (m["collisions"] == 0) and (goal_dist < 0.35)
+        m["success"] = (not self.fall_detected) and (m["collisions"] == 0) and (goal_dist < success_dist)
+        m["success_dist"] = success_dist
 
         # === 规划时间: goal发出 → 首次有速度输出 ===
         if self.goal_sent_time and self.first_motion_time:
@@ -454,6 +456,11 @@ class NavTestNode(Node):
         self.finished = False
         self.result_status = None
         self._cmd_vel_received = False
+        # goal 接受看门狗: rclcpp_action 首个 goal 响应可能因 discovery 未就绪丢失
+        # (实测 run 33830360449 场景A: bt_navigator "Failed to send goal response (timeout)")
+        self._goal_accepted = False
+        self._goal_attempts = 0
+        self._goal_send_time = None
 
         # QoS
         sensor_qos = QoSProfile(
@@ -528,6 +535,11 @@ class NavTestNode(Node):
         self.get_logger().info(f"发送导航目标: ({self.goal_x:.2f}, {self.goal_y:.2f})")
         self.metrics.start_time = time.monotonic()
         self.metrics.goal_sent_time = self.metrics.start_time
+        if self._goal_attempts == 0:
+            # 仅首次发送记 plan_time 基准; 重发沿用首基线
+            pass
+        self._goal_attempts += 1
+        self._goal_send_time = time.monotonic()
 
         send_future = self._action_client.send_goal_async(
             goal_msg, feedback_callback=self._feedback_cb
@@ -544,9 +556,36 @@ class NavTestNode(Node):
             self.result_status = "REJECTED"
             self.finished = True
             return
+        self._goal_accepted = True
         self.get_logger().info("Nav2 接受目标，导航中...")
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._result_cb)
+
+    def resend_goal_if_lost(self) -> bool:
+        """goal 发出后 12s 未被接受 → 重发 (最多 3 次)。
+        返回 True 表示本次调用触发了重发。"""
+        if (self._goal_accepted or self.finished
+                or self._goal_send_time is None
+                or self._goal_attempts >= 3):
+            return False
+        if time.monotonic() - self._goal_send_time < 12.0:
+            return False
+        self.get_logger().warn(
+            f"goal 响应丢失 ({time.monotonic() - self._goal_send_time:.0f}s 未接受), "
+            f"重发 (第 {self._goal_attempts + 1} 次)")
+        goal_msg = NavigateToPose.Goal()
+        goal_msg.pose.header.stamp = self.get_clock().now().to_msg()
+        goal_msg.pose.header.frame_id = "map"
+        goal_msg.pose.pose.position.x = self.goal_x
+        goal_msg.pose.pose.position.y = self.goal_y
+        goal_msg.pose.pose.orientation.w = math.cos(self.goal_yaw * 0.5)
+        goal_msg.pose.pose.orientation.z = math.sin(self.goal_yaw * 0.5)
+        send_future = self._action_client.send_goal_async(
+            goal_msg, feedback_callback=self._feedback_cb)
+        send_future.add_done_callback(self._goal_response_cb)
+        self._goal_attempts += 1
+        self._goal_send_time = time.monotonic()
+        return True
 
     def _result_cb(self, future):
         status = future.result().status
@@ -566,33 +605,34 @@ class NavTestNode(Node):
 
 SCENARIOS = {
     "A_straight_5m": {
-        "desc": "直线通行 5m (基线)",
+        "desc": "经典基线路线 (0,0)→(5,0): 隔断北门+玻璃门开口, 最优~8.4m",
         "goal_x": 5.0, "goal_y": 0.0, "goal_yaw": 0.0,
         "timeout": 60,
     },
     "B_obstacle_bypass": {
-        "desc": "绕障碍物到 5m 处",
-        "goal_x": 5.0, "goal_y": 0.0, "goal_yaw": 0.0,
+        "desc": "东侧区域绕障 (5,0)→(8,-3): 穿玻璃门开口+东区家具",
+        "goal_x": 8.0, "goal_y": -3.0, "goal_yaw": 0.0,
         "timeout": 60,
     },
     "C_narrow_passage": {
-        "desc": "穿越狭窄通道A (0.8m) 到东侧",
-        "goal_x": 5.0, "goal_y": -3.0, "goal_yaw": 0.0,
+        "desc": "南侧窄走廊抵近 (→4.5,-3): 狭小净空通道",
+        "goal_x": 4.5, "goal_y": -3.0, "goal_yaw": 0.0,
         "timeout": 90,
     },
     "D_impassable": {
-        "desc": "不可通过通道B (应绕路)",
+        "desc": "不可达目标(墙内)鲁棒性: 安全贴近≤0.6m+不摔不撞",
         "goal_x": 5.0, "goal_y": 3.2, "goal_yaw": 0.0,
+        "success_dist": 0.60,
         "timeout": 90,
     },
     "E_long_distance": {
-        "desc": "长距离导航 (对角 ~12m)",
-        "goal_x": 8.0, "goal_y": -3.0, "goal_yaw": 0.0,
+        "desc": "长距离全程返航 (→0,0): ~12.7m 跨双门",
+        "goal_x": 0.0, "goal_y": 0.0, "goal_yaw": 3.14159,
         "timeout": 120,
     },
     "F_return_trip": {
-        "desc": "往返导航 (去5m再回原点)",
-        "goal_x": 0.0, "goal_y": 0.0, "goal_yaw": 3.14159,
+        "desc": "重复性验证: 复跑 A 路线 (0,0)→(5,0)",
+        "goal_x": 5.0, "goal_y": 0.0, "goal_yaw": 0.0,
         "timeout": 120,
     },
 }
@@ -901,6 +941,7 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
             print(f"[3/4] 等待导航完成 (最长 {params['timeout']}s, Ctrl+C 可提前结束并保存)...")
             while not node.finished:
                 rclpy.spin_once(node, timeout_sec=0.5)
+                node.resend_goal_if_lost()
                 if len(node.metrics.gt_data) > 0:
                     latest = node.metrics.gt_data[-1]
                     sim_t = latest[0]
@@ -927,7 +968,9 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
     print("[4/4] 计算指标并保存...")
     if node.metrics.end_time is None:
         node.metrics.end_time = time.monotonic()
-    metrics = node.metrics.compute_metrics(params["goal_x"], params["goal_y"], params["timeout"])
+    metrics = node.metrics.compute_metrics(
+        params["goal_x"], params["goal_y"], params["timeout"],
+        success_dist=params.get("success_dist", 0.35))
     metrics["result_status"] = node.result_status or ("INTERRUPTED" if early_error is None else "NO_GT")
     if early_error:
         metrics["error_reason"] = early_error
@@ -986,6 +1029,81 @@ def run_single_test(scenario_name: str, params: dict, report_dir: str) -> dict:
     return full_result
 
 
+def warmup_nav_stack(timeout_sec: float = 45.0) -> bool:
+    """批量测试前的全链路热身: 向当前位姿发一个零距离导航 goal。
+
+    背景 (run 33830360449): bt_navigator 的首个 action goal 响应可能因
+    DDS discovery 未就绪而丢失, 导致整个场景静默失败 (60s 无 cmd_vel)。
+    先发一个"原地 goal"(Nav2 立即成功, 机器人不动) 激活:
+      action server 路径 / ComputePathToPose / FollowPath / 双 costmap。
+    """
+    import rclpy
+    from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+
+    print("[warmup] 导航栈热身 (零距离 goal)...")
+    rclpy.init()
+    node = Node("nav_warmup")
+    try:
+        gt = {"pose": None}
+        qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                         durability=DurabilityPolicy.VOLATILE, depth=10)
+        node.create_subscription(Float64MultiArray, "/mujoco/ground_truth",
+                                 lambda m: gt.__setitem__("pose", list(m.data)), qos)
+        client = ActionClient(node, NavigateToPose, "navigate_to_pose")
+
+        t0 = time.monotonic()
+        while gt["pose"] is None and time.monotonic() - t0 < 10.0:
+            rclpy.spin_once(node, timeout_sec=0.2)
+        if gt["pose"] is None:
+            print("  [warmup] ⚠ 无 ground truth, 跳过热身")
+            return False
+        x, y, yaw = gt["pose"][1], gt["pose"][2], gt["pose"][6]
+        print(f"  [warmup] 当前位姿 ({x:.2f},{y:.2f}), 发原地 goal")
+
+        if not client.wait_for_server(timeout_sec=15.0):
+            print("  [warmup] ⚠ action server 15s 未就绪")
+            return False
+
+        goal = NavigateToPose.Goal()
+        goal.pose.header.stamp = node.get_clock().now().to_msg()
+        goal.pose.header.frame_id = "map"
+        goal.pose.pose.position.x = float(x)
+        goal.pose.pose.position.y = float(y)
+        goal.pose.pose.orientation.w = math.cos(yaw * 0.5)
+        goal.pose.pose.orientation.z = math.sin(yaw * 0.5)
+
+        future = client.send_goal_async(goal)
+        deadline = time.monotonic() + timeout_sec
+        goal_handle = None
+        while time.monotonic() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.2)
+            if future.done():
+                goal_handle = future.result()
+                break
+        if goal_handle is None or not goal_handle.accepted:
+            print("  [warmup] ⚠ goal 未被接受 (热身失败, 依赖重发看门狗兜底)")
+            return False
+        result_future = goal_handle.get_result_async()
+        while time.monotonic() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.2)
+            if result_future.done():
+                status = result_future.result().status
+                ok = status == GoalStatus.STATUS_SUCCEEDED
+                print(f"  [warmup] {'✓' if ok else '⚠'} 热身 goal status={status}")
+                return ok
+        print("  [warmup] ⚠ 热身超时")
+        return False
+    finally:
+        try:
+            node.destroy_node()
+        except Exception:
+            pass
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
+
+
 def main():
     parser = argparse.ArgumentParser(description="导航仿真自动化测试")
     parser.add_argument("--goal-x", type=float, default=5.0, help="目标 X (m)")
@@ -1003,6 +1121,9 @@ def main():
     os.makedirs(report_dir, exist_ok=True)
 
     if args.batch:
+        # 批量测试: 热身后再跑
+        warmup_nav_stack()
+
         # 批量运行
         all_results = []
         for name, params in SCENARIOS.items():
