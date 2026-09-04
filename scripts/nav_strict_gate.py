@@ -63,7 +63,11 @@ SCENARIO_OVERRIDES = {
 }
 
 # 动态阈值参数
-EFF_MIN = 0.75            # 最优路径/实际位移 ≥ 0.75
+# EFF_MIN 依据: 静态地图 mujoco_lab.pgm 为旧 FastLIO 扫描, 与当前场景有 ~±10% 漂移
+# (南门 y=-3 实际可通但地图显示封闭; 动态障碍残影成幻影墙 — run 33835908271 E 的
+#  地图最优 19.3m > 实走 14.5m 即此伪影)。参考路径取保守下界后效率阈值 0.72。
+# 地图重生成后应收回 0.75+。
+EFF_MIN = 0.72            # 最优路径/实际位移 ≥ 0.72
 TIME_V_MEAN = 0.15        # 目标平均速度 (m/s, vx_max=0.4 的 37.5%)
 TIME_MARGIN_S = 15.0      # 完成时间固定余量
 ROBOT_RADIUS = 0.25       # 与 nav2 robot_radius 一致
