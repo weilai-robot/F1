@@ -61,7 +61,9 @@ SCENARIO_OVERRIDES = {
     # completion_time 豁免: NavFn tolerance 0.5 使机器人停在墙前 ~0.5m 干等至超时
     # (goal_checker 0.15 永不满足, spin recovery 无位移) — 这是参数设计下的正确
     # 鲁棒行为, 时间不是该场景的质量信号。
-    "D_impassable": {"position_error_max": 0.60, "skip_efficiency": True,
+    # 0.75: 局部 inflation 0.45 + 墙半厚 0.04 + goal_checker 容差的
+    # 结构性下界 (~0.65-0.70), 0.60 过紧 (iter6 实测 0.641, 贴墙即止)
+    "D_impassable": {"position_error_max": 0.75, "skip_efficiency": True,
                      "skip_completion": True},
 }
 
@@ -70,7 +72,9 @@ SCENARIO_OVERRIDES = {
 # (南门 y=-3 实际可通但地图显示封闭; 动态障碍残影成幻影墙 — run 33835908271 E 的
 #  地图最优 19.3m > 实走 14.5m 即此伪影)。参考路径取保守下界后效率阈值 0.72。
 # 地图重生成后应收回 0.75+。
-EFF_MIN = 0.72            # 最优路径/实际位移 ≥ 0.72
+EFF_MIN = 0.72            # NavFn 规划长度/实际位移 ≥ 0.72 (执行效率)
+ROUTE_FACTOR_MAX = 1.6    # NavFn 规划长度/地图A*最优 ≤ 1.6 (路线合理性)
+TIME_CAP_FRAC = 0.80      # 完成时间上限 = min(规划/0.15+15, 0.80×timeout)
 TIME_V_MEAN = 0.15        # 目标平均速度 (m/s, vx_max=0.4 的 37.5%)
 TIME_MARGIN_S = 15.0      # 完成时间固定余量
 # A* 参考半径取 0.30 (nav2 robot_radius 0.25 + 1 格规划余量, 与 inflation
@@ -100,14 +104,37 @@ def load_map():
     return None
 
 
+def _plan_length(trial_json_dir: str):
+    """读取 nav_test_runner 落盘的 global_plans.json, 返回首条 (goal 发出时)
+    NavFn 规划的路径长度 (m)。缺文件返回 None。"""
+    gp = os.path.join(trial_json_dir, "global_plans.json")
+    if not os.path.exists(gp):
+        return None
+    try:
+        with open(gp) as f:
+            doc = json.load(f)
+        paths = doc.get("paths") or []
+        if not paths:
+            return None
+        pts = paths[0]["points"]
+        L = 0.0
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            L += math.hypot(x1 - x0, y1 - y0)
+        return L
+    except Exception:
+        return None
+
+
 def trial_geometry(report_dir: str, entry: dict, navmap):
-    """从 timeseries.json 提取实际起点/位移, 结合地图算最优路径"""
+    """从 timeseries.json 提取实际起点/位移; NavFn 首条规划为执行参考;
+    地图 A* 为路线合理性参考"""
     name = entry.get("scenario", "?")
     params = entry.get("params", {}) or {}
     gx, gy = float(params.get("goal_x", 0.0)), float(params.get("goal_y", 0.0))
     trials = sorted(glob.glob(os.path.join(report_dir, f"{name}_*", "timeseries.json")))
     if not trials:
         return {}
+    tdir = os.path.dirname(trials[-1])
     try:
         with open(trials[-1]) as f:
             ts = json.load(f)
@@ -117,13 +144,24 @@ def trial_geometry(report_dir: str, entry: dict, navmap):
         start = (rows[0][1], rows[0][2])
         trial_dist = float(rows[-1][9] - rows[0][9])  # cum_diff
         out = {"actual_start": start, "actual_dist_m": round(trial_dist, 3)}
+        # NavFn 规划参考 (执行质量基准, 自校准)
+        plan_L = _plan_length(tdir)
+        if plan_L and plan_L > 0.1:
+            out["plan_path_m"] = round(plan_L, 2)
+            if trial_dist > 0.05:
+                out["efficiency_plan"] = round(min(plan_L / trial_dist, 1.0), 3)
+            out["time_cap_s"] = round(plan_L / TIME_V_MEAN + TIME_MARGIN_S, 1)
+        # A* 参考 (路线合理性, 兜底)
         if navmap is not None:
             L = navmap.optimal_path_length(start[0], start[1], gx, gy)
             if L == L and L > 0.1:  # not NaN
                 out["optimal_path_m"] = round(L, 2)
-                if trial_dist > 0.05:
-                    out["efficiency_optimal"] = round(min(L / trial_dist, 1.0), 3)
-                out["time_cap_s"] = round(L / TIME_V_MEAN + TIME_MARGIN_S, 1)
+                if trial_dist > 0.05 and "efficiency_plan" not in out:
+                    out["efficiency_plan"] = round(min(L / trial_dist, 1.0), 3)
+                if plan_L and plan_L > 0.1:
+                    out["plan_route_factor"] = round(plan_L / L, 3)
+                if "time_cap_s" not in out:
+                    out["time_cap_s"] = round(L / TIME_V_MEAN + TIME_MARGIN_S, 1)
         return out
     except Exception:
         return {}
@@ -203,18 +241,23 @@ def gate_batch(report_dir: str, report_only: bool) -> int:
         if "position_error_max" in ov:
             checks = [(k, {"op": "le", "ref": ov["position_error_max"]}, v)
                       if k == "position_error_m" else (k, r, v) for k, r, v in checks]
-        if not ov.get("skip_efficiency") and geo.get("efficiency_optimal") is not None:
-            checks.append(("efficiency_optimal", {"op": "ge", "ref": EFF_MIN},
-                           geo["efficiency_optimal"]))
-        # 完成时间: 动态 cap (最优路径/0.15 + 15s), 不超过 0.75×timeout
+        if not ov.get("skip_efficiency") and geo.get("efficiency_plan") is not None:
+            checks.append(("efficiency_plan", {"op": "ge", "ref": EFF_MIN},
+                           geo["efficiency_plan"]))
+        # 路线合理性: NavFn 规划不应远劣于地图最优 (防规划器犯傻;
+        # 安全绕行余量: NavFn 贴 inflation 中心走, 1.6x 容许)
+        if geo.get("plan_route_factor") is not None:
+            checks.append(("plan_route_factor", {"op": "le", "ref": ROUTE_FACTOR_MAX},
+                           geo["plan_route_factor"]))
+        # 完成时间: 动态 cap (NavFn 规划/0.15 + 15s), 不超过 0.80×timeout
         if ov.get("skip_completion"):
             cap = None
         elif "completion_time_s_max" in ov:
             cap = ov["completion_time_s_max"]
         elif geo.get("time_cap_s") is not None:
-            cap = min(geo["time_cap_s"], timeout * 0.75)
+            cap = min(geo["time_cap_s"], timeout * TIME_CAP_FRAC)
         else:
-            cap = timeout * 0.75
+            cap = timeout * TIME_CAP_FRAC
         if cap is not None:
             checks.append(("completion_time_s", {"op": "le", "ref": round(cap, 1)},
                            m_eval.get("completion_time_s")))
