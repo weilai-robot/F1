@@ -74,6 +74,10 @@ class NavMap:
         self.occ_thresh = float(cfg.get("occupied_thresh", occupied_thresh))
         w, h, vals = load_pgm(os.path.join(base, cfg.get("image", "map.pgm")))
         self.w, self.h = w, h
+        # PGM 约定 row0=顶部=+y_max; 按行翻转为 y_min 起始的行主序 (w2g 直接索引)
+        # 注意: 不能用 vals[::-1] (那会把每行内部也反转 = 180°旋转)
+        vals = [vals[r * w:(r + 1) * w] for r in range(h - 1, -1, -1)]
+        vals = [v for row in vals for v in row]
         # pgm 值 → 占据概率: p = (255 - v)/255 (negate=0)
         occ = [0.0] * (w * h)
         for idx, v in enumerate(vals):
