@@ -1,0 +1,270 @@
+{
+  "generated": "2026-09-04T10:53:58.838113",
+  "scenarios": [
+    {
+      "scenario": "A_straight_5m",
+      "checks": [
+        {
+          "metric": "fall",
+          "threshold": false,
+          "op": "==",
+          "value": false,
+          "pass": true,
+          "margin": null,
+          "status": null
+        },
+        {
+          "metric": "collisions",
+          "threshold": 0,
+          "op": "==",
+          "value": 0,
+          "pass": true,
+          "margin": null,
+          "status": null
+        },
+        {
+          "metric": "position_error_m",
+          "threshold": 0.2,
+          "op": "≤",
+          "value": 0.12,
+          "pass": true,
+          "margin": -0.08,
+          "status": null
+        },
+        {
+          "metric": "yaw_error_final_rad",
+          "threshold": 0.35,
+          "op": "≤",
+          "value": 0.01,
+          "pass": true,
+          "margin": -0.34,
+          "status": null
+        },
+        {
+          "metric": "plan_time_s",
+          "threshold": 5.0,
+          "op": "≤",
+          "value": 2.2,
+          "pass": true,
+          "margin": -2.8,
+          "status": null
+        },
+        {
+          "metric": "drift_max_m",
+          "threshold": 0.15,
+          "op": "≤",
+          "value": 0.05,
+          "pass": true,
+          "margin": -0.1,
+          "status": null
+        },
+        {
+          "metric": "drift_p95_m",
+          "threshold": 0.1,
+          "op": "≤",
+          "value": 0.02,
+          "pass": true,
+          "margin": -0.08,
+          "status": null
+        },
+        {
+          "metric": "linear_jerk_rms",
+          "threshold": 1.5,
+          "op": "≤",
+          "value": 0.4,
+          "pass": true,
+          "margin": -1.1,
+          "status": null
+        },
+        {
+          "metric": "angular_jerk_rms",
+          "threshold": 4.0,
+          "op": "≤",
+          "value": 0.8,
+          "pass": true,
+          "margin": -3.2,
+          "status": null
+        },
+        {
+          "metric": "direction_reversals_per_sec",
+          "threshold": 0.5,
+          "op": "≤",
+          "value": 0.1,
+          "pass": true,
+          "margin": -0.4,
+          "status": null
+        },
+        {
+          "metric": "vmin_m_s",
+          "threshold": -0.05,
+          "op": "≥",
+          "value": 0.0,
+          "pass": true,
+          "margin": 0.05,
+          "status": null
+        },
+        {
+          "metric": "rtf_mean",
+          "threshold": 0.9,
+          "op": "≥",
+          "value": 0.96,
+          "pass": true,
+          "margin": 0.06,
+          "status": null
+        },
+        {
+          "metric": "path_efficiency",
+          "threshold": 0.9,
+          "op": "≥",
+          "value": 0.95,
+          "pass": true,
+          "margin": 0.05,
+          "status": null
+        },
+        {
+          "metric": "completion_time_s",
+          "threshold": 30.0,
+          "op": "≤",
+          "value": 22.5,
+          "pass": true,
+          "margin": -7.5,
+          "status": null
+        }
+      ],
+      "pass": true
+    },
+    {
+      "scenario": "C_narrow_passage",
+      "checks": [
+        {
+          "metric": "fall",
+          "threshold": false,
+          "op": "==",
+          "value": false,
+          "pass": true,
+          "margin": null,
+          "status": null
+        },
+        {
+          "metric": "collisions",
+          "threshold": 0,
+          "op": "==",
+          "value": 1,
+          "pass": false,
+          "margin": null,
+          "status": null
+        },
+        {
+          "metric": "position_error_m",
+          "threshold": 0.2,
+          "op": "≤",
+          "value": 0.5,
+          "pass": false,
+          "margin": 0.3,
+          "status": null
+        },
+        {
+          "metric": "yaw_error_final_rad",
+          "threshold": 0.35,
+          "op": "≤",
+          "value": null,
+          "pass": false,
+          "margin": null,
+          "status": "MISSING"
+        },
+        {
+          "metric": "plan_time_s",
+          "threshold": 5.0,
+          "op": "≤",
+          "value": 8.0,
+          "pass": false,
+          "margin": 3.0,
+          "status": null
+        },
+        {
+          "metric": "drift_max_m",
+          "threshold": 0.15,
+          "op": "≤",
+          "value": 0.4,
+          "pass": false,
+          "margin": 0.25,
+          "status": null
+        },
+        {
+          "metric": "drift_p95_m",
+          "threshold": 0.1,
+          "op": "≤",
+          "value": 0.2,
+          "pass": false,
+          "margin": 0.1,
+          "status": null
+        },
+        {
+          "metric": "linear_jerk_rms",
+          "threshold": 1.5,
+          "op": "≤",
+          "value": 3.0,
+          "pass": false,
+          "margin": 1.5,
+          "status": null
+        },
+        {
+          "metric": "angular_jerk_rms",
+          "threshold": 4.0,
+          "op": "≤",
+          "value": 9.0,
+          "pass": false,
+          "margin": 5.0,
+          "status": null
+        },
+        {
+          "metric": "direction_reversals_per_sec",
+          "threshold": 0.5,
+          "op": "≤",
+          "value": 1.4,
+          "pass": false,
+          "margin": 0.9,
+          "status": null
+        },
+        {
+          "metric": "vmin_m_s",
+          "threshold": -0.05,
+          "op": "≥",
+          "value": -0.12,
+          "pass": false,
+          "margin": -0.07,
+          "status": null
+        },
+        {
+          "metric": "rtf_mean",
+          "threshold": 0.9,
+          "op": "≥",
+          "value": 0.85,
+          "pass": false,
+          "margin": -0.05,
+          "status": null
+        },
+        {
+          "metric": "path_efficiency",
+          "threshold": 0.55,
+          "op": "≥",
+          "value": 0.4,
+          "pass": false,
+          "margin": -0.15,
+          "status": null
+        },
+        {
+          "metric": "completion_time_s",
+          "threshold": 60.0,
+          "op": "≤",
+          "value": 85.0,
+          "pass": false,
+          "margin": 25.0,
+          "status": null
+        }
+      ],
+      "pass": false
+    }
+  ],
+  "pass_all": false
+}

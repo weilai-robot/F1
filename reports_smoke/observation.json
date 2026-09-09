@@ -1,0 +1,67 @@
+{
+  "generated": "2026-09-04T10:53:10.009163",
+  "matplotlib": true,
+  "trials": [
+    {
+      "scenario": "A_straight_5m",
+      "trial_dir": "reports_smoke/A_straight_5m_20260904_120000",
+      "metrics": {
+        "success": true,
+        "fall": false,
+        "collisions": 0,
+        "position_error_m": 0.12,
+        "plan_time_s": 2.2,
+        "drift_p95_m": 0.02,
+        "drift_max_m": 0.05,
+        "completion_time_s": 22.5,
+        "path_efficiency": 0.95,
+        "linear_jerk_rms": 0.4,
+        "angular_jerk_rms": 0.8,
+        "direction_reversals_per_sec": 0.1,
+        "vmax_m_s": 0.4,
+        "vmin_m_s": 0.0,
+        "vmean_m_s": 0.33,
+        "rtf_mean": 0.96
+      },
+      "yaw_error_final_rad": 0.01,
+      "anomalies": {
+        "stall_max_s": 0.0,
+        "stall_total_s": 0.0,
+        "accel_peak_m_s2": 0.04,
+        "wz_sign_flips_per_sec": 0.0,
+        "cmd_idle_ratio": 0.0,
+        "plots": [
+          "trajectory.png",
+          "cmd_vel.png",
+          "drift.png"
+        ]
+      }
+    },
+    {
+      "scenario": "C_narrow_passage",
+      "trial_dir": "reports_smoke/C_narrow_passage_20260904_120100",
+      "metrics": {
+        "success": false,
+        "fall": false,
+        "collisions": 1,
+        "position_error_m": 0.5,
+        "plan_time_s": 8.0,
+        "drift_p95_m": 0.2,
+        "drift_max_m": 0.4,
+        "completion_time_s": 85.0,
+        "path_efficiency": 0.4,
+        "linear_jerk_rms": 3.0,
+        "angular_jerk_rms": 9.0,
+        "direction_reversals_per_sec": 1.4,
+        "vmax_m_s": 0.4,
+        "vmin_m_s": -0.12,
+        "vmean_m_s": 0.1,
+        "rtf_mean": 0.85
+      },
+      "yaw_error_final_rad": null,
+      "anomalies": {
+        "plots": []
+      }
+    }
+  ]
+}
