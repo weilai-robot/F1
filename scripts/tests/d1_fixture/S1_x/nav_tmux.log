@@ -1,0 +1,2 @@
+[ mapping ]: time: IMU + Map + Input Downsample: 0.005 ave match: 0.008 ave solve: 0.012  ave ICP: 0.018 map incre: 0.004 ave total: 0.035 icp: 0.020 construct H: 0.010 
+[ mapping ]: time: IMU + Map + Input Downsample: 0.006 ave match: 0.009 ave solve: 0.013  ave ICP: 0.019 map incre: 0.004 ave total: 0.038 icp: 0.021 construct H: 0.011 
