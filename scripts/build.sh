@@ -93,6 +93,8 @@ check cfg/control_module/rl_x1.yaml
 check cfg/control_module/policy/rl_walk_leg.onnx
 check cfg/control_module/policy/rl_walk_leg_shoulder.onnx
 check cfg/dcu_driver_module/dcu_x1.yaml
+check cfg/x1_cfg_real_nav.yaml
+check run_real_nav.sh
 
 if [ "$MISSING" -gt 0 ]; then
     echo ""
@@ -115,4 +117,5 @@ echo -e "${YELLOW} 真机运行:${NC}"
 echo    "   cd build"
 echo    "   sudo setcap cap_net_raw=ep ./aimrt_main"
 echo    "   bash run.sh"
+echo    "   bash run_real_nav.sh   # 真机导航联合(大脑+小脑, 小脑不加载手柄)"
 echo ""

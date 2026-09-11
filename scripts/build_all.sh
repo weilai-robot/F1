@@ -87,6 +87,10 @@ if [ "$BUILD_MC" = true ]; then
     fi
     echo -e "${GREEN}  ✓ aimrt_main + libpkg1.so 构建成功${NC}"
     echo -e "${GREEN}  ✓ 配置文件:$(ls build/cfg/*.yaml | wc -l) 个 yaml${NC}"
+
+    if [ ! -f build/cfg/x1_cfg_real_nav.yaml ]; then
+        echo -e "${YELLOW}  ⚠ 缺少 build/cfg/x1_cfg_real_nav.yaml（真机导航联合模式配置未部署）${NC}"
+    fi
 fi
 
 # ═══════════════════════════════════════════════════════════
@@ -189,6 +193,7 @@ if [ "$DO_PACK" = true ]; then
     cp run_mujoco_nav.sh "${PKG_DIR}/" 2>/dev/null || true
     cp run_gazebo_nav.sh "${PKG_DIR}/" 2>/dev/null || true
     cp run_nav_real.sh "${PKG_DIR}/" 2>/dev/null || true
+    cp run_real_all.sh "${PKG_DIR}/" 2>/dev/null || true
     cp nav_test_runner.py "${PKG_DIR}/" 2>/dev/null || true
     cp build_nav.sh "${PKG_DIR}/" 2>/dev/null || true
 
