@@ -90,8 +90,7 @@ check run.sh
 check run_with_recording.sh
 check cfg/x1_cfg.yaml
 check cfg/control_module/rl_x1.yaml
-check cfg/control_module/policy/rl_walk_leg.onnx
-check cfg/control_module/policy/rl_walk_leg_shoulder.onnx
+# 注: policy/*.onnx 不校验 —— 模型文件名随版本迭代变化，实际加载项由 rl_x1.yaml / rl_x1_sim.yaml 的 policy_file 决定
 check cfg/dcu_driver_module/dcu_x1.yaml
 check cfg/x1_cfg_real_nav.yaml
 check run_real_nav.sh

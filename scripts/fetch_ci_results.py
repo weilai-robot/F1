@@ -81,8 +81,8 @@ def wait_for_run(run_id, timeout=2400, poll_interval=30):
 
 def download_artifacts(run_id, dest_dir):
     """下载 run 的所有 artifact"""
-    # 列出 artifact
-    out = gh("run", "view", str(run_id), "--json=artifacts")
+    # 列出 artifact (注: gh run view 不支持 --json=artifacts, 用 REST API)
+    out = gh("api", f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}/artifacts")
     info = json.loads(out)
     artifacts = info.get("artifacts", [])
 
@@ -92,7 +92,7 @@ def download_artifacts(run_id, dest_dir):
 
     print(f"[fetch] 发现 {len(artifacts)} 个 artifact:")
     for a in artifacts:
-        print(f"  - {a['name']} ({a.get('sizeInBytes', '?')} bytes)")
+        print(f"  - {a['name']} ({a.get('size_in_bytes', '?')} bytes)")
 
     # 下载
     os.makedirs(dest_dir, exist_ok=True)
@@ -370,7 +370,7 @@ def shutil_which(cmd):
     """shutil.which 的简单实现"""
     for path in os.environ.get("PATH", "").split(os.pathsep):
         full = os.path.join(path, cmd)
-        if os.path.isfile(full) and os.access(full, os.os.X_OK):
+        if os.path.isfile(full) and os.access(full, os.X_OK):
             return full
     return None
 
