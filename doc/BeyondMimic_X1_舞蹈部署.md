@@ -1,12 +1,16 @@
 # X1 BeyondMimic 舞蹈部署说明
 
-适用分支：`feat/x1-beyondminic-dance-deploy`。训练仓库：`/Users/yumx/code/Beyondminic-Weilai-X1`。本分支提供 X1 29DOF 舞蹈策略的离线资产、50 Hz 追踪控制器、专用 AimRT 配置和状态检查。**目前发现训练动作与本项目真机腰俯仰限位冲突，舞蹈控制器会在加载资产时拒绝启动；先核实机械限位和标零，再进行 Linux 构建、状态估计接入与闭环验证。不得据此直接进行无保护地面舞蹈。**
+适用分支：`feat/x1-beyondminic-dance-deploy`。训练仓库：`/Users/yumx/code/Beyondminic-Weilai-X1`。本分支提供 X1 29DOF 舞蹈策略的离线资产、50 Hz 追踪控制器、专用 AimRT 配置和状态检查。**腰俯仰的训练关节坐标与真机控制配置疑似相反；分支已加入双向符号映射，但现场标零、机械方向和锚点 TF 尚未验证，`sign_calibration_verified` 默认关闭，`/dance_mode` 会被拒绝。完成 Linux 构建与闭环验证前不可实机舞蹈。**
 
-## 当前阻断项：腰俯仰限位
+## 腰俯仰的坐标与限位
 
-训练 URDF 的 `lumbar_pitch_joint` 限位是 `[-0.15, +0.45] rad`，本项目 `motion_control/module/control_module/cfg/rl_x1.yaml` 真机配置是 `[-0.45, +0.15] rad`。导出的 647 帧参考动作中有 604 帧超过现有限位，第 0 帧就到 `+0.45 rad`，最大超出 `0.30 rad`。其他关节的参考角未发现越界。**现阶段不可使能舞蹈。**控制器加载时逐帧核对参考角与已配置限位，不会默默把这 604 帧截成 `+0.15 rad` 后继续执行。
+训练 URDF 的 `lumbar_pitch_joint` 限位是 `[-0.15, +0.45] rad`，本项目 `motion_control/module/control_module/cfg/rl_x1.yaml` 的真机限位是 `[-0.45, +0.15] rad`。两者恰好互为负号。若直接当作同一坐标比较，647 帧中有 604 帧越界，第 0 帧就到策略坐标的 `+0.45 rad`。**此前把这认作机械限位冲突过于武断：限位数值相反也可能只是坐标方向相反。**
 
-现场需对照实机铭牌/机械止挡、DCU 标零、关节正方向及关节反馈值，确定真机限位和训练 URDF 是否属于同一坐标定义。确认后才能修改配置或重新生成与真机限位相容的参考动作，并重新核对首帧与全过程。仅凭训练 URDF 扩大真机安全限位是不充分的。即使确认上限为 `+0.45 rad`，动作大量帧落在上限，部署命令还会保留 `joint_limit_margin: 0.03`，会影响跟踪精度；须在独立仿真和吊架验证动作可行性。
+链路核对结果：训练动作、策略观测和策略输出均按训练 URDF 关节坐标；DCU 的电机角进入 `LumbarParallelTransmission` 后，腰俯仰直接取右腰电机位置乘 `direction_right: +1`，发命令时也乘 `+1`。`ControlModule` 只在关节反馈上减 `joint_offset`、在关节目标上加回偏移；腰俯仰偏移当前为 0。其他多个关节的传动系数是 `-1`，但这些系数已经在 `/joint_states` 之前和电机命令之后成对应用；不能再拿它们解释腰俯仰的差异。其余 28 个关节的控制限位与训练 URDF 一致。
+
+舞蹈控制器现在单独配置 `joint_sign.lumbar_pitch_joint: -1`，暂按 `q_policy = - (q_dcu - joint_offset)`、`qd_policy = -qd_dcu` 处理腰俯仰，位置与力矩命令反向换回 DCU 坐标；全局限位、DCU 传动及其他控制模式不改。按这个**尚待实机确认的假设**，训练参考腰俯仰 `[-0.071, +0.45] rad` 对应 DCU 坐标 `[-0.45, +0.071] rad`，落在原有限位内。控制器把 DCU 限位先转换到策略坐标，再逐帧核对参考；不允许静默越界。动作很多帧落在 `-0.45 rad` 机械边界附近，`joint_limit_margin: 0.03` 会限制目标到 `-0.42 rad`，仍需检查跟踪质量。
+
+现场必须在吊架、低能量条件下对比实机腰向前/向后小幅运动、右腰电机原始角、`/joint_states` 腰俯仰角和训练 URDF 的正向，确认零位和方向，再核对两端机械止挡。还要确认 `/dance/anchor_pose` 的 TF 使用**训练 URDF 关节坐标**：若 TF 直接由原始 `/joint_states` 生成，在这个反号假设下腰俯仰一动，锚点姿态就会算错；需要在 TF/FK 输入侧做相同转换并验证。以上均核实后才把 `sign_calibration_verified` 改为 `true`。如果实测正向一致，应把 `joint_sign` 恢复 `+1`，再查明当前限位配置与实机机械范围哪一项错误；不能仅凭 URDF 放宽安全限位。
 
 ## 训练与推理契约
 
@@ -48,7 +52,7 @@
 
 ## Linux 主控验证顺序
 
-1. 先解决上一节的腰俯仰限位冲突。当前配置下舞蹈控制器会拒绝加载，不能进入后续实机步骤。保存现场核实记录和最终使用的限位配置。
+1. 先按上一节核实腰俯仰方向、零位、限位和锚点 TF。当前 `sign_calibration_verified: false` 时主控可以启动以检查反馈，但 `/dance_mode` 会被拒绝。保存现场核实记录后才开启该开关。
 2. 在服务器上获取**父仓库与 `motion_control` 子模块同名分支的代码**，更新父仓库子模块指针；同时确认两个 `.bin` 资产已包含。本地提交尚未推送时，服务器无法通过 Git 远端获取这些改动。
 3. 在 Linux 主控运行 `./scripts/build.sh`。检查 `build/cfg/x1_cfg_dance.yaml`、`build/run_dance.sh` 和两个模型资产；用 `sha256sum` 与上表比较。每次重新生成 `build/aimrt_main` 后，在 `build/` 内执行 `sudo setcap cap_net_raw,cap_sys_nice=ep ./aimrt_main` 并用 `getcap` 检查，避免启动脚本仅设置 `cap_net_raw` 时失去实时调度权限。不要在 Mac 上编译或安装。
 4. 吊装机器人，确认硬件急停和驱动器失联下使能。先将 `build/cfg/dcu_driver_module/dcu_x1.yaml` 设为 `enable_actuator: false`，校验 EtherCAT、29 关节、IMU、两个舞蹈状态话题和实时性。此阶段直接从 `build/` 运行 `./aimrt_main --cfg_file_path=./cfg/x1_cfg_dance.yaml`；头部需另行支撑，避免启动脚本使能颈部舵机。
