@@ -1,85 +1,45 @@
-# AMP 全身运动策略部署适配（x1_29_AMP → F1）
+# X1 29DOF AMP：50 Hz 部署审计
 
-> 分支：`feat/amp-deploy`（F1 主仓库 + motion_control 子模块同名分支）
-> 模型：`x1_amp_v46s_soup.onnx`（v46s model soup α=0.5，29DOF 全身 AMP 行走）
-> 契约来源：`x1_29_AMP/sim2sim/{deploy_onnx_rt.py, mujoco_rollout.py}`（sim2sim 验证管线）
+训练来源：`/Users/yumx/code/X1_29_AMP`。本分支默认模型改为 `acceptance/v59c_eval/soup59c_50.policy.npz` 导出的 `x1_amp_soup59c_50hz.onnx`。原 `x1_amp_v46s_soup.onnx` 保留作回退模型。
 
-## 1. 模型验证状态（来自训练侧 v46 验收）
-
-- G2 步态门：walk05 / walk10 / back05 髋膝比全 PASS（0.890~0.985）
-- P7 形式门 8/8；walk10 漂移 +0.01 m（历代最优）
-- 鲁棒性 51/60（lat2 / lag2 / push0.75 首次全 5/5；push1.0 1/5、worst 0/5 未收敛——**上机避免强推撞**）
-- 模型 SHA256：`99f258ebdbbb8fd4d8cc77c956e25b06cb82bd4cbafad7585b82feaaf7348517`
-
-## 2. 部署契约（infer 代码必须逐项满足）
+## 训练与部署契约
 
 | 项 | 值 |
 |---|---|
-| 输入 | `obs [1,288] float32`，名称 `obs` |
-| 输出 | `action [1,29]`，名称 `action` |
-| 归一化 | **融合在 ONNX 图内**（(x−mean)/std 在首层前），C++ 侧喂原始值，不走 obs_scales |
-| 每帧布局（96） | `[base_ang_vel(3), projected_gravity(3), cmd(3), joint_pos_rel(29), joint_vel(29), last_action(29)]` |
-| 历史展开 | **term-major**：每项 3 帧 oldest-first 拼接（v26 根因修复点，非 frame-major） |
-| 历史初始化 | 零初始化（Isaac env reset 行为） |
-| 关节序 | LAB_DOF_ORDER = 顶层 `joint_list`（腰3→左臂7→右臂7→左腿6→右腿6） |
-| 动作映射 | `q_target = default_q + 0.25 × action` |
-| 策略频率 | 50 Hz（decimation=20 @ 1kHz），PD 1kHz |
-| 指令范围 | vx∈[-0.5,2.5] vy∈[-0.5,0.5] wz∈[-1.5,1.5]（超出限幅后入 obs） |
-| 软启动 | 1.0s（50 拍）零指令零动作，目标角=default_q |
-| 重力约定 | `projected_gravity = Rᵀ·[0,0,-1]`，R 为 IMU 四元数旋转阵（body→world） |
+| 频率 | 训练与 MuJoCo 验证均为 50 Hz 策略；本项目 1000 Hz 主循环、`decimation=20` |
+| 输入 | `obs`，float32 `[1,288]`；96 维帧的 3 帧历史，按**观测项优先**、每项旧到新展开 |
+| 帧布局 | 机身角速度 3、投影重力 3、速度指令 3、相对默认关节角 29、关节速度 29、上次动作 29 |
+| 输出 | `action`，float32 `[1,29]`；`q_target=default_q+0.25*action` |
+| 关节顺序 | LAB_DOF_ORDER：腰 3、左臂 7、右臂 7、左腿 6、右腿 6 |
+| 归一化 | mean/std 已融合进 ONNX；C++ 输入原始观测，不再做 obs_scales 缩放 |
+| 动作低通 | soup59c_50 训练配置中 `X1_ACT_LPF_HZ` 缺省为 0；MuJoCo 验证同样 `--action-lpf 0` |
 
-## 3. 代码修改点（motion_control 子模块）
+50 Hz 模型**默认关闭动作与位置目标 LPF**。原先的 `wc=100 rad/s` 二阶滤波作用在 1000 Hz 下发的目标角以及踝力矩上，会给策略引入训练中没有的延迟。100 Hz 后续实验的 `10 Hz × 2` 动作 LPF 属于另一套训练契约，不能直接套用到这个 50 Hz 模型。关闭 LPF 不等于去掉所有保护：切入 AMP 时仍在 1 秒内从实测姿态平滑到 `default_q`，之后才直通策略的 50 Hz 阶梯目标。若实机发现高频振动，应先测执行器响应和时延，再将滤波配置、训练/闭环仿真一起重验。
 
-| 文件 | 修改 |
-|---|---|
-| `include/control_module/rl_controller.h` | 新增 `AmpConf`/`amp_mode_`/`amp_settle_remaining_` 成员 |
-| `src/rl_controller.cc` | ① Init 解析 `obs_layout: amp` + `amp_conf`（维度校验 9+3n）② RestartController 重置软启动/清 last_actions ③ Update 推理拍软启动零动作 ④ ComputeObservation amp 分支：96 维帧组装、cmd 限幅+软启动置零、零初始化历史、term-major 重排展开 |
-| `module/control_module/policy/x1_amp_v46s_soup.onnx` | 模型入库（构建时随 CMake install 到 `build/cfg/control_module/policy/`） |
-| `module/control_module/cfg/rl_x1.yaml`、`rl_x1_sim.yaml` | 新增 `rl_walk_amp` 控制器块 + `walk_amp` 状态（trigger `/amp_mode`）+ idle/keep/stand 的 pre_states 增补 |
-| `install/linux/bin/cfg/x1_cfg*.yaml`（4 个） | aimrt 通道正则加入 `amp_mode`（允许外部 ROS2 触发） |
+## 本分支改动
 
-**legacy 路径（rl_walk_leg / rl_walk_leg_shoulder）零改动**：`obs_layout` 缺省即 legacy，旧配置行为不变。
+- 真机与仿真配置都指向新 ONNX，并强制校验 `control_frequency / decimation = 50 Hz`、29 关节及限位/PD 参数、模型输入输出名称、形状和类型。
+- 同步修复两个配置里旧 RL 控制器指向不存在模型文件的问题；模块初始化会加载全部控制器，即使只切换 AMP，这些路径也必须有效。
+- 进入 AMP 时清历史和上次动作，重置策略计数；1 秒内观测指令及动作均为零，同时按 1000 Hz 的三次平滑曲线将当前关节角过渡到默认角。
+- AMP 关节目标按配置机械限位截断；并联踝仍用关节空间 PD 力矩，经传动模型映射到双电机，关节空间力矩限制为训练侧的 ±80 Nm。`walk_diag` 的 `*_raw` 与 `*_lpf` 列在无 LPF 模式下分别表示策略原值和实际下发值（含软启动/限位/力矩限幅）。
+- 无有效 IMU 或 29 关节反馈时拒绝进入 AMP；运行中任一反馈超过 100 ms、倾角超过 45°、ONNX 推理失败或输出非有限数时，停止策略并切到 `keep`。速度指令超过 250 ms 未更新则归零。关节消息缺列或关节顺序变化会重新检查映射。
+- 投影重力直接由归一化后的四元数计算 `Rᵀ[0,0,-1]`，避免欧拉角往返变换。
+- 从 AMP 发出的 `/keep_mode` 与 `/idle_mode` 跳过普通模式 1 秒节流，确保操作者可以立即退出策略；硬件急停仍应独立可用。
 
-## 4. 使用方法
+## 当前验证
 
-```bash
-# 构建
-./scripts/build.sh
+- 导出源 NPZ SHA256：`a0cbe051220bf957ba6947851774541a54b83bc3dc258bd40a6a00f08e2e7b07`。
+- ONNX SHA256：`3e09b76f1e38085a2093abccc1e6f80c86751c9758f7f21d0f497163c99ebd00`，输入 `[1,288]`、输出 `[1,29]`，200 组随机观测相对 NumPy 最大绝对误差 `4.39e-5`。
+- 新 ONNX 在训练仓库 `sim2sim/mujoco_rollout.py` 的 50 Hz、无 LPF、`vx=1.0` 闭环中存活 575/575 指令拍（11.5 秒），平均平面速度误差 0.079 m/s、平均偏航速度误差 0.146 rad/s。
+- 训练侧综合评估：soup59c_50 的强推 `push1.0` 仅 1/5、`worst` 0/5；低速步态存在右足拖步；新增节律门 P8 的 50 Hz 冠军仍不通过步频、摆腿时长和步长要求。这些限制对实机仍成立。
 
-# 真机（进入 AMP 模式：先站立再切 AMP）
-ros2 topic pub --once /zero_mode std_msgs/msg/Float32 "{data: 0}"
-ros2 topic pub --once /stand_mode std_msgs/msg/Float32 "{data: 0}"
-ros2 topic pub --once /amp_mode std_msgs/msg/Float32 "{data: 0}"
-# 速度指令（注意软启动 1s 后才生效；指令超出训练范围会被限幅）
-ros2 topic pub -r 10 /cmd_vel_limiter geometry_msgs/msg/Twist "{linear: {x: 0.5}}"
-# 退出：/stand_mode 或 /keep_mode（walk_amp → stand/keep/idle 均可达）
-```
+## 实机结论与验证顺序
 
-仿真侧用 `install/linux/bin/cfg/x1_cfg_sim.yaml` 同理。
+**当前只能进入受保护的吊架/悬空联调，不能据此认定可以无保护地面行走。** MuJoCo 用理想关节 PD；本机对并联踝采用电机力矩映射，电机侧限幅、传动符号、响应时延、IMU 朝向和零位偏置均需现场测量。当前没有基座高度或触地看门狗；反馈超时只检测话题接收，若 DCU 持续重发旧传感器值，还需要硬件层新鲜度保护。Linux/ROS2/AimRT 的编译与实机闭环均待服务器验证。
 
-## 5. 上机前 checklist
+1. 在目标 Linux 环境运行 `./scripts/build.sh`，检查 `build/cfg/control_module/policy/x1_amp_soup59c_50hz.onnx` 和控制器配置一同安装。
+2. 在吊架、急停可触及条件下先核对 `/joint_states` 的 29 个名称/角度/速度及零位偏置；静止机身的 `/imu/data` 应使投影重力约为 `(0,0,-1)`，沿三个轴倾斜时方向应符合机身坐标系。注意 IMU 四元数必须表示 body→world。
+3. 从 `stand` 进入 `/amp_mode`，保持零速度超过 1 秒，核对 50 Hz 推理、1000 Hz 下发、位置目标过渡、踝电机映射和 `walk_diag` 中下发力矩。确认传感器断流会切到 `keep`，并对故障态执行人工急停演练。
+4. 通过悬空测试后，再在安全约束下由零速、极低速度逐级试验；重点看踝扭矩尖峰、相位滞后、足部拖步与控制周期丢拍。首次不要采用强推、急转、后退边界指令。
 
-1. **关节序核对**：`ros2 topic echo /joint_states` 的 name 顺序无关（按名映射），但确认 29 关节全部在发；`rl_walk_amp.joint_list` 与训练 LAB 序一致（已对拍）。
-2. **IMU 四元数**：`/imu/data` orientation 须为 body 在 world 系姿态（ROS 标准）。amp obs 的重力项首次上真机——起步先悬空或吊架验证 obs 波形（walk_diag CSV 有 imu_quat 列）。
-3. **软启动**：进 walk_amp 后 1s 内目标角=default_q（LPF 从当前角平滑过渡），勿在软启动期内给指令。
-4. **指令范围**：vx>2.5 会被压到 2.5；后退仅验证到 -1.0（OOD），真机限 -0.5。
-5. **鲁棒性边界**：push1.0/worst 场景未收敛——避免强推撞、避免突然反向大指令。
-6. **力矩限幅**：训练侧 tau_max：腰/髋/膝 180、踝 80、肩/肘 27、腕 10 Nm。dcu_x1.yaml 无显式限幅字段（靠电机自身保护），上机前确认电机层限幅覆盖腕关节（首次由策略驱动腕部）。
-7. **诊断数据**：walk_diag CSV 自动记录（20s 上限）；`tm_obs_input_*.bin` 为 288 维原始 obs 序列，可用于离线回放对拍（与训练侧 replay 工具兼容）。
-
-## 6. 与 sim2sim 验证管线的已知差异（有意保留）
-
-| 差异 | 原因 | 风险与对策 |
-|---|---|---|
-| 位置目标二阶 LPF（wc=100 rad/s ≈ 15.9Hz），踝并联走 effort 模式 | F1 硬件踝并联结构响应不一致的既有缓解 | 若步态发"软"/跟踪差，增大 wc 或去掉非踝关节的 LPF |
-| 无 base_height/tilt 看门狗 | 控制模块无基座高度源；与现有 walk_leg 安全策略一致 | 人工急停；后续可从 nav 侧 odom 引入高度 |
-| PD 在 dcu 电机层执行（1kHz） | 硬件架构 | 与 Isaac 验证的 ≥200Hz 重算要求满足 |
-| 推理在软启动期仍运行（输出被丢弃） | 实现简洁 | 无功能影响 |
-
-## 7. 验证记录（本分支适配时）
-
-- Python 复刻 C++ AMP 路径 vs 训练侧 `ObsBuffer`：40 帧 **bitwise 一致**
-- 零初始化语义：首帧 jpos 历史 = [0,0,fr0] ✓
-- 真实 ONNX 端到端 200 帧：两路径输出动作 **max diff = 0**，有限有界
-- yaml 对拍：LAB 序 / DEFAULT_Q / kp / kd 与训练契约逐位一致；obs=96=9+3×29 ✓
-- **C++ 编译未在本机执行**（无 Linux/aimrt 工具链），需 `./scripts/build.sh` 或 CI 验证
+使用现有状态机话题切换：`/zero_mode` → `/stand_mode` → `/amp_mode`，速度输入为 `/cmd_vel_limiter`；退出用 `/stand_mode` 或 `/keep_mode`。普通模式话题节流 1 秒，每一步需等状态切换完成；AMP 内的 `/keep_mode` 和 `/idle_mode` 可立即退出。`lpf_conf.position_enabled` 和 `effort_enabled` 可以独立设置；更改任一项后都需重新进行与配置一致的闭环和实机低风险测试。
