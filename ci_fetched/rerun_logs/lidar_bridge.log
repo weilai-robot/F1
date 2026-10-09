@@ -1,0 +1,137 @@
+[INFO] [1789032194.999431118] [mujoco_lidar_bridge]: Loading MuJoCo scene: /home/robot/github-runner/_work/F1/F1/build/cfg/sim_module/model/mjcf/xyber_x1_nav.xml
+[INFO] [1789032195.415318501] [mujoco_lidar_bridge]: LiDAR raycast excludes 48 robot geoms via group 3
+[INFO] [1789032195.419627142] [mujoco_lidar_bridge]: Free joint qpos_adr=0
+[INFO] [1789032195.470491377] [mujoco_lidar_bridge]: LidarBridge 启动 (事件驱动): model=/home/robot/github-runner/_work/F1/F1/build/cfg/sim_module/model/mjcf/xyber_x1_nav.xml
+  lidar_hz=10, downsample=5
+  output_type=custom
+  base_pose 驱动: /clock (1000Hz) + /livox/lidar (10Hz)
+
+[INFO] [1789032195.479959256] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032197.485991362] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032199.495838123] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032201.512034676] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032203.535379570] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032205.640823310] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032207.885222312] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032210.298430147] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032212.639887770] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032214.747017620] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032217.012856048] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032219.115978616] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032221.131969944] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032223.270669261] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032225.336069082] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032227.379838778] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032229.444503904] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032231.596575600] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032233.659147712] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032235.693621135] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032237.800646207] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032239.941273824] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032241.966464606] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032244.010835581] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032246.119458754] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032248.321283556] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032250.353628622] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032252.386161251] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032254.412103471] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032256.608492718] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032258.738044301] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032260.786441926] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032262.886647708] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032264.938145125] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032266.969692894] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032317.810178547] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032319.944418012] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032322.101740122] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032324.173493468] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032326.435529506] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032328.666166944] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032330.687940472] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032333.094374744] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032335.373949879] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032337.639290874] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032340.007014796] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032342.457027324] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032344.713006980] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032346.850329194] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032349.397839195] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032351.585827696] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032353.780011992] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032355.878136403] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032358.147211258] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032360.400230947] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032362.516923181] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032364.803795233] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032366.935519594] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032369.076643762] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032371.403234275] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032373.667055437] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032375.773184999] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032378.279366033] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032380.493664264] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032382.712694569] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032384.837572827] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032387.132898061] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032389.318392669] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032391.396030818] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032393.553267813] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032395.739297048] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032397.935087315] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032400.190147944] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032402.502023818] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032404.546679326] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032406.874233331] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032409.216885826] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032411.288431861] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032413.502399133] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032415.645381208] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032417.743473992] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032420.010092696] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032422.277416875] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032424.449720503] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032426.601872433] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032428.789172681] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032430.893758945] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032433.020923061] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032435.428074249] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+[INFO] [1789032437.487286515] [mujoco_lidar_bridge]: MID360 hits=4800, downsample=5
+Traceback (most recent call last):
+  File "/home/robot/github-runner/_work/F1/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 304, in main
+    rclpy.spin(node)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+    executor.spin_once()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 805, in _spin_once_impl
+    raise handler.exception()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/task.py", line 272, in _execute_coroutine_step
+    result = coro.send(None)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 488, in handler
+    await call_coroutine(entity, arg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 407, in _execute_subscription
+    await await_or_execute(sub.callback, msg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 110, in await_or_execute
+    return callback(*args)
+  File "/home/robot/github-runner/_work/F1/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 220, in _pose_cb
+    self._publish_custom(pts, stamp_sec, stamp_nsec)
+  File "/home/robot/github-runner/_work/F1/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 246, in _publish_custom
+    self.lidar_pub.publish(msg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 70, in publish
+    self.__publisher.publish(msg)
+rclpy._rclpy_pybind11.RCLError: Failed to publish: publisher's context is invalid, at ./src/rcl/publisher.c:389
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/robot/github-runner/_work/F1/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 313, in <module>
+    main()
+  File "/home/robot/github-runner/_work/F1/F1/navigation/planning/humanoid_sim/scripts/mujoco_lidar_bridge.py", line 309, in main
+    rclpy.shutdown()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 130, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/utilities.py", line 58, in shutdown
+    return context.shutdown()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/context.py", line 102, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:241

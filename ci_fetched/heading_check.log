@@ -1,0 +1,28 @@
+[INFO] [1788432292.719723139] [heading_check]: GT yaw = -2.092 rad (-119.9°)
+[INFO] [1788432292.729703957] [heading_check]: odom yaw = -1.374 rad (-78.7°)
+HEADING_CHECK: gt_yaw=-2.092 odom_yaw=-1.374 delta=+41.2°
+HEADING_CHECK: MISALIGN (+41.2°)
+[INFO] [1788432386.975468449] [heading_check]: odom yaw = -0.121 rad (-6.9°)
+[INFO] [1788432387.018937591] [heading_check]: GT yaw = -0.180 rad (-10.3°)
+HEADING_CHECK: gt_yaw=-0.180 odom_yaw=-0.121 delta=+3.4°
+HEADING_CHECK: OK (对齐)
+[INFO] [1788432573.857348586] [heading_check]: odom yaw = -0.109 rad (-6.2°)
+[INFO] [1788432574.615913416] [heading_check]: GT yaw = -0.169 rad (-9.7°)
+HEADING_CHECK: gt_yaw=-0.169 odom_yaw=-0.109 delta=+3.5°
+HEADING_CHECK: OK (对齐)
+[INFO] [1788432788.547913815] [heading_check]: GT yaw = -0.167 rad (-9.6°)
+[INFO] [1788432789.445691417] [heading_check]: odom yaw = -0.111 rad (-6.4°)
+HEADING_CHECK: gt_yaw=-0.167 odom_yaw=-0.111 delta=+3.2°
+HEADING_CHECK: OK (对齐)
+[INFO] [1788432888.606520102] [heading_check]: GT yaw = -0.168 rad (-9.6°)
+[INFO] [1788432889.612602467] [heading_check]: odom yaw = -0.109 rad (-6.2°)
+HEADING_CHECK: gt_yaw=-0.168 odom_yaw=-0.109 delta=+3.4°
+HEADING_CHECK: OK (对齐)
+[INFO] [1788433103.000183384] [heading_check]: GT yaw = -0.164 rad (-9.4°)
+[INFO] [1788433103.088693051] [heading_check]: odom yaw = -0.105 rad (-6.0°)
+HEADING_CHECK: gt_yaw=-0.164 odom_yaw=-0.105 delta=+3.4°
+HEADING_CHECK: OK (对齐)
+[INFO] [1788433344.729284444] [heading_check]: GT yaw = -0.166 rad (-9.5°)
+[INFO] [1788433344.730743009] [heading_check]: odom yaw = -0.104 rad (-6.0°)
+HEADING_CHECK: gt_yaw=-0.166 odom_yaw=-0.104 delta=+3.6°
+HEADING_CHECK: OK (对齐)
