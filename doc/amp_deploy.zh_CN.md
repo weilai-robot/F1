@@ -42,4 +42,4 @@
 3. 从 `stand` 进入 `/amp_mode`，保持零速度超过 1 秒，核对 50 Hz 推理、1000 Hz 下发、位置目标过渡、踝电机映射和 `walk_diag` 中下发力矩。确认传感器断流会切到 `keep`，并对故障态执行人工急停演练。
 4. 通过悬空测试后，再在安全约束下由零速、极低速度逐级试验；重点看踝扭矩尖峰、相位滞后、足部拖步与控制周期丢拍。首次不要采用强推、急转、后退边界指令。
 
-使用现有状态机话题切换：`/zero_mode` → `/stand_mode` → `/amp_mode`，速度输入为 `/cmd_vel_limiter`；退出用 `/stand_mode` 或 `/keep_mode`。普通模式话题节流 1 秒，每一步需等状态切换完成；AMP 内的 `/keep_mode` 和 `/idle_mode` 可立即退出。`lpf_conf.position_enabled` 和 `effort_enabled` 可以独立设置；更改任一项后都需重新进行与配置一致的闭环和实机低风险测试。
+使用现有状态机话题切换：`/zero_mode` → `/stand_mode` → `/amp_mode`，速度输入为 `/cmd_vel_limiter`；退出用 `/stand_mode` 或 `/keep_mode`。普通模式话题节流 1 秒，每一步需等状态切换完成；AMP 内的 `/keep_mode` 和 `/idle_mode` 可立即退出。`lpf_conf.position_enabled` 和 `effort_enabled` 可以独立设置；更改任一项后都需重新进行与配置一致的闭环和实机低风险测试。一键脚本 `scripts/run_amp_real.sh`（构建→启动→反馈检查→模式切换→限幅键盘遥控）与手柄操作（Guide 进 AMP、LB 死区、退出/RT/LT 行为）见《[AMP部署操作说明](AMP部署操作说明.md)》第 6 节。

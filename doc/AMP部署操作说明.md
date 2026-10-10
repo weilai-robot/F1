@@ -46,6 +46,7 @@ ONNX 的 SHA256 应为 `3e09b76f1e38085a2093abccc1e6f80c86751c9758f7f21d0f497163
 | `cfg/control_module/rl_x1.yaml` | 顶层 `initial_state: idle`、`control_frequecy: 1000`、`bind_cpu`/`rt_priority`、29 个关节名称和顺序、实机 `joint_offset` 与机械 `joint_limits` |
 | 同文件的 `rl_walk_amp` | `decimation: 20`、`action_scale: 0.25`、`settle_ticks: 50`、`policy_file` 为本次模型、`lpf_conf.position_enabled: false`、`lpf_conf.effort_enabled: false` |
 | `cfg/x1_cfg_real_nav.yaml` | 加载 `ControlModule` 与 `DcuDriverModule`，不加载 `JoyStickModule`；现场没有其他节点写 `/cmd_vel_limiter` |
+| `cfg/x1_cfg.yaml` 与 `cfg/joy_stick_module/joy_x1.yaml` | 手柄模式入口：加载 `JoyStickModule`；Guide 键(8) 映射 `/amp_mode`，`constant_velocity` 已注释（摇杆轴生效），速度限幅为保守值 vx±0.5 / vy±0.3 / wz±0.5 |
 
 `initial_state: idle` 是 `rl_x1.yaml` 的**顶层**字段；建议显式设置，避免启动状态依赖 YAML 中状态的排列顺序。`ethercat.bind_cpu` 与控制器 `bind_cpu` 必须是该 Linux 主控上有效且合适的独立 CPU。首次启动前核对机身 IMU 的 body→world 四元数定义、29 关节反馈的方向/零位，以及并联踝双电机的传动符号和限幅。配置里的全零 `joint_offset` 不能代替实机标零。
 
@@ -119,9 +120,61 @@ ros2 topic pub --once /amp_mode std_msgs/msg/Float32 '{data: 0.0}'
 ros2 topic pub -r 10 /cmd_vel_limiter geometry_msgs/msg/Twist '{linear: {x: 0.05, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'
 ```
 
-首次不要测试急转、后退边界指令或外力推扰。观察左右腿、足部离地和踝电机响应；出现拖步、震荡、限位碰撞、状态异常或急停需求时按第 6 节处理。
+首次不要测试急转、后退边界指令或外力推扰。观察左右腿、足部离地和踝电机响应；出现拖步、震荡、限位碰撞、状态异常或急停需求时按第 7 节处理。
 
-## 6. 退出、记录与放行判断
+## 6. 一键脚本与手柄操作
+
+第 5 节的手工指令是基准流程，理解每一步的作用后再使用本节快捷方式。两者不要混用：任何时刻 `/cmd_vel_limiter` 只允许一个发布者。
+
+### 6.1 一键脚本 `scripts/run_amp_real.sh`
+
+脚本串起：可选构建 → tmux 启动小脑（`run.sh`，即 `x1_cfg.yaml`，**含手柄模块**，并尝试使能颈部舵机）→ `/joint_states` 与 `/imu/data` 反馈检查 → 人工安全确认 → `zero → stand →（确认站稳）→ amp` → 键盘遥控。
+
+```bash
+cd /path/to/F1
+./scripts/run_amp_real.sh --build   # 首次：先构建再启动
+./scripts/run_amp_real.sh           # 直接启动（需已有 build/ 产物）
+./scripts/run_amp_real.sh --attach  # 小脑已在运行，仅进入模式切换+遥控
+```
+
+要点：
+
+- 需要 tmux。小脑运行在 tmux 会话 `f1_amp` 的 aimrt 窗口，日志用 `tmux attach -t f1_amp` 查看。
+- 反馈检查不通过（话题无订阅者或无数据）时脚本终止；此时 `/amp_mode` 同样会被小脑的 AmpReady 入口检查拒绝。
+- 键盘遥控以 50 Hz 持续发布 `/cmd_vel_limiter`，限幅与训练范围一致（vx∈[-0.5, 2.5]、vy±0.5、wz±1.5，小脑侧二次限幅兜底）。按键：`m/s/k/z/i` = amp/stand/keep/zero/idle 模式；方向键（或 `WASD`/`Q`/`E`）按 0.1 步进调速；空格归零；`Ctrl+C` 先发零速再触发 `/stand_mode` 安全退出。
+- 模式切换采用 5 Hz 持续发布 2 s，规避 DDS 发现期丢包（与 `switch_x1_mode.sh` 同策略），与手工 `--once` 方式等效。
+- `run.sh` 会执行 `setcap cap_net_raw=ep`：若第 4 节设置过 `cap_sys_nice`，会被该命令覆盖丢失，需按第 4 节重新设置后再启动。
+- 手柄若已连接，手柄模块同时处于运行状态，**不要同时使用键盘遥控和手柄**。
+
+### 6.2 手柄操作
+
+手柄模式经 `run.sh`（`x1_cfg.yaml`）启动；`x1_cfg_real_nav.yaml`（no-joy 配置）下所有按键和摇杆无效。按键映射定义在 `build/cfg/joy_stick_module/joy_x1.yaml`：
+
+| 输入 | 功能 |
+|---|---|
+| B(1) → `/zero_mode` | zero / 复位 |
+| A(0) → `/stand_mode` | stand；**AMP 内退出立即生效** |
+| X(2) → `/walk_mode` | 12DOF 行走（上升沿 toggle 免死区速度直发模式） |
+| Y(3) → `/walk_mode2` | 腿臂行走 |
+| **Guide(8) → `/amp_mode`** | **进入 AMP（须从 stand 状态）** |
+| Back(6) → `/keep_mode` | keep；**AMP 内退出立即生效** |
+| RB(5) → `/plan_mode`、Start(7) → `/idle_mode` | plan / idle |
+| LB(4) 按住 | 速度死区：按住期间摇杆速度生效 |
+| 左摇杆 前后 / 左右 | vx / vy |
+| 右摇杆 左右 | wz |
+| LT 左扳机 | RT 行走激活时的 5 s 匀减速刹停，结束自动回 stand |
+| RT 右扳机 | IMU 偏航闭环 0.4 m/s 直行——**AMP 模式中禁用** |
+
+操作流程：B(zero) → A(stand) 站稳 → Guide 进 AMP → **零速保持 ≥1 s**（软启动，期间勿碰摇杆）→ 按住 LB 用摇杆从低速逐级加速。反馈不新鲜时按 Guide 无效（日志出现 `AMP entry rejected`），应先排查 IMU/关节反馈，不要反复强按。
+
+安全行为与限制：
+
+- 松开 LB 后速度话题停发，小脑 250 ms 超时自动归零（等效死区）；不得把话题超时当作急停手段。
+- 手柄侧限幅为保守值（vx±0.5 / vy±0.3 / wz±0.5），小脑再按训练范围二次限幅；放宽需改 `joy_x1.yaml` 并重新构建部署。
+- **AMP 中勿按 RT**：RT 触发的 `/walk_mode` 会被状态机拒绝（`walk_leg` 不接受 `walk_amp` 前置），模式不会被切走，但 RT 的闭环速度（0.4 m/s 前进）仍会绕过 LB 直接发布；误按后用 LT 刹停。
+- 8 号键（Guide）是否上报取决于手柄驱动：首次联调先按键并用 `ros2 topic echo /amp_mode` 确认有输出；无输出则把 `joy_x1.yaml` 中 `buttons: [8]` 改为 `[9]` 或 `[10]`（摇杆下压），重新构建部署。
+
+## 7. 退出、记录与放行判断
 
 正常退出：在终端 B 停止非零速度发布者，重新以 10 Hz 持续发布零速度，确认机械运动停止，然后从终端 C 发布 `/keep_mode`；`keep` 仍会保持当前位置，不是断电。若需完全退出控制，在机器人由吊架可靠支撑、`keep` 状态已确认且间隔至少 1 秒后，再切 `/idle_mode`，最后在终端 A 用 `Ctrl+C` 停止主进程并确认驱动器下使能。`idle` 发送零刚度/阻尼指令，**本身不调用执行器下使能**。AMP 内的 `/keep_mode` 和 `/idle_mode` 可绕过通常的 1 秒模式节流；进入 `keep` 后的普通模式切换仍受节流限制。**出现失控迹象时立即使用硬件急停，不等待 ROS 指令。**
 
