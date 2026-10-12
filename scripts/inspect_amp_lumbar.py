@@ -82,6 +82,13 @@ def main():
     mae = statistics.fmean(abs(error) for error in errors)
     print(f"原始与最终目标不同：{altered}/{len(samples)} 帧（{altered / len(samples):.1%}）")
     print(f"腰角跟踪 MAE：{mae:.5f} rad / {math.degrees(mae):.2f}°")
+    print("以下为俯仰平面的均值粗估，假设零位/IMU 对齐、腰 yaw/roll 较小；不是实测躯干姿态：")
+    for label, key, sign in [("模型方向下的上身实际倾角", "position", 1),
+                             ("原始腰目标对应的上身倾角", "raw", 1),
+                             ("假设腰机械方向相反时的上身倾角", "position", -1)]:
+        angle = statistics.fmean(sample["base_pitch"] + sign * sample[key]
+                                 for sample in samples)
+        print(f"{label}：{math.degrees(angle):+.2f}°（正=前倾，负=后倾）")
     print("模型约定：腰 pitch 增加表示向前折；IMU pitch 需先确认安装坐标。")
     print("日志只能验证数值跟踪；需观察实际向前/向后变化才能确认机械方向和零位。")
 
