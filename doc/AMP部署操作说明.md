@@ -2,17 +2,15 @@
 
 适用范围：`feat/amp-deploy` 分支、X1 29DOF、`x1_amp_soup59c_50hz.onnx`，部署目标为连接 X1 的 Linux 主控。以下命令均应在 **Linux 主控**执行。本说明只用于受保护的吊架/悬空联调；完成这些步骤不代表可以无保护地面行走。训练和模型对齐结果见 [AMP 部署审计](amp_deploy.zh_CN.md)。
 
-## 当前零位腰方向测试
+## 腰部方向测试结果与修正
 
-本次将真机和仿真的 `pd_zero` 腰 pitch 姿态目标设为 **+0.10 rad（约 +5.7°）**，比上一轮 +0.05 rad 增大一倍。这是 B 进入 zero 的目标姿态，不是修改 `joint_offset` 或电机标零。A 进入 stand 时腰 pitch 回到 0，便于对比；AMP 继续使用原策略默认角。
+现场已确认：在原 `direction_right=+1` 下，B 的腰 pitch +0.10 rad（约 5.7°）相比 A 的 0 让腰部向后折，与模型正角度向前折的约定相反。
 
-按下文命令同步、构建并启动后，在机器人有支撑时操作：
+已将 `dcu_x1.yaml` 中 **`lumbar_parallel_trans.direction_right` 改为 -1**，由传动层同时转换腰 pitch 的位置、速度、力矩命令和反馈。左右脚踝等其他 `direction_right` 保持原值。真机和仿真的 zero 腰测试目标已恢复 0，stand 腰目标仍为 0，AMP 模型及 kp/kd 保持原配置。
 
-1. 启动后等待至少 1 秒，按 B；等待至少 2 秒且姿态稳定，观察上半身**相对骨盆**的腰部折转。
-2. 按 A；等待至少 2 秒且姿态稳定，腰部目标恢复 0。可以再按 B 对比正角度增量。
-3. B 相比 A 向前折，说明正方向符合模型；若向后折，说明当前腰 pitch 的硬件映射方向与模型相反。若没有明显运动，先核对目标及反馈，不能据此判断方向。
+下文构建安装后须重启控制进程，运行配置 `build/cfg/dcu_driver_module/dcu_x1.yaml` 的 `lumbar_parallel_trans` 应显示 `direction_right: -1.0`。先在有支撑时复测 B、A；新方向下 AMP 的动作与反馈都已改变，仍需真机复测。
 
-此次方向测试停在 B/A，不按 Guide；Guide 仍会立即进入固定 1 m/s AMP 行走。测试完成后，可将两份配置 `controllers.pd_zero.init_state` 的第三个值从 `0.10` 恢复 `0.0`，重新构建并重启。
+腰 pitch 的目标限位仍为 `[-0.45,+0.15]` rad；旧日志的正向裁剪问题仍存在。此次仅校正已确认的方向，不据训练 URDF 自动扩大真机机械行程。若现场有自定义标零偏移，改变方向后需按关节新坐标重新核对；仓库默认 pitch offset 为 0。
 
 ## 默认手柄固定 1 m/s 测试
 
@@ -36,7 +34,7 @@ bash run.sh
 
 | 操作 | 结果 |
 |---|---|
-| 启动后等待至少 1 秒，按 B | idle → zero；当前腰 pitch 测试目标 +0.10 rad |
+| 启动后等待至少 1 秒，按 B | idle → zero；腰 pitch 目标已恢复 0 |
 | 等待至少 2 秒且复位完成，按 A | zero → stand；腰 pitch 回到 0 |
 | 浅蹲站稳后等待至少 3 秒，单次按 Guide | stand → walk_amp，立即持续执行 [1,0,0] 指令 |
 

@@ -1,14 +1,14 @@
 # AMP 真机腰部后倾：方向与限位审计
 
-日期：2026-10-12。基线：F1 `35e36eb`、motion_control `0f5e52b`。用户反馈真机已能行走，但腰部相较 sim2sim 视频从微前倾变为微后倾。初轮证据包括源码、训练资源及本地仿真；随后收到真机日志汇总和 zero/stand 姿态反馈，见第 5 节。尚未取得完整真机 CSV 或机械正方向观测。
+日期：2026-10-12。基线：F1 `35e36eb`、motion_control `0f5e52b`。用户反馈真机已能行走，但腰部相较 sim2sim 视频从微前倾变为微后倾。初轮证据包括源码、训练资源及本地仿真；随后收到真机日志汇总和 zero/stand 姿态反馈，见第 5 节。现场 +0.10 rad 静态测试已确认原正方向后折，修正见第 7 节；尚未取得完整真机 CSV。
 
 ## 结论
 
-训练与部署仿真的腰 pitch 轴方向一致，都是**正角度向前折，负角度向后折**。策略到真机的代码没有额外对腰部取负号：`lumbar_pitch_joint` 直接映射到 `lumbar_right_actuator`，`direction_right=+1`，反馈也乘同一个方向参数。
+训练与部署仿真的腰 pitch 轴方向一致，都是**正角度向前折，负角度向后折**。`lumbar_pitch_joint` 直接映射到 `lumbar_right_actuator`；原 `direction_right=+1` 下的现场正角度测试使腰部后折，已按此机械方向证据将右腰方向校正为 -1，命令和反馈一起转换。
 
-因此，若真实右腰电机的正角度增量实际上让上半身向后折，当前 `direction_right=+1` 就与策略坐标相反。源码不能证明真机机械正方向；绝对后倾还可能来自零位偏差或骨盆/整个机身后仰。需要看“角度增加时实际向哪边动”，不能只看某个时刻的正值与后倾外观。
+此次静态增量测试确认当前实机的腰 pitch 机械映射与策略坐标相反。该结论来自现场方向观测；源码只能说明模型约定和转换链路。修正方向后的 AMP 姿态仍需真机复测，骨盆姿态与目标限位也会影响整体倾角。
 
-另一个确定差异：部署 YAML 的腰 pitch 限位与训练 URDF 是正负镜像。本地同一策略的腰部前倾角超过部署正向限位；这会削减前倾幅度，但限幅函数本身不会把正目标变成负目标。审计保留真机方向、限位和标零偏移；按用户要求增加 zero 模式的小正角度姿态测试，见第 6 节。
+另一个确定差异：部署 YAML 的腰 pitch 限位与训练 URDF 是正负镜像。本地同一策略的腰部前倾角超过部署正向限位；这会削减前倾幅度，但限幅函数本身不会把正目标变成负目标。此次修正仅翻转右腰传动方向，zero 测试角恢复 0；限位和标零偏移保留原值。
 
 ## 1. 模型的正方向
 
@@ -30,7 +30,7 @@
 |---|---|
 | [RLController](../motion_control/module/control_module/src/rl_controller.cc) | 生成目标，按 YAML 关节限位裁剪；腰部走位置 PD，未列入软件力矩控制的踝关节列表 |
 | [ControlModule](../motion_control/module/control_module/src/control_module.cc) | 按名称合并目标；下发位置加 offset，送策略的反馈减 offset |
-| [DCU 配置](../motion_control/module/dcu_driver_module/cfg/dcu_x1.yaml) | pitch→右腰电机，roll→左腰电机，两者方向当前均 +1 |
+| [DCU 配置](../motion_control/module/dcu_driver_module/cfg/dcu_x1.yaml) | pitch→右腰电机，方向已由 +1 改为 -1；roll→左腰电机，方向保持 +1 |
 | [LumbarParallelTransmission](../motion_control/module/dcu_driver_module/src/lumbar_transmission.cc) | 命令和反馈的 position、velocity、effort 都乘各自 direction；kp/kd 直接传递 |
 
 当前 pitch offset=0。用 `d` 表示右腰方向、`o` 表示 pitch offset，则：
@@ -40,7 +40,7 @@
 右腰电机位置命令 = d * (裁剪后的策略腰目标 + o)
 ```
 
-该映射与 main 分支一致，不是此次 AMP 或 MIT 限幅修复新引入的变更。若确认机械方向相反，应在传动层校准 `direction_right`，让动作与反馈同时匹配模型；仅对 `action[7]` 取负会使策略观测仍然错误。改变方向后需重新核对 offset 和关节坐标中的物理限位。
+修正前的映射与 main 分支一致，不是此次 AMP 或 MIT 限幅修复新引入的变更。现已在传动层校准 `direction_right`，让动作与反馈同时匹配模型；仅对 `action[7]` 取负会使策略观测仍然错误。改变方向后需重新核对现场自定义 offset 和关节坐标中的物理限位。
 
 ## 3. 限位与仿真姿态差异
 
@@ -82,7 +82,7 @@ python3 scripts/inspect_amp_lumbar.py build/test_logs/data_csv/walk_diag_YYYYMMD
 - **限位差异**：原始目标例如 +0.24、最终目标 +0.15，反馈跟随 +0.15。说明部署裁剪减少了前倾；能否扩大限位取决于实机行程与方向校准。
 - **整机后仰或输入姿态误差**：腰角按模型方向运动，但整体上半身仍后仰。结合骨盆姿态判断，且 IMU 安装轴和姿态必须已对应模型 base。真机 IMU 来源当前是 hip DCU，直接转发四元数，没有显式安装旋转补偿。
 
-下一步最有价值的现场证据是：zero/stand 是否已有腰部后折、此次 AMP 的腰目标/反馈和 base pitch，以及“正腰角增量对应实际前折还是后折”。在这些证据到位前，不能把方向相反当作已确认根因。
+上述区分方法用于初轮审计。后续已收到 zero/stand 正常及正腰角增量后折的现场反馈，支持修正机械方向；当前待验证的是修正后 AMP 的姿态和跟踪表现。
 
 ## 5. 真机日志汇总与后续限位对照
 
@@ -121,7 +121,7 @@ python3 scripts/inspect_amp_lumbar.py build/test_logs/data_csv/walk_diag_YYYYMMD
 
 该单变量对照支持限位会削弱前倾；旧限位在仿真中仍有约 8.48° 前倾，未复现现场整体后倾。真机的骨盆姿态与模型也有差异，不能把限位当作所有 sim2real 差异的唯一原因。实验仍是 MuJoCo 3.2.7 的独立 harness，经临时注入 YAML 目标裁剪，未运行 Linux AimRT、真实 DCU 或并联传动硬件。
 
-本次将现场证据和限位对照写入报告，并在只读脚本中增加上述三种倾角均值粗估。真机 direction 和关节限位的修改仍取决于实际腰部相对骨盆的正方向和机械行程核实。
+本次将现场证据和限位对照写入报告，并在只读脚本中增加上述三种倾角均值粗估。随后按第 6 节现场观测校正了 direction；关节限位仍待机械行程核实。
 
 ## 6. zero 模式小正角度方向测试
 
@@ -129,4 +129,14 @@ python3 scripts/inspect_amp_lumbar.py build/test_logs/data_csv/walk_diag_YYYYMMD
 
 `pd_zero` 也被 stand 等模式复用，因此在 `pd_stand` 中显式增加腰 pitch 的 0 目标，并保留原先继承的腰增益（真机 500/5，仿真 700/5），使 A 返回中立腰姿态。按关节名称合并所有模式配置，已验证仅 zero 的腰目标变化；其他模式的有效默认目标及增益与修改前一致。数组长度、关节唯一性及 YAML 解析检查通过。`joint_offset`、传动方向、关节限位及 AMP 策略参数均保持原值。
 
-现场步骤和恢复方法见 [部署操作说明](AMP部署操作说明.md#当前零位腰方向测试)。观察 B 的 +0.10 相比 A 的 0，腰部相对骨盆是否向前折；向后折才支持当前 pitch 硬件映射方向相反。新角度尚待真机验证，第一轮不明显的观测暂不足以确认方向相反。
+现场第二轮反馈：+0.10 rad 的变化已看清，确实向后折。结合模型 +0.10 rad 应向前折，该结果确认原右腰映射方向相反。两轮测试时传动方向均为 +1；修正后 zero 测试目标已恢复 0。
+
+## 7. 按现场方向证据修正
+
+真机 `dcu_x1.yaml` 的 `lumbar_parallel_trans.direction_right` 改为 **-1.0**，其余电机方向保持原值。现有 `LumbarParallelTransmission` 同时用此方向参数转换命令与反馈的 position、velocity、effort，kp/kd 不取负。例：策略目标 +0.10 rad 下发右腰电机 -0.10 rad；电机反馈 -0.10 rad 返回关节 +0.10 rad，符合正角度前折的约定。
+
+真机及仿真的 `pd_zero` 腰 pitch 从 +0.10 rad 恢复 0。`pd_stand` 腰目标保持 0；策略文件、关节顺序、action scale、固定 1 m/s 指令、kp/kd、joint_offset 和 joint_limits 均保留原配置。仿真直接使用模型关节坐标，不修改 MJCF 轴向或对仿真动作取反。
+
+本地已校验三份 YAML 的语义差异仅为上述右腰方向和 zero 腰目标。另用实际 `lumbar_transmission.cc` 编译并执行双向数值检查，通过 pitch 命令/反馈符号、roll 不受影响、kp/kd 正值及中立角检查，UBSan 无报错；仅为未使用的 Eigen/YAML 头和日志成员提供占位依赖，未编译完整 Linux DCU/ROS2 模块。
+
+配置与传动数值校验不等于修正后的真机行走验证。同步构建并重启后，先在有支撑时复测 zero/stand，再观察 AMP 的腰部方向、姿态与日志，步骤见 [部署操作说明](AMP部署操作说明.md#腰部方向测试结果与修正)。方向修正不能消除 +0.15 rad 目标上限造成的裁剪；未据训练行程扩大实机限位。
