@@ -2,6 +2,18 @@
 
 适用范围：`feat/amp-deploy` 分支、X1 29DOF、`x1_amp_soup59c_50hz.onnx`，部署目标为连接 X1 的 Linux 主控。以下命令均应在 **Linux 主控**执行。本说明只用于受保护的吊架/悬空联调；完成这些步骤不代表可以无保护地面行走。训练和模型对齐结果见 [AMP 部署审计](amp_deploy.zh_CN.md)。
 
+## 当前零位腰方向测试
+
+本次将真机和仿真的 `pd_zero` 腰 pitch 姿态目标设为 **+0.05 rad（约 +2.9°）**。这是 B 进入 zero 的目标姿态，不是修改 `joint_offset` 或电机标零。A 进入 stand 时腰 pitch 回到 0，便于对比；AMP 继续使用原策略默认角。
+
+按下文命令同步、构建并启动后，在机器人有支撑时操作：
+
+1. 启动后等待至少 1 秒，按 B；等待至少 2 秒且姿态稳定，观察上半身**相对骨盆**的腰部折转。
+2. 按 A；等待至少 2 秒且姿态稳定，腰部目标恢复 0。可以再按 B 对比正角度增量。
+3. B 相比 A 向前折，说明正方向符合模型；若向后折，说明当前腰 pitch 的硬件映射方向与模型相反。若没有明显运动，先核对目标及反馈，不能据此判断方向。
+
+此次方向测试停在 B/A，不按 Guide；Guide 仍会立即进入固定 1 m/s AMP 行走。测试完成后，可将两份配置 `controllers.pd_zero.init_state` 的第三个值从 `0.05` 恢复 `0.0`，重新构建并重启。
+
 ## 默认手柄固定 1 m/s 测试
 
 本分支已将真机 `rl_x1.yaml` 配置为 `initial_state: idle`、AMP `constant_cmd: [1.0, 0.0, 0.0]`，与仿真的固定指令一致。`run.sh` 自动设置 `cap_net_raw,cap_sys_nice`，权限设置失败时不会启动控制进程。
@@ -9,7 +21,7 @@
 在连接机器人的 Linux 主控执行：
 
 ```bash
-cd ~/code/F1
+cd ~/Robot_github/F1
 git switch feat/amp-deploy
 git pull --ff-only origin feat/amp-deploy
 git submodule update --init --recursive
@@ -24,8 +36,8 @@ bash run.sh
 
 | 操作 | 结果 |
 |---|---|
-| 启动后等待至少 1 秒，按 B | idle → zero |
-| 等复位完成，按 A | zero → stand |
+| 启动后等待至少 1 秒，按 B | idle → zero；当前腰 pitch 测试目标 +0.05 rad |
+| 等待至少 2 秒且复位完成，按 A | zero → stand；腰 pitch 回到 0 |
 | 浅蹲站稳后等待至少 3 秒，单次按 Guide | stand → walk_amp，立即持续执行 [1,0,0] 指令 |
 
 进入 AMP 后不用再按键，不需要 LB 或摇杆。固定指令由 AMP 控制器在每次推理中直接使用，不依赖手柄持续发布速度话题；1 m/s 是策略目标速度，不保证真实速度恰为 1 m/s。
