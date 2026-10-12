@@ -1,0 +1,85 @@
+# AMP 真机腰部后倾：方向与限位审计
+
+日期：2026-10-12。基线：F1 `35e36eb`、motion_control `0f5e52b`。用户反馈真机已能行走，但腰部相较 sim2sim 视频从微前倾变为微后倾。当前证据包括源码、训练资源及本地仿真；尚无本次真机腰部数据或机械正方向观测。
+
+## 结论
+
+训练与部署仿真的腰 pitch 轴方向一致，都是**正角度向前折，负角度向后折**。策略到真机的代码没有额外对腰部取负号：`lumbar_pitch_joint` 直接映射到 `lumbar_right_actuator`，`direction_right=+1`，反馈也乘同一个方向参数。
+
+因此，若真实右腰电机的正角度增量实际上让上半身向后折，当前 `direction_right=+1` 就与策略坐标相反。源码不能证明真机机械正方向；绝对后倾还可能来自零位偏差或骨盆/整个机身后仰。需要看“角度增加时实际向哪边动”，不能只看某个时刻的正值与后倾外观。
+
+另一个确定差异：部署 YAML 的腰 pitch 限位与训练 URDF 是正负镜像。本地同一策略的腰部前倾角超过部署正向限位；这会削减前倾幅度，但限幅函数本身不会把正目标变成负目标。本次保持真机方向、限位和零位参数原值，新增读取现有日志的工具以获取现场证据。
+
+## 1. 模型的正方向
+
+训练配置 `roboparty_train/robolab/robolab/assets/robots/x1.py` 加载的实际 URDF 为训练仓库 `roboparty_train/robolab/data/robots/x1/urdf/f1.urdf`。其腰 pitch 轴为局部 `(0,0,-1)`，与部署 [MJCF](../motion_control/module/sim_module/model/mjcf/robot/xyber_x1/xyber_x1_serial.xml) 相同。
+
+不能仅凭局部 `axis="0 0 -1"` 判断是否需要取反。叠加 yaw、roll、pitch 三层父子零位旋转后，两套 MJCF 的 pitch 轴在骨盆坐标均约为 `(0.00004549, 1, 0)`，即 +Y。躯干向上的局部方向是 +Y；在骨盆保持水平、yaw/roll 为零时：
+
+| 腰 pitch | 躯干向上向量（骨盆坐标） | 实际含义 |
+|---|---|---|
+| 0 | (0,0,1) | 直立 |
+| +0.1 rad | (0.099833,−0.00000454,0.995004) | 前倾约 5.73° |
+| −0.1 rad | (−0.099833,+0.00000454,0.995004) | 后倾约 5.73° |
+
+## 2. 代码中的腰部链路
+
+真机和仿真 `rl_walk_amp.joint_list` 的零基索引 7 均为 `lumbar_pitch_joint`，默认角 0，action scale=0.25，kp=150、kd=5。原始目标为 `0.25 * action[7]`，没有额外取反。
+
+| 环节 | 当前行为 |
+|---|---|
+| [RLController](../motion_control/module/control_module/src/rl_controller.cc) | 生成目标，按 YAML 关节限位裁剪；腰部走位置 PD，未列入软件力矩控制的踝关节列表 |
+| [ControlModule](../motion_control/module/control_module/src/control_module.cc) | 按名称合并目标；下发位置加 offset，送策略的反馈减 offset |
+| [DCU 配置](../motion_control/module/dcu_driver_module/cfg/dcu_x1.yaml) | pitch→右腰电机，roll→左腰电机，两者方向当前均 +1 |
+| [LumbarParallelTransmission](../motion_control/module/dcu_driver_module/src/lumbar_transmission.cc) | 命令和反馈的 position、velocity、effort 都乘各自 direction；kp/kd 直接传递 |
+
+当前 pitch offset=0。用 `d` 表示右腰方向、`o` 表示 pitch offset，则：
+
+```text
+策略看到的腰角 = d * 右腰电机角度 - o
+右腰电机位置命令 = d * (裁剪后的策略腰目标 + o)
+```
+
+该映射与 main 分支一致，不是此次 AMP 或 MIT 限幅修复新引入的变更。若确认机械方向相反，应在传动层校准 `direction_right`，让动作与反馈同时匹配模型；仅对 `action[7]` 取负会使策略观测仍然错误。改变方向后需重新核对 offset 和关节坐标中的物理限位。
+
+## 3. 限位与仿真姿态差异
+
+| 来源 | 腰 pitch 下限/上限（rad） |
+|---|---|
+| 实际训练 URDF | −0.15 / +0.45 |
+| 真机 [rl_x1.yaml](../motion_control/module/control_module/cfg/rl_x1.yaml) | −0.45 / +0.15 |
+| 部署仿真 [rl_x1_sim.yaml](../motion_control/module/control_module/cfg/rl_x1_sim.yaml) | −0.45 / +0.15 |
+| 部署 MJCF 模型本身 | −0.3 / +1.57 |
+| 训练 MJCF 模型本身 | −0.5 / +1.6 |
+
+独立 harness 和训练 `sim2sim/mujoco_rollout.py` 没有复刻 C++ 这层 YAML 目标裁剪；部署的完整 `run_sim.sh` 则经过同一个 RLController，会裁剪。因此视频来源和实际仿真入口也需要区分。
+
+本轮本地复验：MuJoCo 3.2.7，部署 flat 模型，同一 soup59c_50 NPZ 策略，1 m/s、浅蹲起步、settle=0、1 ms PD，通过 motor 通道限幅，运行 8 秒存活；统计 2～8 秒并用正向运动学计算躯干向上方向：
+
+| 量 | 均值 | 范围 |
+|---|---|---|
+| 腰 pitch 相对骨盆角度 | +0.24234 rad（+13.89°） | +0.22577～+0.25357 rad |
+| 骨盆相对水平的前倾角 | −0.96° | −1.61～−0.45° |
+| 躯干相对水平的前倾角 | +12.89° | +11.80～+14.18° |
+
+此实验未施加 C++ YAML 目标裁剪，也未通过真实 DCU，不能视作现场角度预测或完整服务器 sim2sim 结果。它证明策略在这组闭环条件下确实产生腰部前倾，同时骨盆可以略向后倾；两者不是同一个角度。
+
+## 4. 现场怎样区分
+
+进入 AMP 会自动记录约 20 秒 `walk_diag`。新增脚本只读日志，不发送模式或关节命令，不需要 ROS2 Python 包：
+
+```bash
+cd ~/code/F1
+python3 scripts/inspect_amp_lumbar.py
+# 或显式选择对应本次 AMP 的日志
+python3 scripts/inspect_amp_lumbar.py build/test_logs/data_csv/walk_diag_YYYYMMDD_HHMMSS.csv
+```
+
+默认略过前 2 秒，输出原始腰目标、裁剪/滤波后目标、策略使用的腰反馈、IMU base pitch 的均值和范围，以及目标被修改的比例、腰角跟踪误差。仅数值跟踪良好不能证明机械方向正确，因为当前动作和反馈用了同一个符号。
+
+- **方向相反**：在有支撑、退出 AMP 的标定条件下，相对同一腰部姿态缓慢增加一点正腰角，实际向后折；模型应该向前折。结合实际电机绑定确认后，再校准右腰 direction。
+- **零位偏差**：腰角增加时实际向前折，方向正确，但 zero/stand 的腰 pitch≈0 时上半身相对骨盆已经后折。核对物理零位与 `joint_offset`，而非取反动作。
+- **限位差异**：原始目标例如 +0.24、最终目标 +0.15，反馈跟随 +0.15。说明部署裁剪减少了前倾；能否扩大限位取决于实机行程与方向校准。
+- **整机后仰或输入姿态误差**：腰角按模型方向运动，但整体上半身仍后仰。结合骨盆姿态判断，且 IMU 安装轴和姿态必须已对应模型 base。真机 IMU 来源当前是 hip DCU，直接转发四元数，没有显式安装旋转补偿。
+
+下一步最有价值的现场证据是：zero/stand 是否已有腰部后折、此次 AMP 的腰目标/反馈和 base pitch，以及“正腰角增量对应实际前折还是后折”。在这些证据到位前，不能把方向相反当作已确认根因。
