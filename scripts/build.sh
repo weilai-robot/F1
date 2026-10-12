@@ -87,9 +87,13 @@ check() {
 check aimrt_main
 check libpkg1.so
 check run.sh
+check run_sim.sh
 check run_with_recording.sh
 check cfg/x1_cfg.yaml
+check cfg/x1_cfg_sim.yaml
 check cfg/control_module/rl_x1.yaml
+check cfg/control_module/rl_x1_sim.yaml
+check cfg/sim_module/sim_x1.yaml
 # 注: policy/*.onnx 不校验 —— 模型文件名随版本迭代变化，实际加载项由 rl_x1.yaml / rl_x1_sim.yaml 的 policy_file 决定
 check cfg/dcu_driver_module/dcu_x1.yaml
 check cfg/x1_cfg_real_nav.yaml
@@ -117,4 +121,7 @@ echo    "   cd build"
 echo    "   sudo setcap cap_net_raw=ep ./aimrt_main"
 echo    "   bash run.sh"
 echo    "   bash run_real_nav.sh   # 真机导航联合(大脑+小脑, 小脑不加载手柄)"
+echo -e "${YELLOW} AMP 仿真:${NC}"
+echo    "   cd build && bash run_sim.sh"
+echo    "   启动站稳后发布 /amp_mode；详见 doc/AMP仿真服务器运行.md"
 echo ""

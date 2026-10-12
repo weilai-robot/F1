@@ -17,8 +17,8 @@ Faithfulness notes (deltas vs Isaac documented in the report):
   base_ang_vel (verified empirically 2026-08-17).
 
 Usage:
-  PYTHONPATH=pylibs python sim2sim/mujoco_rollout.py \
-      --ckpt model_4000.pt --repo-root . \
+  python scripts/amp_sim_bisect/rollout_bisect.py \
+      --ckpt scripts/amp_sim_bisect/soup59c_50.policy.npz --repo-root . \
       [--cmd 1.0 0.0 0.0] [--duration 12] [--video out.mp4]
 """
 
@@ -40,6 +40,21 @@ HIST = 3
 ACTION_SCALE = 0.25
 FALL_Z = 0.30          # base height below which we count a fall (MuJoCo frame)
 FALL_TILT = 60.0       # deg
+
+# Policy order from the verified training x1.yaml lab_dof_names. This is
+# Isaac Lab's interleaved order, NOT the serial GMR/MuJoCo hinge order.
+LAB_DOF_ORDER = (
+    "left_hip_pitch_joint", "lumbar_yaw_joint", "right_hip_pitch_joint",
+    "left_hip_roll_joint", "lumbar_roll_joint", "right_hip_roll_joint",
+    "left_hip_yaw_joint", "lumbar_pitch_joint", "right_hip_yaw_joint",
+    "left_knee_pitch_joint", "left_shoulder_pitch_joint", "right_shoulder_pitch_joint",
+    "right_knee_pitch_joint", "left_ankle_pitch_joint", "left_shoulder_roll_joint",
+    "right_shoulder_roll_joint", "right_ankle_pitch_joint", "left_ankle_roll_joint",
+    "left_shoulder_yaw_joint", "right_shoulder_yaw_joint", "right_ankle_roll_joint",
+    "left_elbow_pitch_joint", "right_elbow_pitch_joint", "left_elbow_yaw_joint",
+    "right_elbow_yaw_joint", "left_wrist_pitch_joint", "right_wrist_pitch_joint",
+    "left_wrist_roll_joint", "right_wrist_roll_joint",
+)
 
 # X1_CFG PD gains / effort limits (Isaac -> MuJoCo by joint name)
 HERE = Path(__file__).resolve().parent
@@ -480,8 +495,10 @@ def main():
     _ld = root / "roboparty_train/robolab/scripts/tools/retarget/config/x1.yaml"
     if _ld.exists():
         lab_dof = parse_yaml_list(_ld, "lab_dof_names")
+        if lab_dof != list(LAB_DOF_ORDER):
+            raise ValueError(f"training joint order differs from soup59c_50 contract: {_ld}")
     else:
-        lab_dof = "lumbar_yaw_joint lumbar_roll_joint lumbar_pitch_joint left_shoulder_pitch_joint left_shoulder_roll_joint left_shoulder_yaw_joint left_elbow_pitch_joint left_elbow_yaw_joint left_wrist_pitch_joint left_wrist_roll_joint right_shoulder_pitch_joint right_shoulder_roll_joint right_shoulder_yaw_joint right_elbow_pitch_joint right_elbow_yaw_joint right_wrist_pitch_joint right_wrist_roll_joint left_hip_pitch_joint left_hip_roll_joint left_hip_yaw_joint left_knee_pitch_joint left_ankle_pitch_joint left_ankle_roll_joint right_hip_pitch_joint right_hip_roll_joint right_hip_yaw_joint right_knee_pitch_joint right_ankle_pitch_joint right_ankle_roll_joint".split()
+        lab_dof = list(LAB_DOF_ORDER)
     assert len(lab_dof) == 29
 
     robot_cfg = ROBOT_CFG[args.robot]
@@ -663,24 +680,16 @@ def main():
         else:
             act = policy_fn(layers, mean, std, ob_eff)
         if step < 3:
-            print(f'[act] tick {step}: legs_act={[round(float(x),2) for x in act[17:29]]}')
             LEG_NAMES = ["left_hip_pitch_joint","left_hip_roll_joint","left_hip_yaw_joint",
                 "left_knee_pitch_joint","left_ankle_pitch_joint","left_ankle_roll_joint",
                 "right_hip_pitch_joint","right_hip_roll_joint","right_hip_yaw_joint",
                 "right_knee_pitch_joint","right_ankle_pitch_joint","right_ankle_roll_joint"]
-            lv = [int(data.qvel[vadr[hinge.index(n)]]) for n in LEG_NAMES]
+            legs_act = [round(float(act[lab_dof.index(n)]), 2) for n in LEG_NAMES]
+            print(f'[act] tick {step}: legs_act={legs_act}')
+            lv = [float(data.qvel[vadr[hinge.index(n)]]) for n in LEG_NAMES]
             lp = [round(float(data.qpos[qadr[hinge.index(n)]] - q_default[hinge.index(n)]),3) for n in LEG_NAMES]
             print(f'[st] t{step}: legs_jvel={[round(x,2) for x in lv]}')
             print(f'[st] t{step}: legs_jpos_rel={lp}')
-        if step < 3:
-            q_rel = data.qpos[qadr] - q_default[lab2mj] if False else None
-            LEG_NAMES = ["left_hip_pitch_joint","left_hip_roll_joint","left_hip_yaw_joint",
-                "left_knee_pitch_joint","left_ankle_pitch_joint","left_ankle_roll_joint",
-                "right_hip_pitch_joint","right_hip_roll_joint","right_hip_yaw_joint",
-                "right_knee_pitch_joint","right_ankle_pitch_joint","right_ankle_roll_joint"]
-            vadr_legs = [vadr[hinge.index(n)] for n in LEG_NAMES]
-            legs_jvel = data.qvel[vadr_legs]
-
         if lpf_alpha is not None:
             for _i in range(len(lpf_state)):
                 lpf_state[_i] = lpf_alpha * np.asarray(act, dtype=np.float64) \
@@ -795,6 +804,7 @@ def main():
     if args.json:
         Path(args.json).write_text(json.dumps({
             "ckpt": str(args.ckpt), "cmd": list(args.cmd),
+            "policy_joint_order": lab_dof, "mujoco_version": mujoco.__version__,
             "duration_s": args.duration, "settle_s": args.settle,
             "survived_steps": alive_steps,
             "survived_s": alive_steps * CONTROL_DT,

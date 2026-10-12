@@ -3,7 +3,7 @@
 # run_amp_real.sh — AMP 全身策略实机运行脚本
 #
 # 流程: (可选构建) → tmux 启动小脑 → 反馈检查 →
-#       zero → stand(人工确认) → amp(零速软启动 1s) → 键盘遥控
+#       zero → stand(人工确认) → amp(立即接管，零速观察 1s) → 键盘遥控
 #
 # 键盘遥控 (AMP 模式下):
 #   模式:  m=/amp_mode  s=/stand_mode  k=/keep_mode(AMP内立即退出)
@@ -19,7 +19,7 @@
 #
 # ⚠ 安全前提 (doc/amp_deploy.zh_CN.md):
 #   - 首次联调必须在吊架/悬空保护下, 人手不离急停
-#   - 进入 AMP 后先保持零速 >1s (软启动), 再逐级加速
+#   - 进入 AMP 后先保持零速 >1s (观察策略接管), 再逐级加速
 #   - 禁止首试强推/急转/后退边界指令
 #   - 硬件急停独立可用, 勿依赖软件退出
 # ============================================================
@@ -148,12 +148,12 @@ sleep "${STAND_HOLD_S}"
 pub_mode stand_mode "stand_mode (站立)"
 
 echo -e "${YELLOW}确认机器人已站稳、姿态正常后继续${NC}"
-read -r -p "回车进入 AMP (将开始 1s 零速软启动)... "
+read -r -p "回车进入 AMP (策略将立即接管，先零速观察)... "
 
 pub_mode amp_mode "amp_mode (AMP 全身策略)"
 
 echo ""
-echo -e "${GREEN}已进入 AMP。保持零速 ≥1s (软启动), 随后用键盘逐级加速。${NC}"
+echo -e "${GREEN}已进入 AMP，策略立即接管。保持零速 ≥1s 观察，随后用键盘逐级加速。${NC}"
 echo -e "${YELLOW}退出: s(stand) / k(keep, AMP 内立即生效) / 物理急停${NC}"
 sleep 1
 

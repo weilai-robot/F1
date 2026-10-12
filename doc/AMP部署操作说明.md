@@ -44,13 +44,13 @@ ONNX 的 SHA256 应为 `3e09b76f1e38085a2093abccc1e6f80c86751c9758f7f21d0f497163
 |---|---|
 | `cfg/dcu_driver_module/dcu_x1.yaml` | `ethercat.ifname`、`bind_cpu`、`rt_priority`、DCU 的 EtherCAT ID、各执行器的 CAN ID、`imu_dcu_name`；首次总线检查设 `enable_actuator: false` |
 | `cfg/control_module/rl_x1.yaml` | 顶层 `initial_state: idle`、`control_frequecy: 1000`、`bind_cpu`/`rt_priority`、29 个关节名称和顺序、实机 `joint_offset` 与机械 `joint_limits` |
-| 同文件的 `rl_walk_amp` | `decimation: 20`、`action_scale: 0.25`、`settle_ticks: 50`、`policy_file` 为本次模型、`lpf_conf.position_enabled: false`、`lpf_conf.effort_enabled: false` |
+| 同文件的 `rl_walk_amp` | `decimation: 20`、`action_scale: 0.25`、`settle_ticks: 0`、AMP 的关节/默认角/PD 顺序与训练 `lab_dof_names` 一致、`policy_file` 为本次模型、`lpf_conf.position_enabled: false`、`lpf_conf.effort_enabled: false` |
 | `cfg/x1_cfg_real_nav.yaml` | 加载 `ControlModule` 与 `DcuDriverModule`，不加载 `JoyStickModule`；现场没有其他节点写 `/cmd_vel_limiter` |
 | `cfg/x1_cfg.yaml` 与 `cfg/joy_stick_module/joy_x1.yaml` | 手柄模式入口：加载 `JoyStickModule`；Guide 键(8) 映射 `/amp_mode`，`constant_velocity` 已注释（摇杆轴生效），速度限幅为保守值 vx±0.5 / vy±0.3 / wz±0.5 |
 
 `initial_state: idle` 是 `rl_x1.yaml` 的**顶层**字段；建议显式设置，避免启动状态依赖 YAML 中状态的排列顺序。`ethercat.bind_cpu` 与控制器 `bind_cpu` 必须是该 Linux 主控上有效且合适的独立 CPU。首次启动前核对机身 IMU 的 body→world 四元数定义、29 关节反馈的方向/零位，以及并联踝双电机的传动符号和限幅。配置里的全零 `joint_offset` 不能代替实机标零。
 
-50 Hz 策略每 20 个 1 kHz 控制周期推理一次。此模型训练和 sim2sim 验证未启用动作 LPF，所以 AMP 默认关闭位置目标及踝力矩 LPF，保留 1 秒切入姿态平滑、关节目标限位和踝关节力矩限幅。若需改变 LPF，须重新验证该配置的闭环行为，不要在首次真机联调时临时开启。
+50 Hz 策略每 20 个 1 kHz 控制周期推理一次。此模型训练和 sim2sim 验证未启用动作 LPF，所以 AMP 默认关闭位置目标及踝力矩 LPF，切入即执行策略（无 1 秒姿态平滑），保留关节目标限位和踝关节力矩限幅。若需改变 LPF，须重新验证该配置的闭环行为，不要在首次真机联调时临时开启。
 
 ## 4. 执行器不使能时检查总线与反馈
 
@@ -112,7 +112,7 @@ ros2 topic pub --once /stand_mode std_msgs/msg/Float32 '{data: 0.0}'
 ros2 topic pub --once /amp_mode std_msgs/msg/Float32 '{data: 0.0}'
 ```
 
-应依次看到 `idle -> zero -> stand -> walk_amp`。进入 AMP 前若出现 `AMP entry rejected`，检查 IMU/关节反馈，不要反复强行切换。进入 AMP 后**零速度至少保持 1 秒**，确认从实测姿态平滑过渡至策略默认站姿，且无异常抖动、踝电机扭矩尖峰、关节触限或 `AMP fault: switched to keep mode`。
+应依次看到 `idle -> zero -> stand -> walk_amp`。进入 AMP 前若出现 `AMP entry rejected`，检查 IMU/关节反馈，不要反复强行切换。进入 AMP 后**零速度至少保持 1 秒**，观察策略从浅蹲站姿立即接管后的目标变化，确认无异常抖动、踝电机扭矩尖峰、关节触限或 `AMP fault: switched to keep mode`。
 
 仅在零速和站姿检查通过后，继续在吊架内做极低速度测试。先停止终端 B 的零速度发布，再确认旧发布者已消失，由终端 B 启动下面的**唯一**测试发布者；初次示例为 `0.05 m/s`，逐级增速须由现场验证结果决定。
 
@@ -153,7 +153,7 @@ cd /path/to/F1
 | 输入 | 功能 |
 |---|---|
 | B(1) → `/zero_mode` | zero / 复位 |
-| A(0) → `/stand_mode` | stand；**AMP 内退出立即生效** |
+| A(0) → `/stand_mode` | stand；仍受普通模式 1 秒节流 |
 | X(2) → `/walk_mode` | 12DOF 行走（上升沿 toggle 免死区速度直发模式） |
 | Y(3) → `/walk_mode2` | 腿臂行走 |
 | **Guide(8) → `/amp_mode`** | **进入 AMP（须从 stand 状态）** |
@@ -165,7 +165,7 @@ cd /path/to/F1
 | LT 左扳机 | RT 行走激活时的 5 s 匀减速刹停，结束自动回 stand |
 | RT 右扳机 | IMU 偏航闭环 0.4 m/s 直行——**AMP 模式中禁用** |
 
-操作流程：B(zero) → A(stand) 站稳 → Guide 进 AMP → **零速保持 ≥1 s**（软启动，期间勿碰摇杆）→ 按住 LB 用摇杆从低速逐级加速。反馈不新鲜时按 Guide 无效（日志出现 `AMP entry rejected`），应先排查 IMU/关节反馈，不要反复强按。
+操作流程：B(zero) → A(stand) 站稳 → Guide 进 AMP → **零速保持 ≥1 s**（观察策略接管，期间勿碰摇杆；当前没有 1 秒软启动）→ 按住 LB 用摇杆从低速逐级加速。反馈不新鲜时按 Guide 无效（日志出现 `AMP entry rejected`），应先排查 IMU/关节反馈，不要反复强按。
 
 安全行为与限制：
 
@@ -187,6 +187,6 @@ ros2 topic pub --once /keep_mode std_msgs/msg/Float32 '{data: 0.0}'
 ros2 topic pub --once /idle_mode std_msgs/msg/Float32 '{data: 0.0}'
 ```
 
-现场保存并检查 `build/log/x1_rl_ctrl_real_nav.log`、`build/test_logs/data_csv/walk_diag_*.csv`、`build/test_logs/data_csv/t_m/tm_obs_input_*.bin`、`build/test_logs/data_csv/ctrl_period_*.csv`。重点比较关节实测值与 `pos_des_raw_*` / `pos_des_lpf_*`、踝关节 `tau_des_*`、踝电机命令与反馈；无 LPF 时 `_lpf` 列代表经软启动、限位、限幅后的实际目标。`ctrl_period` 的 `miss_cnt` 是**唤醒迟到至少 100 µs**的计数，不等同于真正丢失 1 ms 控制周期，需结合 `late_us_max` 和现场时间序列判断。
+现场保存并检查 `build/log/x1_rl_ctrl_real_nav.log`、`build/test_logs/data_csv/walk_diag_*.csv`、`build/test_logs/data_csv/t_m/tm_obs_input_*.bin`、`build/test_logs/data_csv/ctrl_period_*.csv`。重点比较关节实测值与 `pos_des_raw_*` / `pos_des_lpf_*`、踝关节 `tau_des_*`、踝电机命令与反馈；无 LPF 时 `_lpf` 列代表经限位、限幅后的实际目标。`ctrl_period` 的 `miss_cnt` 是**唤醒迟到至少 100 µs**的计数，不等同于真正丢失 1 ms 控制周期，需结合 `late_us_max` 和现场时间序列判断。
 
-放行到下一阶段前，至少确认：Linux 构建与模型哈希一致；29 关节和 IMU 坐标/零位一致；吊架内 `idle/zero/stand/AMP` 切换正确；1 kHz 输出与 50 Hz 策略配置相符；软启动、关节限位、并联踝力矩与电机反馈符合预期；反馈断流/倾斜/推理错误时退出 AMP；硬件急停和断线保护可独立生效。当前 AMP 实现尚无机身高度或足底触地看门狗，对 DCU 重发旧传感器值也不能仅靠 ROS 接收时间识别；上述吊架检查通过后仍需补充现场风险评估，才能决定是否开展有保护的地面试验。
+放行到下一阶段前，至少确认：Linux 构建与模型哈希一致；29 关节和 IMU 坐标/零位一致；吊架内 `idle/zero/stand/AMP` 切换正确；1 kHz 输出与 50 Hz 策略配置相符；策略切入、关节限位、并联踝力矩与电机反馈符合预期；反馈断流/倾斜/推理错误时退出 AMP；硬件急停和断线保护可独立生效。当前 AMP 实现尚无机身高度或足底触地看门狗，对 DCU 重发旧传感器值也不能仅靠 ROS 接收时间识别；上述吊架检查通过后仍需补充现场风险评估，才能决定是否开展有保护的地面试验。
