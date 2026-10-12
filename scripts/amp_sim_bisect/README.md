@@ -15,8 +15,8 @@ python3 -m venv /tmp/mjv && /tmp/mjv/bin/pip install mujoco==3.12.0 numpy
 ```bash
 # 关键格: F1 部署模型 + 完整 flat 场景 + vendor 动力学 + 浅蹲出生 + settle0
 /tmp/mjv/bin/python scripts/amp_sim_bisect/rollout_bisect.py \
-  --ckpt <soup59c_50.policy.npz 路径> \
-  --repo-root <X1_29_AMP 路径, 无则给任意存在的目录> \
+  --ckpt scripts/amp_sim_bisect/soup59c_50.policy.npz \
+  --repo-root . \
   --robot deploy_flat --no-align --spawn-pose stand --settle 0 --duration 8
 
 # 判据: survived N of N = 走通; [FALL] = 倒
