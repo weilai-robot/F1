@@ -68,7 +68,7 @@ ros2 topic pub --once /amp_mode std_msgs/msg/Float32 '{data: 1.0}'
 `settle_ticks=0`，切入后策略立即接管，没有 1 秒静持/软启动。
 
 **默认仿真配置有 `constant_cmd: [1.0, 0.0, 0.0]`，进入 AMP 后立即按 1 m/s 前进，
-此时摇杆和 `/cmd_vel_limiter` 不控制 AMP 速度。真机配置没有此固定指令。**
+此时摇杆和 `/cmd_vel_limiter` 不控制 AMP 速度。真机配置也已默认设置相同固定指令。**
 
 若要先测零速或用外部速度指令，在终端 A 启动前删除构建产物中的固定指令：
 

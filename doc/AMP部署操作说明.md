@@ -2,6 +2,38 @@
 
 适用范围：`feat/amp-deploy` 分支、X1 29DOF、`x1_amp_soup59c_50hz.onnx`，部署目标为连接 X1 的 Linux 主控。以下命令均应在 **Linux 主控**执行。本说明只用于受保护的吊架/悬空联调；完成这些步骤不代表可以无保护地面行走。训练和模型对齐结果见 [AMP 部署审计](amp_deploy.zh_CN.md)。
 
+## 默认手柄固定 1 m/s 测试
+
+本分支已将真机 `rl_x1.yaml` 配置为 `initial_state: idle`、AMP `constant_cmd: [1.0, 0.0, 0.0]`，与仿真的固定指令一致。`run.sh` 自动设置 `cap_net_raw,cap_sys_nice`，权限设置失败时不会启动控制进程。
+
+在连接机器人的 Linux 主控执行：
+
+```bash
+cd ~/code/F1
+git switch feat/amp-deploy
+git pull --ff-only origin feat/amp-deploy
+git submodule update --init --recursive
+bash scripts/build.sh
+cd build
+bash run.sh
+```
+
+构建会安装真机配置和脚本，无需再手工添加固定指令或修改 setcap。现场网卡、DCU/CAN ID、IMU 和零位标定仍须与本机匹配；重建前保存现场参数，重建后核对。
+
+确认启动日志出现 `cmd source: CONSTANT` 和 `amp CONSTANT CMD = [1.00, 0.00, 0.00]`，反馈正常，再按以下顺序操作：
+
+| 操作 | 结果 |
+|---|---|
+| 启动后等待至少 1 秒，按 B | idle → zero |
+| 等复位完成，按 A | zero → stand |
+| 浅蹲站稳后等待至少 3 秒，单次按 Guide | stand → walk_amp，立即持续执行 [1,0,0] 指令 |
+
+进入 AMP 后不用再按键，不需要 LB 或摇杆。固定指令由 AMP 控制器在每次推理中直接使用，不依赖手柄持续发布速度话题；1 m/s 是策略目标速度，不保证真实速度恰为 1 m/s。
+
+固定模式下，松开 LB、摇杆归零、发布零速度及速度话题超时都不会停车。正常退出按 A 切 stand（普通模式 1 秒节流）；Back 可在 AMP 内立即切 keep；异常倾倒或冲击用硬件急停。反馈断流、倾角超限、推理故障仍会自动退出 AMP。测试期间避免 RT/LT。
+
+本地只完成部署模型独立闭环验证，真机首次复测保持吊架防跌保护。
+
 ## 1. 同步完整分支
 
 先确认提交中包含 `motion_control` 子模块里的控制代码、两个 `rl_x1*.yaml`、`module/control_module/policy/x1_amp_soup59c_50hz.onnx`，并在父仓库提交更新后的子模块指针。**仅拉取父仓库分支而未提交子模块改动或 ONNX 文件，服务器拿不到本次 AMP 版本。**也可以传输完整工作树，但仍需按第 2 节校验产物。
@@ -44,11 +76,11 @@ ONNX 的 SHA256 应为 `3e09b76f1e38085a2093abccc1e6f80c86751c9758f7f21d0f497163
 |---|---|
 | `cfg/dcu_driver_module/dcu_x1.yaml` | `ethercat.ifname`、`bind_cpu`、`rt_priority`、DCU 的 EtherCAT ID、各执行器的 CAN ID、`imu_dcu_name`；首次总线检查设 `enable_actuator: false` |
 | `cfg/control_module/rl_x1.yaml` | 顶层 `initial_state: idle`、`control_frequecy: 1000`、`bind_cpu`/`rt_priority`、29 个关节名称和顺序、实机 `joint_offset` 与机械 `joint_limits` |
-| 同文件的 `rl_walk_amp` | `decimation: 20`、`action_scale: 0.25`、`settle_ticks: 0`、AMP 的关节/默认角/PD 顺序与训练 `lab_dof_names` 一致、`policy_file` 为本次模型、`lpf_conf.position_enabled: false`、`lpf_conf.effort_enabled: false` |
+| 同文件的 `rl_walk_amp` | `decimation: 20`、`action_scale: 0.25`、`settle_ticks: 0`、默认 `constant_cmd: [1.0, 0.0, 0.0]`、AMP 的关节/默认角/PD 顺序与训练 `lab_dof_names` 一致、`policy_file` 为本次模型、`lpf_conf.position_enabled: false`、`lpf_conf.effort_enabled: false` |
 | `cfg/x1_cfg_real_nav.yaml` | 加载 `ControlModule` 与 `DcuDriverModule`，不加载 `JoyStickModule`；现场没有其他节点写 `/cmd_vel_limiter` |
-| `cfg/x1_cfg.yaml` 与 `cfg/joy_stick_module/joy_x1.yaml` | 手柄模式入口：加载 `JoyStickModule`；Guide 键(8) 映射 `/amp_mode`，`constant_velocity` 已注释（摇杆轴生效），速度限幅为保守值 vx±0.5 / vy±0.3 / wz±0.5 |
+| `cfg/x1_cfg.yaml` 与 `cfg/joy_stick_module/joy_x1.yaml` | 手柄模式入口：加载 `JoyStickModule`；Guide 键(8) 映射 `/amp_mode`，`constant_velocity` 已注释；AMP 默认固定 1 m/s，手柄只负责模式切换。删除 AMP 的 `constant_cmd` 后摇杆速度才生效 |
 
-`initial_state: idle` 是 `rl_x1.yaml` 的**顶层**字段；建议显式设置，避免启动状态依赖 YAML 中状态的排列顺序。`ethercat.bind_cpu` 与控制器 `bind_cpu` 必须是该 Linux 主控上有效且合适的独立 CPU。首次启动前核对机身 IMU 的 body→world 四元数定义、29 关节反馈的方向/零位，以及并联踝双电机的传动符号和限幅。配置里的全零 `joint_offset` 不能代替实机标零。
+`initial_state: idle` 是 `rl_x1.yaml` 的**顶层**字段；本分支已显式设置，避免启动状态依赖 YAML 中状态的排列顺序。`ethercat.bind_cpu` 与控制器 `bind_cpu` 必须是该 Linux 主控上有效且合适的独立 CPU。首次启动前核对机身 IMU 的 body→world 四元数定义、29 关节反馈的方向/零位，以及并联踝双电机的传动符号和限幅。配置里的全零 `joint_offset` 不能代替实机标零。
 
 50 Hz 策略每 20 个 1 kHz 控制周期推理一次。此模型训练和 sim2sim 验证未启用动作 LPF，所以 AMP 默认关闭位置目标及踝力矩 LPF，切入即执行策略（无 1 秒姿态平滑），保留关节目标限位和踝关节力矩限幅。若需改变 LPF，须重新验证该配置的闭环行为，不要在首次真机联调时临时开启。
 
@@ -81,7 +113,17 @@ ros2 topic info -v /cmd_vel_limiter
 
 两条 `ros2 topic hz` 命令分别短时运行，用 `Ctrl+C` 结束当前测量后再执行下一条。核对 EtherCAT 从站状态与设备 ID，无持续 WKC/DC 错误；日志中不得有实时调度或绑核失败。`/joint_states` 应持续返回 29 个唯一且与配置对应的关节，位置、速度、关节方向与实机一致。静止直立时，依据 `/imu/data` 的四元数计算的机身投影重力应接近 `(0, 0, -1)`；缓慢绕各轴倾斜，方向应与机身坐标系一致。检查反馈是否持续更新，避免 DCU 重发旧数据却仍形成新 ROS 消息。检查完用 `Ctrl+C` 退出进程。任一项不符，保持执行器不使能并先修正配置或硬件。
 
-## 5. 吊装状态下使能并进入 AMP
+## 5. 外部速度模式：零速及低速测试
+
+本节使用外部速度指令。必须先从真机 AMP 配置删除固定指令，再启动/重启进程；否则下面的零速度和 0.05 m/s 话题都不会生效：
+
+```bash
+cd ~/code/F1
+sed -i '/^[[:space:]]*constant_cmd:/d' build/cfg/control_module/rl_x1.yaml
+```
+
+下次构建会恢复默认固定 1 m/s。默认手柄测试直接使用文档开头的流程。
+
 
 仅在第 4 节全部通过、硬件急停及断线保护经现场验证后，将 `enable_actuator` 改为 `true`。继续保持吊装。`run_real_nav.sh` 使用不加载手柄的配置，适合本次单一外部速度源测试；它会尝试使能颈部舵机。颈部装配需要保持时，确认串口和使能成功，不能忽略脚本的头部松动告警。该脚本在已有 `cap_net_raw` 时不会覆盖第 4 节设置的 `cap_sys_nice`。
 
@@ -141,9 +183,9 @@ cd /path/to/F1
 
 - 需要 tmux。小脑运行在 tmux 会话 `f1_amp` 的 aimrt 窗口，日志用 `tmux attach -t f1_amp` 查看。
 - 反馈检查不通过（话题无订阅者或无数据）时脚本终止；此时 `/amp_mode` 同样会被小脑的 AmpReady 入口检查拒绝。
-- 键盘遥控以 50 Hz 持续发布 `/cmd_vel_limiter`，限幅与训练范围一致（vx∈[-0.5, 2.5]、vy±0.5、wz±1.5，小脑侧二次限幅兜底）。按键：`m/s/k/z/i` = amp/stand/keep/zero/idle 模式；方向键（或 `WASD`/`Q`/`E`）按 0.1 步进调速；空格归零；`Ctrl+C` 先发零速再触发 `/stand_mode` 安全退出。
+- 脚本读取运行配置中的 `constant_cmd`。默认固定 1 m/s 时，进入前会明确提示，键盘只用于模式切换，速度键和空格归零无效；删除固定指令后，键盘以 50 Hz 持续发布 `/cmd_vel_limiter`，限幅与训练范围一致（vx∈[-0.5, 2.5]、vy±0.5、wz±1.5，小脑侧二次限幅兜底）。按键：`m/s/k/z/i` = amp/stand/keep/zero/idle 模式；方向键（或 `WASD`/`Q`/`E`）按 0.1 步进调速；空格归零；`Ctrl+C` 先发零速再触发 `/stand_mode` 安全退出。
 - 模式切换采用 5 Hz 持续发布 2 s，规避 DDS 发现期丢包（与 `switch_x1_mode.sh` 同策略），与手工 `--once` 方式等效。
-- `run.sh` 会执行 `setcap cap_net_raw=ep`：若第 4 节设置过 `cap_sys_nice`，会被该命令覆盖丢失，需按第 4 节重新设置后再启动。
+- `run.sh` 已改为执行 `setcap cap_net_raw,cap_sys_nice=ep`，同时提供 EtherCAT 和实时调度权限，失败时不会启动真机控制。
 - 手柄若已连接，手柄模块同时处于运行状态，**不要同时使用键盘遥控和手柄**。
 
 ### 6.2 手柄操作
@@ -159,24 +201,26 @@ cd /path/to/F1
 | **Guide(8) → `/amp_mode`** | **进入 AMP（须从 stand 状态）** |
 | Back(6) → `/keep_mode` | keep；**AMP 内退出立即生效** |
 | RB(5) → `/plan_mode`、Start(7) → `/idle_mode` | plan / idle |
-| LB(4) 按住 | 速度死区：按住期间摇杆速度生效 |
-| 左摇杆 前后 / 左右 | vx / vy |
-| 右摇杆 左右 | wz |
-| LT 左扳机 | RT 行走激活时的 5 s 匀减速刹停，结束自动回 stand |
-| RT 右扳机 | IMU 偏航闭环 0.4 m/s 直行——**AMP 模式中禁用** |
+| LB(4) 按住 | 默认固定 AMP 中无效；外部速度模式下按住期间摇杆速度生效 |
+| 左摇杆 前后 / 左右 | 默认固定 AMP 中无效；外部速度模式下为 vx / vy |
+| 右摇杆 左右 | 默认固定 AMP 中无效；外部速度模式下为 wz |
+| LT 左扳机 | RT 外部速度模式的 5 s 减速；不能用于固定 AMP 刹停 |
+| RT 右扳机 | IMU 偏航闭环；固定 AMP 忽略其速度，测试期间不要使用 |
 
-操作流程：B(zero) → A(stand) 站稳 → Guide 进 AMP → **零速保持 ≥1 s**（观察策略接管，期间勿碰摇杆；当前没有 1 秒软启动）→ 按住 LB 用摇杆从低速逐级加速。反馈不新鲜时按 Guide 无效（日志出现 `AMP entry rejected`），应先排查 IMU/关节反馈，不要反复强按。
+默认操作流程：启动至少 1 秒 → B(zero) 复位完成 → A(stand) 浅蹲站稳至少 3 秒 → 单次 Guide 进 AMP，立即持续固定 1 m/s。之后无需按键、LB 或摇杆；当前没有 1 秒软启动。外部速度模式需先删除 `constant_cmd`，再从零速、低速逐级验证。反馈不新鲜时按 Guide 无效（日志出现 `AMP entry rejected`），应先排查 IMU/关节反馈，不要反复强按。
 
 安全行为与限制：
 
-- 松开 LB 后速度话题停发，小脑 250 ms 超时自动归零（等效死区）；不得把话题超时当作急停手段。
-- 手柄侧限幅为保守值（vx±0.5 / vy±0.3 / wz±0.5），小脑再按训练范围二次限幅；放宽需改 `joy_x1.yaml` 并重新构建部署。
-- **AMP 中勿按 RT**：RT 触发的 `/walk_mode` 会被状态机拒绝（`walk_leg` 不接受 `walk_amp` 前置），模式不会被切走，但 RT 的闭环速度（0.4 m/s 前进）仍会绕过 LB 直接发布；误按后用 LT 刹停。
+- 默认固定 AMP 不受 LB、摇杆、外部零速度或速度话题超时影响，停车必须切出 AMP。删除 `constant_cmd` 后，松开 LB 才会使外部指令 250 ms 超时归零。
+- 手柄侧限幅只作用于外部速度模式；AMP 的固定 1 m/s 由控制器直接使用，并按训练范围限幅。
+- **测试期间勿按 RT/LT**：RT 触发的 `/walk_mode` 被 AMP 状态机拒绝，固定 AMP 也忽略其闭环速度；LT 的速度斜坡不能停止固定指令，要用 A/Back 切出 AMP。
 - 8 号键（Guide）是否上报取决于手柄驱动：首次联调先按键并用 `ros2 topic echo /amp_mode` 确认有输出；无输出则把 `joy_x1.yaml` 中 `buttons: [8]` 改为 `[9]` 或 `[10]`（摇杆下压），重新构建部署。
 
 ## 7. 退出、记录与放行判断
 
-正常退出：在终端 B 停止非零速度发布者，重新以 10 Hz 持续发布零速度，确认机械运动停止，然后从终端 C 发布 `/keep_mode`；`keep` 仍会保持当前位置，不是断电。若需完全退出控制，在机器人由吊架可靠支撑、`keep` 状态已确认且间隔至少 1 秒后，再切 `/idle_mode`，最后在终端 A 用 `Ctrl+C` 停止主进程并确认驱动器下使能。`idle` 发送零刚度/阻尼指令，**本身不调用执行器下使能**。AMP 内的 `/keep_mode` 和 `/idle_mode` 可绕过通常的 1 秒模式节流；进入 `keep` 后的普通模式切换仍受节流限制。**出现失控迹象时立即使用硬件急停，不等待 ROS 指令。**
+默认固定模式退出：按 A 切 stand，或 Back 切 keep；固定指令只在 AMP 激活时生效。不要使用零速度话题或松开 LB 停车。
+
+以下零速度退出步骤仅用于第 5 节已删除 `constant_cmd` 的外部速度模式。正常退出：在终端 B 停止非零速度发布者，重新以 10 Hz 持续发布零速度，确认机械运动停止，然后从终端 C 发布 `/keep_mode`；`keep` 仍会保持当前位置，不是断电。若需完全退出控制，在机器人由吊架可靠支撑、`keep` 状态已确认且间隔至少 1 秒后，再切 `/idle_mode`，最后在终端 A 用 `Ctrl+C` 停止主进程并确认驱动器下使能。`idle` 发送零刚度/阻尼指令，**本身不调用执行器下使能**。AMP 内的 `/keep_mode` 和 `/idle_mode` 可绕过通常的 1 秒模式节流；进入 `keep` 后的普通模式切换仍受节流限制。**出现失控迹象时立即使用硬件急停，不等待 ROS 指令。**
 
 ```bash
 # 终端 B：先 Ctrl+C 停止原发布者，再运行
@@ -187,6 +231,6 @@ ros2 topic pub --once /keep_mode std_msgs/msg/Float32 '{data: 0.0}'
 ros2 topic pub --once /idle_mode std_msgs/msg/Float32 '{data: 0.0}'
 ```
 
-现场保存并检查 `build/log/x1_rl_ctrl_real_nav.log`、`build/test_logs/data_csv/walk_diag_*.csv`、`build/test_logs/data_csv/t_m/tm_obs_input_*.bin`、`build/test_logs/data_csv/ctrl_period_*.csv`。重点比较关节实测值与 `pos_des_raw_*` / `pos_des_lpf_*`、踝关节 `tau_des_*`、踝电机命令与反馈；无 LPF 时 `_lpf` 列代表经限位、限幅后的实际目标。`ctrl_period` 的 `miss_cnt` 是**唤醒迟到至少 100 µs**的计数，不等同于真正丢失 1 ms 控制周期，需结合 `late_us_max` 和现场时间序列判断。
+现场保存并检查手柄启动的 `build/log/x1_rl_ctrl.log`（no-joy 启动为 `build/log/x1_rl_ctrl_real_nav.log`）、`build/test_logs/data_csv/walk_diag_*.csv`、`build/test_logs/data_csv/t_m/tm_obs_input_*.bin`、`build/test_logs/data_csv/ctrl_period_*.csv`。重点比较关节实测值与 `pos_des_raw_*` / `pos_des_lpf_*`、踝关节 `tau_des_*`、踝电机命令与反馈；无 LPF 时 `_lpf` 列代表经限位、限幅后的实际目标。`ctrl_period` 的 `miss_cnt` 是**唤醒迟到至少 100 µs**的计数，不等同于真正丢失 1 ms 控制周期，需结合 `late_us_max` 和现场时间序列判断。
 
 放行到下一阶段前，至少确认：Linux 构建与模型哈希一致；29 关节和 IMU 坐标/零位一致；吊架内 `idle/zero/stand/AMP` 切换正确；1 kHz 输出与 50 Hz 策略配置相符；策略切入、关节限位、并联踝力矩与电机反馈符合预期；反馈断流/倾斜/推理错误时退出 AMP；硬件急停和断线保护可独立生效。当前 AMP 实现尚无机身高度或足底触地看门狗，对 DCU 重发旧传感器值也不能仅靠 ROS 接收时间识别；上述吊架检查通过后仍需补充现场风险评估，才能决定是否开展有保护的地面试验。

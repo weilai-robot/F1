@@ -3,7 +3,9 @@
 # run_amp_real.sh — AMP 全身策略实机运行脚本
 #
 # 流程: (可选构建) → tmux 启动小脑 → 反馈检查 →
-#       zero → stand(人工确认) → amp(立即接管，零速观察 1s) → 键盘遥控
+#       zero → stand(人工确认) → amp(立即接管) → 键盘模式/速度控制
+# 默认 rl_x1.yaml 为固定 [1,0,0] 指令，Guide 手柄流程直接使用 build/run.sh。
+# 有 constant_cmd 时速度键无效，停止必须切出 AMP；删此配置后才可调速。
 #
 # 键盘遥控 (AMP 模式下):
 #   模式:  m=/amp_mode  s=/stand_mode  k=/keep_mode(AMP内立即退出)
@@ -19,7 +21,7 @@
 #
 # ⚠ 安全前提 (doc/amp_deploy.zh_CN.md):
 #   - 首次联调必须在吊架/悬空保护下, 人手不离急停
-#   - 进入 AMP 后先保持零速 >1s (观察策略接管), 再逐级加速
+#   - 默认进入 AMP 立即持续 1m/s；外部速度模式才可先零速观察再逐级加速
 #   - 禁止首试强推/急转/后退边界指令
 #   - 硬件急停独立可用, 勿依赖软件退出
 # ============================================================
@@ -77,6 +79,8 @@ if [ ! -f "${AIMRT_BIN}/${ONNX_REL}" ]; then
 fi
 grep -q "x1_amp_soup59c_50hz.onnx" "${AIMRT_BIN}/cfg/control_module/rl_x1.yaml" \
   || { echo -e "${RED}[ERROR] rl_x1.yaml 未指向 soup59c 模型${NC}"; exit 1; }
+AMP_CONSTANT_CMD="$(sed -n 's/^[[:space:]]*constant_cmd:[[:space:]]*\(\[[^]]*\]\).*/\1/p' \
+  "${AIMRT_BIN}/cfg/control_module/rl_x1.yaml")"
 
 # ── 3. ROS2 环境 (与 switch_x1_mode.sh 一致: 须 source AimRT 侧) ──
 source "${SCRIPT_DIR}/ros2_source.sh" 2>/dev/null \
@@ -148,17 +152,25 @@ sleep "${STAND_HOLD_S}"
 pub_mode stand_mode "stand_mode (站立)"
 
 echo -e "${YELLOW}确认机器人已站稳、姿态正常后继续${NC}"
-read -r -p "回车进入 AMP (策略将立即接管，先零速观察)... "
+if [ -n "${AMP_CONSTANT_CMD}" ]; then
+  read -r -p "回车进入 AMP (将立即持续执行 ${AMP_CONSTANT_CMD}，零速键不能停止，须切出 AMP)... "
+else
+  read -r -p "回车进入 AMP (策略将立即接管，先零速观察)... "
+fi
 
 pub_mode amp_mode "amp_mode (AMP 全身策略)"
 
 echo ""
-echo -e "${GREEN}已进入 AMP，策略立即接管。保持零速 ≥1s 观察，随后用键盘逐级加速。${NC}"
+if [ -n "${AMP_CONSTANT_CMD}" ]; then
+  echo -e "${GREEN}已进入 AMP，固定指令 ${AMP_CONSTANT_CMD} 持续生效。速度键和空格归零无效。${NC}"
+else
+  echo -e "${GREEN}已进入 AMP，策略立即接管。保持零速 ≥1s 观察，随后用键盘逐级加速。${NC}"
+fi
 echo -e "${YELLOW}退出: s(stand) / k(keep, AMP 内立即生效) / 物理急停${NC}"
 sleep 1
 
 # ── 键盘遥控 (模式 + 限幅速度, Ctrl+C 安全退出) ─────────────
-python3 - "$PUB_RATE" <<'PYEOF'
+python3 - "$PUB_RATE" "$AMP_CONSTANT_CMD" <<'PYEOF'
 import sys, tty, termios, select, atexit
 import rclpy
 from rclpy.node import Node
@@ -166,6 +178,7 @@ from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 
 PUB_RATE = float(sys.argv[1]) if len(sys.argv) > 1 else 5.0
+CONSTANT_CMD = sys.argv[2] if len(sys.argv) > 2 else ''
 
 # 训练指令范围 (rl_x1.yaml amp_conf, C++ 侧还会再限幅)
 VX_LIM, VX_MIN, VY_LIM, WZ_LIM = 2.5, -0.5, 0.5, 1.5
@@ -183,6 +196,14 @@ HELP = """
   Ctrl+C: 先零速再 stand 安全退出
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """ % (STEP, VX_MIN, VX_LIM, -VY_LIM, VY_LIM, -WZ_LIM, WZ_LIM)
+if CONSTANT_CMD:
+    HELP = f"""
+━━━ AMP 固定指令 {CONSTANT_CMD} ━━━
+  模式: m=amp  s=stand  k=keep(AMP内立即退出)  z=zero  i=idle
+  速度键/空格归零无效；停止必须切出 AMP
+  Ctrl+C: 触发 /stand_mode 退出策略
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
 
 rclpy.init()
 node = Node('amp_teleop')
@@ -218,7 +239,7 @@ def restore():
     if dead: return
     dead = True
     stop_all()
-    trigger('/stand_mode')  # 软退出兜底: 零速→stand
+    trigger('/stand_mode')  # 固定指令模式忽略零速度，依靠切到 stand 退出策略
     termios.tcsetattr(fd, termios.TCSADRAIN, old)
     print("\n[退出] 已发零速 + /stand_mode")
 
@@ -235,6 +256,9 @@ try:
                 seq = sys.stdin.read(2) if select.select([sys.stdin], [], [], 0.05)[0] else ''
                 ch = {'[A': 'up', '[B': 'down', '[C': 'right', '[D': 'left'}.get(seq, '')
             low = ch.lower()
+            if CONSTANT_CMD and (ch in ('up', 'down', 'left', 'right', ' ') or low in ('q', 'e')):
+                print("  [固定指令] 速度键无效，请按 s/k 切出 AMP")
+                continue
             if   ch == 'up':    cmd.linear.x += STEP
             elif ch == 'down':  cmd.linear.x -= STEP
             elif ch == 'left':  cmd.linear.y += STEP
@@ -245,7 +269,8 @@ try:
             elif low in MODES:  trigger(MODES[low])
             elif low == 'h':    print(HELP)
             elif ch == '\x03':  break  # Ctrl+C
-            print(f"  vx={cmd.linear.x:+.2f} vy={cmd.linear.y:+.2f} wz={cmd.angular.z:+.2f}")
+            if not CONSTANT_CMD:
+                print(f"  vx={cmd.linear.x:+.2f} vy={cmd.linear.y:+.2f} wz={cmd.angular.z:+.2f}")
         publish_vel()
         rclpy.spin_once(node, timeout_sec=0)
 finally:
