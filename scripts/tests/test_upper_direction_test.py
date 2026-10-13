@@ -60,6 +60,24 @@ def inputs():
             "type": side.capitalize() + "WristParallelTransmission", "joint_pitch": side + "_wrist_pitch_joint",
             "joint_roll": side + "_wrist_roll_joint", "actuator_right": side + "_wrist_back_actuator",
             "actuator_left": side + "_wrist_front_actuator", "direction_right": 1.0, "direction_left": 1.0})
+    motors = [name.replace("_joint", "_actuator") for name in upper if "wrist" not in name and name != "lumbar_pitch_joint" and name != "lumbar_roll_joint"]
+    motors += ["lumbar_left_actuator", "lumbar_right_actuator"]
+    motors += [f"{side}_wrist_{end}_actuator" for side in ("left", "right") for end in ("front", "back")]
+    body = {"name": "body", "ecat_id": 1, "enable": True, "imu_enable": False,
+            "channel_1": [], "channel_2": [], "channel_3": []}
+    for side, channel in (("left", 1), ("right", 2)):
+        arm_names = [f"{side}_{kind}_actuator" for kind in
+                     ("shoulder_pitch", "shoulder_roll", "shoulder_yaw", "elbow_pitch", "elbow_yaw")]
+        arm_names += [f"{side}_wrist_{end}_actuator" for end in (("front", "back") if side == "left" else ("back", "front"))]
+        body[f"channel_{channel}"] = [{"name": name, "can_id": i + 1,
+            "type": "POWER_FLOW_L28" if "wrist" in name else "POWER_FLOW_R86" if i < 2 else "POWER_FLOW_R52"}
+            for i, name in enumerate(arm_names)]
+    body["channel_3"] = [{"name": f"lumbar_{side}_actuator", "can_id": i + 1, "type": "POWER_FLOW_R86"}
+                         for i, side in enumerate(("left", "right"))]
+    hip = {"name": "hip", "ecat_id": 2, "enable": True, "imu_enable": True,
+           "channel_3": [{"name": "lumbar_yaw_actuator", "can_id": 1, "type": "POWER_FLOW_R86"}]}
+    dcu.update({"actuator_list": motors, "enable_actuator": True, "actuator_debug": True,
+                "dcu_network": [body, hip]})
     main = {"aimrt": {"plugin": {"plugins": [{"name": "ros2_plugin", "options": {"node_name": "normal"}}]},
         "log": {"backends": [{"type": "rotate_file", "options": {"filename": "normal.log"}}]},
         "channel": {"sub_topics_options": [{"topic_name": ".*", "enable_backends": ["local"]}],
@@ -118,6 +136,24 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(cases[side + "_wrist_pitch_joint"]["actuator"], side + "_wrist_back_actuator")
             self.assertEqual(cases[side + "_wrist_roll_joint"]["actuator"], side + "_wrist_front_actuator")
             self.assertEqual(cases[side + "_shoulder_roll_joint"]["delta"], -0.10)
+        for name, case in cases.items():
+            self.assertEqual(case["dcu"], "hip" if name == "lumbar_yaw_joint" else "body")
+            self.assertEqual(case["channel"], 2 if name.startswith("right") else 1 if name.startswith("left") else 3)
+        self.assertEqual(cases["right_wrist_pitch_joint"]["can_id"], 6)
+        self.assertEqual(cases["left_wrist_pitch_joint"]["can_id"], 7)
+
+    def test_missing_disabled_and_aliasing_motor_routes_are_rejected(self):
+        for fault in ("disabled", "debug_off", "missing_right", "alias", "missing_motor", "bad_id"):
+            source = inputs()
+            dcu = source[2]
+            if fault == "disabled": dcu["enable_actuator"] = False
+            if fault == "debug_off": dcu["actuator_debug"] = False
+            if fault == "missing_right": dcu["dcu_network"][0]["channel_2"] = []
+            if fault == "alias": dcu["dcu_network"][0]["channel_2"][1]["can_id"] = 1
+            if fault == "missing_motor": dcu["actuator_list"].remove("right_shoulder_pitch_actuator")
+            if fault == "bad_id": dcu["dcu_network"][0]["channel_2"][0]["can_id"] = 9
+            with self.subTest(fault=fault), self.assertRaises(ValueError):
+                tool.build_configs(*source)
 
     def test_invalid_or_out_of_range_plans_are_rejected(self):
         for angle in (0, -0.1, 0.21, float("nan")):
@@ -146,7 +182,7 @@ class ConfigTests(unittest.TestCase):
 
 
 class ClientTests(unittest.TestCase):
-    def exercise(self, answers, fault_at=None, publishers=1):
+    def exercise(self, answers, fault_at=None, publishers=1, joint="left_shoulder_roll_joint", motor_fault=None, diagnose=False):
         control, main, plan = tool.build_configs(*inputs())
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -168,6 +204,7 @@ class ClientTests(unittest.TestCase):
                     self.timers = []
                     self.state = "idle"
                     self.positions = {n: 0.0 for n in plan["joint_names"]}
+                    self.gains = {n: [0.0, 0.0] for n in plan["joint_names"]}
                     self.destroyed = False
                 def create_subscription(self, type_, topic, callback, qos):
                     self.callbacks[topic] = callback
@@ -181,6 +218,7 @@ class ClientTests(unittest.TestCase):
                                 controller = control["controllers"][cfg["controllers"][0]]
                                 if not controller.get("is_keep_controller"):
                                     self.positions = dict(zip(controller["joint_list"], controller["init_state"]))
+                                    self.gains = dict(zip(controller["joint_list"], zip(controller["stiffness"], controller["damping"])))
                     return types.SimpleNamespace(publish=publish)
                 def assert_mode(self, topic):
                     if not topic.startswith(tool.PREFIX):
@@ -193,10 +231,31 @@ class ClientTests(unittest.TestCase):
             def spin_once(node, timeout_sec):
                 clock[0] += 0.1
                 names = list(reversed(plan["joint_names"]))
-                msg = types.SimpleNamespace(name=names, position=[node.positions[n] + plan["offsets"][n] for n in names])
+                msg = types.SimpleNamespace(name=names, position=[node.positions[n] + plan["offsets"][n] for n in names],
+                    stiffness=[node.gains[n][0] for n in names], damping=[node.gains[n][1] for n in names])
                 node.callbacks[plan["command_topic"]](msg)
+                feedback = types.SimpleNamespace(name=names, position=[0.0 if motor_fault == "immobile" and n == joint
+                    else node.positions[n] + plan["offsets"][n] for n in names])
                 if fault_at is None or clock[0] < fault_at:
-                    node.callbacks[plan["feedback_topic"]](msg)
+                    node.callbacks[plan["feedback_topic"]](feedback)
+                bindings = {case["actuator"]: case for case in plan["cases"]}
+                motors = list(reversed(plan["actuator_names"]))
+                native = {motor: bindings[motor]["direction"] * (node.positions[bindings[motor]["joint"]]
+                           + plan["offsets"][bindings[motor]["joint"]]) for motor in motors}
+                if motor_fault == "mapping" and node.state.startswith("test_"):
+                    native[plan["cases"][0]["actuator"]] += 0.03
+                native_feedback = dict(native)
+                if motor_fault == "immobile":
+                    motor = next(case["actuator"] for case in plan["cases"] if case["joint"] == joint)
+                    native_feedback[motor] = 0.0
+                native_gains = {motor: list(node.gains[bindings[motor]["joint"]]) for motor in motors}
+                if motor_fault == "gain" and node.state.startswith("test_"):
+                    native_gains[plan["cases"][0]["actuator"]] = [0.0, 0.0]
+                node.callbacks[plan["actuator_command_topic"]](types.SimpleNamespace(name=motors,
+                    position=[native[m] for m in motors], stiffness=[native_gains[m][0] for m in motors],
+                    damping=[native_gains[m][1] for m in motors]))
+                node.callbacks[plan["actuator_feedback_topic"]](types.SimpleNamespace(name=motors,
+                    position=[native_feedback[m] for m in motors]))
                 for callback in node.timers:
                     callback()
             packages = {name: types.ModuleType(name) for name in ["rclpy", "rclpy.node", "rclpy.qos", "rclpy.signals",
@@ -207,8 +266,8 @@ class ClientTests(unittest.TestCase):
             packages["rclpy.node"].Node = FakeNode
             packages["rclpy.qos"].qos_profile_sensor_data = object()
             packages["rclpy.signals"].SignalHandlerOptions = types.SimpleNamespace(NO=0)
-            packages["sensor_msgs.msg"].JointState = object
-            packages["my_ros2_proto.msg"].JointCommand = object
+            packages["sensor_msgs.msg"].JointState = type("JointState", (), {})
+            packages["my_ros2_proto.msg"].JointCommand = type("JointCommand", (), {})
             packages["std_msgs.msg"].Float32 = type("Float32", (), {})
             responses = iter(answers)
             def readline():
@@ -217,17 +276,18 @@ class ClientTests(unittest.TestCase):
                     raise response
                 return response + "\n"
             stdin = types.SimpleNamespace(isatty=lambda: True, readline=readline)
-            args = types.SimpleNamespace(manifest=manifest, joint=["left_shoulder_roll_joint"])
+            args = types.SimpleNamespace(manifest=manifest, joint=[joint], seconds=1.0)
             failure = None
             with patch.dict("sys.modules", packages), patch.object(tool, "time", types.SimpleNamespace(monotonic=lambda: clock[0])), \
                     patch.object(tool.sys, "stdin", stdin), patch.object(tool.select, "select", lambda *a: ([stdin], [], [])), \
                     contextlib.redirect_stdout(io.StringIO()):
                 try:
-                    tool.run(args)
+                    tool.diagnose(args) if diagnose else tool.run(args)
                 except RuntimeError as error:
                     failure = str(error)
             report = json.loads(next((root / "test_logs/data_csv").glob("*.json")).read_text())
-            rows = next((root / "test_logs/data_csv").glob("*.csv")).read_text()
+            csv_files = list((root / "test_logs/data_csv").glob("*.csv"))
+            rows = csv_files[0].read_text() if csv_files else ""
             return published, report, rows, failure
 
     def test_client_runs_one_case_returns_neutral_and_records_operator_verdict(self):
@@ -259,6 +319,38 @@ class ClientTests(unittest.TestCase):
         self.assertIn("一个发布者", failure)
         self.assertEqual(published, [])
         self.assertFalse(report["completed"])
+
+    def test_all_upper_joint_cases_reach_correct_motor_boundaries(self):
+        for joint, *_ in tool.JOINTS:
+            with self.subTest(joint=joint):
+                _, report, rows, failure = self.exercise(["", "", "s"], joint=joint)
+                self.assertIsNone(failure)
+                self.assertEqual(report["results"][0]["motion_status"], "responding")
+                self.assertIn("actuator_target_", rows)
+
+    def test_right_arm_with_commands_but_no_feedback_motion_is_recorded(self):
+        _, report, _, failure = self.exercise(["", "", "n"], joint="right_shoulder_pitch_joint", motor_fault="immobile")
+        self.assertIsNone(failure)
+        result = report["results"][0]
+        self.assertEqual(result["motion_status"], "no_motion")
+        self.assertEqual(result["observation"], "no_motion")
+        self.assertIn("channel_2", result["route"])
+
+    def test_motor_mapping_or_zero_gain_fault_aborts_before_direction_verdict(self):
+        for fault in ("mapping", "gain"):
+            with self.subTest(fault=fault):
+                _, report, _, failure = self.exercise(["", ""], motor_fault=fault)
+                self.assertIn("电机", failure)
+                self.assertFalse(report["completed"])
+                self.assertEqual(report["results"], [])
+
+    def test_readonly_diagnose_never_publishes_and_reports_motor_route(self):
+        published, report, rows, failure = self.exercise([], diagnose=True, joint="right_elbow_pitch_joint")
+        self.assertIsNone(failure)
+        self.assertEqual(published, [])
+        self.assertEqual(rows, "")
+        self.assertEqual(report["rows"][0]["joint"], "right_elbow_pitch_joint")
+        self.assertIn("channel_2", report["rows"][0]["route"])
 
 
 class LauncherTests(unittest.TestCase):

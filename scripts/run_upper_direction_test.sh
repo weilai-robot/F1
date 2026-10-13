@@ -16,13 +16,14 @@ if [ "$MODE" = help ] || [ "$MODE" = --help ] || [ "$MODE" = -h ]; then
   bash scripts/run_upper_direction_test.sh test                # 终端 B，逐关节交互测试
   bash scripts/run_upper_direction_test.sh test --joint left_shoulder_pitch_joint
   bash scripts/run_upper_direction_test.sh list                # 查看关节与模型方向
+  bash scripts/run_upper_direction_test.sh diagnose            # 只读检查腰/左右臂电机链路
 可用 AIMRT_DIR 指定安装目录。先停止其他 aimrt_main；机器人须有支撑。
 HELP
     exit 0
 fi
 
 case "$MODE" in
-    prepare|start|test|list) ;;
+    prepare|start|test|list|diagnose) ;;
     *) echo "未知操作：$MODE" >&2; exit 1 ;;
 esac
 UPPER_TEST_BIN="$(cd "$UPPER_TEST_BIN" && pwd)"
@@ -63,5 +64,7 @@ for prefix in ./install ../install; do
     fi
 done
 set -u
-exec python3 "$SCRIPT_DIR/upper_direction_test.py" run \
+CLIENT_MODE=run
+if [ "$MODE" = diagnose ]; then CLIENT_MODE=diagnose; fi
+exec python3 "$SCRIPT_DIR/upper_direction_test.py" "$CLIENT_MODE" \
     --manifest "$UPPER_TEST_BIN/cfg/control_module/upper_direction_test.json" "$@"
