@@ -1,0 +1,219 @@
+{
+  "refs": {
+    "59d321e899539a856ed25323f30d969c2665e63c": {
+      "commit": "59d321e899539a856ed25323f30d969c2665e63c",
+      "imu_conversion_sha256": "cd3bed98ab4541183b6982203fb0cf65fd77d14289bc7bb33a99237bf453a6b8",
+      "apply_offset_function_body": "void XyberController::ApplyDcuImuOffset(const std::string& name) {\n  auto it = dcu_map_.find(name);\n  if (it == dcu_map_.end()) return;\n}"
+    },
+    "main": {
+      "commit": "12017c8b04ef68c4d3e7651ae54453bea7ec73ec",
+      "imu_conversion_sha256": "cd3bed98ab4541183b6982203fb0cf65fd77d14289bc7bb33a99237bf453a6b8",
+      "apply_offset_function_body": "void XyberController::ApplyDcuImuOffset(const std::string& name) {\n  auto it = dcu_map_.find(name);\n  if (it == dcu_map_.end()) return;\n}"
+    },
+    "HEAD": {
+      "commit": "47b712570a0c4885b792f7a97b99a25ab27b589d",
+      "imu_conversion_sha256": "cd3bed98ab4541183b6982203fb0cf65fd77d14289bc7bb33a99237bf453a6b8",
+      "apply_offset_function_body": "void XyberController::ApplyDcuImuOffset(const std::string& name) {\n  auto it = dcu_map_.find(name);\n  if (it == dcu_map_.end()) return;\n}"
+    }
+  },
+  "training_checkpoint_provenance": "local training repositories match 12 actions / 47 observations / 66 history; exact deployed checkpoint training commit not established",
+  "models": [
+    {
+      "source": "/Users/yumx/code/robot_x/X1/agibot_x1_train/resources/robots/x1/urdf/x1.urdf",
+      "sha256": "98868f1248729bf370f3c24193b9d44e13b8bb3852fa8e7d447aea4604063b09",
+      "base_visual_origin": {
+        "xyz": "0 0 0",
+        "rpy": "0 0 0"
+      },
+      "hip_origins_axes_parents": {
+        "left": {
+          "origin": {
+            "xyz": "0.00245 0.092277 -0.012143",
+            "rpy": "0 -0.7854 1.5708"
+          },
+          "axis": {
+            "xyz": "0 0 1"
+          },
+          "parent": {
+            "link": "base_link"
+          }
+        },
+        "right": {
+          "origin": {
+            "xyz": "0.00245 -0.092277 -0.012143",
+            "rpy": "0 -0.7854 -1.5708"
+          },
+          "axis": {
+            "xyz": "0 0 1"
+          },
+          "parent": {
+            "link": "base_link"
+          }
+        }
+      }
+    },
+    {
+      "source": "/Users/yumx/code/robot_x/X1/X1_辨识/X1_train/resources/robots/x1/urdf/x1.urdf",
+      "sha256": "98868f1248729bf370f3c24193b9d44e13b8bb3852fa8e7d447aea4604063b09",
+      "base_visual_origin": {
+        "xyz": "0 0 0",
+        "rpy": "0 0 0"
+      },
+      "hip_origins_axes_parents": {
+        "left": {
+          "origin": {
+            "xyz": "0.00245 0.092277 -0.012143",
+            "rpy": "0 -0.7854 1.5708"
+          },
+          "axis": {
+            "xyz": "0 0 1"
+          },
+          "parent": {
+            "link": "base_link"
+          }
+        },
+        "right": {
+          "origin": {
+            "xyz": "0.00245 -0.092277 -0.012143",
+            "rpy": "0 -0.7854 -1.5708"
+          },
+          "axis": {
+            "xyz": "0 0 1"
+          },
+          "parent": {
+            "link": "base_link"
+          }
+        }
+      }
+    },
+    {
+      "source": "/Users/yumx/code/X1_29_AMP/roboparty_train/robolab/data/robots/x1/urdf/f1.urdf",
+      "sha256": "c3e381d378ea6d2ccd8122825a96767504fcf562b2c9d6a041fe2e938e922837",
+      "base_visual_origin": {
+        "xyz": "0 0 0",
+        "rpy": "0 0 0"
+      },
+      "hip_origins_axes_parents": {
+        "left": {
+          "origin": {
+            "xyz": "0.00245 0.092277 -0.012143",
+            "rpy": "0 -0.7854 1.5708"
+          },
+          "axis": {
+            "xyz": "0 0 1"
+          },
+          "parent": {
+            "link": "base_link"
+          }
+        },
+        "right": {
+          "origin": {
+            "xyz": "0.00245 -0.092277 -0.012143",
+            "rpy": "0 -0.7854 -1.5708"
+          },
+          "axis": {
+            "xyz": "0 0 1"
+          },
+          "parent": {
+            "link": "base_link"
+          }
+        }
+      }
+    }
+  ],
+  "logs": [
+    {
+      "source": "/Users/yumx/code/robot_x/X1/x1_data/data/7500model/walk_diag_20260901_163320.csv",
+      "sha256": "abd1064f0ac89d9c4617f27c5b4aeaed8cfca722e691f19ec609e3a06be587d3",
+      "rows": 1172,
+      "window_s": [
+        1.009635768,
+        11.70958214
+      ],
+      "base_pitch_mean_deg": 0.6610895698292465,
+      "base_pitch_p05_p95_deg": [
+        -0.3096500172620522,
+        1.9386190310309481
+      ],
+      "command_x_min_max": [
+        0.25,
+        0.25
+      ],
+      "quat_norm_min_max": [
+        0.9999986951621487,
+        1.0000000075775
+      ],
+      "main_vs_amp_gravity_max_abs_difference": 1.2314277877956137e-07
+    },
+    {
+      "source": "/Users/yumx/code/robot_x/X1/x1_data/data/7500model_addDR/walk_diag_20260901_155946.csv",
+      "sha256": "75ecbb0146e53fe3b1fd5395bdff1c7c7ae19d322572de17ab7db1a8db9d1841",
+      "rows": 6098,
+      "window_s": [
+        1.009113056,
+        60.969265365
+      ],
+      "base_pitch_mean_deg": 0.8334898877003999,
+      "base_pitch_p05_p95_deg": [
+        -0.17107405850121488,
+        1.907831701333557
+      ],
+      "command_x_min_max": [
+        0.0,
+        0.4
+      ],
+      "quat_norm_min_max": [
+        0.9999984403217836,
+        1.0000000390114994
+      ],
+      "main_vs_amp_gravity_max_abs_difference": 1.3743049769032734e-07
+    },
+    {
+      "source": "/Users/yumx/Downloads/walk_diag_20261013_153942.csv",
+      "sha256": "0e233fa0532e81f72ace7f3aed5b81971fb8a500ffb44a8d2bfc8f126e53a3ec",
+      "rows": 799,
+      "window_s": [
+        1.019762161,
+        4.879833075
+      ],
+      "base_pitch_mean_deg": -4.894524867622926,
+      "base_pitch_p05_p95_deg": [
+        -8.002581009337064,
+        -1.0148199447272928
+      ],
+      "command_x_min_max": [
+        1.0,
+        1.0
+      ],
+      "quat_norm_min_max": [
+        0.9999994645093566,
+        1.0000005371531606
+      ],
+      "main_vs_amp_gravity_max_abs_difference": 1.58054200283253e-07
+    },
+    {
+      "source": "/Users/yumx/Downloads/walk_diag_20261013_154216.csv",
+      "sha256": "73921826846c3dc6c5d858af85f64f40505f7c7fc2a6d6a1b394fdebebb3ca15",
+      "rows": 818,
+      "window_s": [
+        1.019784092,
+        5.759791937
+      ],
+      "base_pitch_mean_deg": -4.883464525277579,
+      "base_pitch_p05_p95_deg": [
+        -8.678975296163141,
+        -1.0529111201331782
+      ],
+      "command_x_min_max": [
+        1.0,
+        1.0
+      ],
+      "quat_norm_min_max": [
+        0.9999994229363335,
+        1.0000005668728393
+      ],
+      "main_vs_amp_gravity_max_abs_difference": 1.5830446259412767e-07
+    }
+  ],
+  "historical_log_caveat": "September logs are archived lower-speed tests; not identified as the user-verified 0.6m/s run"
+}
