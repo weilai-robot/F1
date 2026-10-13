@@ -88,6 +88,32 @@ def main():
     fig.suptitle("Knee excursions and timing: fresh real feedback versus training sim2sim",fontsize=14)
     save(fig,"knee_tracking.png")
 
+    fig,axes=plt.subplots(1,2,figsize=(13,4),sharey=True,layout="constrained")
+    for ax,r,d,t,label in zip(axes,runs,frames,times,labels):
+        start,stop=r["analysis_window_s"]
+        ix=(t>=start)&(t<=stop)
+        target=np.degrees(d.pos_des_lpf_left_knee_pitch_joint.to_numpy())
+        q=np.degrees(d.pos_left_knee_pitch_joint.to_numpy())
+        lag=r["joints"]["left_knee_pitch_joint"]["best_positive_lag"]["lag_ms"]/1000
+        target_max=float(target[t<=stop].max())
+        ids=np.flatnonzero(ix)
+        peak=int(ids[np.argmax(q[ix])])
+        ax.step(t[ix],target[ix],where="post",color="#94A3B8",alpha=.65,label="Original target")
+        ax.step(t[ix]+lag,target[ix],where="post",color=orange,lw=1.6,label=f"Target shifted +{lag*1000:.0f} ms")
+        ax.plot(t[ix],q[ix],color=blue,label="Measured angle")
+        ax.axhline(target_max,color=green,ls=":",lw=1.3,label=f"Largest pre-stop target: {target_max:.1f} deg")
+        ax.plot(t[peak],q[peak],"o",color="#B91C1C")
+        ax.annotate(f"Measured peak {q[peak]:.1f} deg",xy=(t[peak],q[peak]),
+                    xytext=(8,7),textcoords="offset points",fontsize=9,color="#B91C1C")
+        ax.set_title(label)
+        ax.set_xlabel("Time since AMP entry (s)")
+        ax.set_ylabel("Left knee pitch (deg)")
+        ax.set_xlim(start,stop)
+        ax.set_ylim(0,73)
+        ax.legend(loc="lower left",fontsize=8)
+    fig.suptitle("Left knee: measured peaks exceed target peaks, even after phase alignment",fontsize=14)
+    save(fig,"left_knee_amplitude.png")
+
     fig,axes=plt.subplots(2,2,figsize=(13,7),layout="constrained")
     sim_periods=np.concatenate([sim["cycles"][side]["intervals_s"] for side in ("left","right")])
     sim_excursions=np.degrees(np.concatenate([sim["cycles"][side]["excursions_rad"] for side in ("left","right")]))
@@ -139,7 +165,7 @@ def main():
         axes[3,col].legend(fontsize=9)
     fig.suptitle("Posture and arm swing; chest estimate assumes model-aligned IMU axes",fontsize=14)
     save(fig,"posture_arms.png")
-    print("Saved four scientific plots to",args.out)
+    print("Saved five scientific plots to",args.out)
 
 
 if __name__=="__main__":main()
