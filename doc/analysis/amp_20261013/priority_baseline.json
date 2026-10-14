@@ -1,0 +1,189 @@
+{
+  "notes": [
+    "payload change age is not CAN packet age; static repeated feedback is allowed",
+    "host_pd_effort assumes host-decoded gains and is not measured motor torque",
+    "post-manual-stop tails excluded when --walk-log supplied"
+  ],
+  "runs": [
+    {
+      "walk_source": "/Users/yumx/Downloads/walk_diag_20261013_153942.csv",
+      "walk_sha256": "0e233fa0532e81f72ace7f3aed5b81971fb8a500ffb44a8d2bfc8f126e53a3ec",
+      "window_s": [
+        1.0,
+        4.879833075
+      ],
+      "feedback_groups": {
+        "all_feedback": {
+          "last_change_row": 244,
+          "last_change_s": 4.879833075,
+          "last_change_timestamp_ns": 1791877187817462699,
+          "constant_tail_s": 11.079954069,
+          "unchanged_interval_fraction": 0.6942355889724311
+        },
+        "imu": {
+          "last_change_row": 244,
+          "last_change_s": 4.879833075,
+          "last_change_timestamp_ns": 1791877187817462699,
+          "constant_tail_s": 11.079954069,
+          "unchanged_interval_fraction": 0.6942355889724311
+        },
+        "left_arm": {
+          "last_change_row": 13,
+          "last_change_s": 0.259789189,
+          "last_change_timestamp_ns": 1791877183197418813,
+          "constant_tail_s": 15.699997955,
+          "unchanged_interval_fraction": 0.9837092731829574
+        },
+        "right_arm": {
+          "last_change_row": 244,
+          "last_change_s": 4.879833075,
+          "last_change_timestamp_ns": 1791877187817462699,
+          "constant_tail_s": 11.079954069,
+          "unchanged_interval_fraction": 0.6942355889724311
+        }
+      },
+      "legs": {
+        "left_hip_pitch_joint": {
+          "q_rom_deg": 70.33719847399821,
+          "target_rom_deg": 56.91847821062175,
+          "rom_ratio": 1.2357533209816625,
+          "apparent_lag": {
+            "lag_ms": 120.00801599999988,
+            "correlation": 0.9346915394995702,
+            "mae_rad": 0.11600231103723403
+          },
+          "target_clipped_fraction": 0.0
+        },
+        "left_knee_pitch_joint": {
+          "q_rom_deg": 54.66987755517776,
+          "target_rom_deg": 42.991388251965056,
+          "rom_ratio": 1.2716471781457046,
+          "apparent_lag": {
+            "lag_ms": 100.0066799999999,
+            "correlation": 0.8605454441422089,
+            "mae_rad": 0.12946336878306877
+          },
+          "target_clipped_fraction": 0.0,
+          "reported_effort_near_host_100_endpoint_fraction": 0.0,
+          "actual_max_deg": 63.276885936452985,
+          "largest_logged_pre_stop_target_deg": 53.14853910458689
+        },
+        "right_hip_pitch_joint": {
+          "q_rom_deg": 42.342497792640046,
+          "target_rom_deg": 37.089325653616164,
+          "rom_ratio": 1.1416356875313451,
+          "apparent_lag": {
+            "lag_ms": 120.00801599999988,
+            "correlation": 0.8745585149188568,
+            "mae_rad": 0.09741282579787235
+          },
+          "target_clipped_fraction": 0.0
+        },
+        "right_knee_pitch_joint": {
+          "q_rom_deg": 35.75005972580967,
+          "target_rom_deg": 39.97910590237829,
+          "rom_ratio": 0.8942185904083202,
+          "apparent_lag": {
+            "lag_ms": 80.00534399999992,
+            "correlation": 0.9512651825464078,
+            "mae_rad": 0.11056735263157894
+          },
+          "target_clipped_fraction": 0.020618556701030927,
+          "reported_effort_near_host_100_endpoint_fraction": 0.0,
+          "actual_max_deg": 51.191601755317556,
+          "largest_logged_pre_stop_target_deg": 46.05148278363991
+        }
+      }
+    },
+    {
+      "walk_source": "/Users/yumx/Downloads/walk_diag_20261013_154216.csv",
+      "walk_sha256": "73921826846c3dc6c5d858af85f64f40505f7c7fc2a6d6a1b394fdebebb3ca15",
+      "window_s": [
+        1.0,
+        5.759791937
+      ],
+      "feedback_groups": {
+        "all_feedback": {
+          "last_change_row": 288,
+          "last_change_s": 5.759791937,
+          "last_change_timestamp_ns": 1791877342338432707,
+          "constant_tail_s": 10.580051971,
+          "unchanged_interval_fraction": 0.6474908200734394
+        },
+        "imu": {
+          "last_change_row": 287,
+          "last_change_s": 5.739862473,
+          "last_change_timestamp_ns": 1791877342318503243,
+          "constant_tail_s": 10.599981435,
+          "unchanged_interval_fraction": 0.6487148102815178
+        },
+        "left_arm": {
+          "last_change_row": 41,
+          "last_change_s": 0.819783748,
+          "last_change_timestamp_ns": 1791877337398424518,
+          "constant_tail_s": 15.520060159999998,
+          "unchanged_interval_fraction": 0.9498164014687882
+        },
+        "right_arm": {
+          "last_change_row": 288,
+          "last_change_s": 5.759791937,
+          "last_change_timestamp_ns": 1791877342338432707,
+          "constant_tail_s": 10.580051971,
+          "unchanged_interval_fraction": 0.6474908200734394
+        }
+      },
+      "legs": {
+        "left_hip_pitch_joint": {
+          "q_rom_deg": 72.35650227926752,
+          "target_rom_deg": 63.49260454631974,
+          "rom_ratio": 1.139605199633625,
+          "apparent_lag": {
+            "lag_ms": 119.99892599999917,
+            "correlation": 0.9360504716026826,
+            "mae_rad": 0.114838552625
+          },
+          "target_clipped_fraction": 0.0
+        },
+        "left_knee_pitch_joint": {
+          "q_rom_deg": 55.172449490529054,
+          "target_rom_deg": 43.00131331337121,
+          "rom_ratio": 1.2830410338507787,
+          "apparent_lag": {
+            "lag_ms": 99.9991049999993,
+            "correlation": 0.8950461681225433,
+            "mae_rad": 0.11734015364806867
+          },
+          "target_clipped_fraction": 0.0,
+          "reported_effort_near_host_100_endpoint_fraction": 0.008403361344537815,
+          "actual_max_deg": 66.31986478639278,
+          "largest_logged_pre_stop_target_deg": 56.57219111361161
+        },
+        "right_hip_pitch_joint": {
+          "q_rom_deg": 48.06481350389498,
+          "target_rom_deg": 42.36657634398041,
+          "rom_ratio": 1.1344984101063478,
+          "apparent_lag": {
+            "lag_ms": 119.99892599999917,
+            "correlation": 0.8580085382969384,
+            "mae_rad": 0.11390163523275863
+          },
+          "target_clipped_fraction": 0.0
+        },
+        "right_knee_pitch_joint": {
+          "q_rom_deg": 37.82268298349386,
+          "target_rom_deg": 40.22755873699646,
+          "rom_ratio": 0.9402182029184167,
+          "apparent_lag": {
+            "lag_ms": 99.9991049999993,
+            "correlation": 0.9317971146803272,
+            "mae_rad": 0.12144409309012875
+          },
+          "target_clipped_fraction": 0.07983193277310924,
+          "reported_effort_near_host_100_endpoint_fraction": 0.0,
+          "actual_max_deg": 54.476540682141106,
+          "largest_logged_pre_stop_target_deg": 45.3086430022528
+        }
+      }
+    }
+  ]
+}
