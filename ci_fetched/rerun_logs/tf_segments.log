@@ -1,4 +1,0 @@
-BREAK map -> camera_init
-BREAK camera_init -> odom
-BREAK odom -> base_footprint
-BREAK base_footprint -> base_link

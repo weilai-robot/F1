@@ -34,3 +34,4 @@ ci_logs/
 .ci_logs_*/
 .ci_r*/
 ci_r*/
+ci_fetched/
