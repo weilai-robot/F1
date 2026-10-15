@@ -72,13 +72,13 @@ fi
 echo -e "${GREEN}[2/4] AimRT 目录: ${AIMRT_BIN}${NC}"
 
 # 检查 AMP 模型与配置就位
-ONNX_REL="cfg/control_module/policy/x1_amp_soup59c_50hz.onnx"
+ONNX_REL="cfg/control_module/policy/x1_amp_v70b_m16000_50hz.onnx"
 if [ ! -f "${AIMRT_BIN}/${ONNX_REL}" ]; then
   echo -e "${RED}[ERROR] 缺少 AMP 模型: ${AIMRT_BIN}/${ONNX_REL}${NC}"
   exit 1
 fi
-grep -q "x1_amp_soup59c_50hz.onnx" "${AIMRT_BIN}/cfg/control_module/rl_x1.yaml" \
-  || { echo -e "${RED}[ERROR] rl_x1.yaml 未指向 soup59c 模型${NC}"; exit 1; }
+grep -q "x1_amp_v70b_m16000_50hz.onnx" "${AIMRT_BIN}/cfg/control_module/rl_x1.yaml" \
+  || { echo -e "${RED}[ERROR] rl_x1.yaml 未指向 v70b m16000b 模型${NC}"; exit 1; }
 AMP_CONSTANT_CMD="$(sed -n 's/^[[:space:]]*constant_cmd:[[:space:]]*\(\[[^]]*\]\).*/\1/p' \
   "${AIMRT_BIN}/cfg/control_module/rl_x1.yaml")"
 

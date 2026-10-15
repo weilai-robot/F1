@@ -1,0 +1,14 @@
+{
+ "src_npz": "acceptance/v70_eval/m16000b.policy.npz",
+ "in_dim": 288,
+ "out_dim": 29,
+ "hidden": [
+  512,
+  256,
+  128,
+  29
+ ],
+ "activation": "elu",
+ "normalizer": "fused (x-mean)/std",
+ "verify_max_abs_err": 6.866455078125e-05
+}
