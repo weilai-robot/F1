@@ -1,0 +1,372 @@
+{
+  "sha256": "93328d2ac25be6001e806c38f839ed0617c01e2cde41a833dfb2276467450b45",
+  "onnx_ir": 8,
+  "onnx_opsets": [
+    [
+      "",
+      17
+    ]
+  ],
+  "onnx_input": [
+    [
+      "obs",
+      [
+        1,
+        288
+      ],
+      "tensor(float)"
+    ]
+  ],
+  "onnx_output": [
+    [
+      "action",
+      [
+        1,
+        29
+      ],
+      "tensor(float)"
+    ]
+  ],
+  "weights_and_normalizer_exact": {
+    "mean": true,
+    "std": true,
+    "w0": true,
+    "b0": true,
+    "w1": true,
+    "b1": true,
+    "w2": true,
+    "b2": true,
+    "w3": true,
+    "b3": true
+  },
+  "random_200_max_abs_error": 6.866455078125e-05,
+  "deployed_pd_and_default_q_match_training": true,
+  "f1_sim_armature_unique": [
+    0.0
+  ],
+  "f1_sim_armature_mismatch_count": 29,
+  "examples": {
+    "left_hip_pitch_joint": {
+      "f1_sim": 0.0,
+      "training": 0.208
+    },
+    "left_knee_pitch_joint": {
+      "f1_sim": 0.0,
+      "training": 0.273
+    },
+    "left_ankle_pitch_joint": {
+      "f1_sim": 0.0,
+      "training": 0.15
+    }
+  },
+  "scope": {
+    "f1_commit": "9455215",
+    "motion_control_commit": "ec29ebe99338cd717879762b929272ed2a82d380",
+    "python_onnxruntime": "1.29.0",
+    "deployment_onnxruntime": "1.19.2 (not executed locally)",
+    "mujoco": "3.12.0",
+    "full_aimrt_ros2_or_robot_run": false
+  },
+  "closed_loop_probes": {
+    "legacy_harness": {
+      "ckpt": "/Users/yumx/code/F1/motion_control/module/control_module/policy/x1_amp_v70b_m16000_50hz.onnx",
+      "cmd": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "policy_joint_order": [
+        "left_hip_pitch_joint",
+        "lumbar_yaw_joint",
+        "right_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "lumbar_roll_joint",
+        "right_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "lumbar_pitch_joint",
+        "right_hip_yaw_joint",
+        "left_knee_pitch_joint",
+        "left_shoulder_pitch_joint",
+        "right_shoulder_pitch_joint",
+        "right_knee_pitch_joint",
+        "left_ankle_pitch_joint",
+        "left_shoulder_roll_joint",
+        "right_shoulder_roll_joint",
+        "right_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "left_shoulder_yaw_joint",
+        "right_shoulder_yaw_joint",
+        "right_ankle_roll_joint",
+        "left_elbow_pitch_joint",
+        "right_elbow_pitch_joint",
+        "left_elbow_yaw_joint",
+        "right_elbow_yaw_joint",
+        "left_wrist_pitch_joint",
+        "right_wrist_pitch_joint",
+        "left_wrist_roll_joint",
+        "right_wrist_roll_joint"
+      ],
+      "mujoco_version": "3.12.0",
+      "duration_s": 12.0,
+      "settle_s": 0.0,
+      "survived_steps": 600,
+      "survived_s": 12.0,
+      "mean_vxy_err": 0.13615149275397076,
+      "mean_yaw_err": 0.31264759222574884,
+      "distance_m": 10.814604106203008,
+      "final_base_z": 0.6278806831061298,
+      "fell": false
+    },
+    "raw_cpp": {
+      "ckpt": "/Users/yumx/code/F1/motion_control/module/control_module/policy/x1_amp_v70b_m16000_50hz.onnx",
+      "cmd": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "policy_joint_order": [
+        "left_hip_pitch_joint",
+        "lumbar_yaw_joint",
+        "right_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "lumbar_roll_joint",
+        "right_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "lumbar_pitch_joint",
+        "right_hip_yaw_joint",
+        "left_knee_pitch_joint",
+        "left_shoulder_pitch_joint",
+        "right_shoulder_pitch_joint",
+        "right_knee_pitch_joint",
+        "left_ankle_pitch_joint",
+        "left_shoulder_roll_joint",
+        "right_shoulder_roll_joint",
+        "right_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "left_shoulder_yaw_joint",
+        "right_shoulder_yaw_joint",
+        "right_ankle_roll_joint",
+        "left_elbow_pitch_joint",
+        "right_elbow_pitch_joint",
+        "left_elbow_yaw_joint",
+        "right_elbow_yaw_joint",
+        "left_wrist_pitch_joint",
+        "right_wrist_pitch_joint",
+        "left_wrist_roll_joint",
+        "right_wrist_roll_joint"
+      ],
+      "mujoco_version": "3.12.0",
+      "duration_s": 12.0,
+      "settle_s": 0.0,
+      "survived_steps": 112,
+      "survived_s": 2.24,
+      "mean_vxy_err": 0.32186968942941124,
+      "mean_yaw_err": 0.37240556151538745,
+      "distance_m": 1.6993175574615254,
+      "final_base_z": 0.5262329571042837,
+      "fell": true
+    },
+    "identified_cpp": {
+      "ckpt": "/Users/yumx/code/F1/motion_control/module/control_module/policy/x1_amp_v70b_m16000_50hz.onnx",
+      "cmd": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "policy_joint_order": [
+        "left_hip_pitch_joint",
+        "lumbar_yaw_joint",
+        "right_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "lumbar_roll_joint",
+        "right_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "lumbar_pitch_joint",
+        "right_hip_yaw_joint",
+        "left_knee_pitch_joint",
+        "left_shoulder_pitch_joint",
+        "right_shoulder_pitch_joint",
+        "right_knee_pitch_joint",
+        "left_ankle_pitch_joint",
+        "left_shoulder_roll_joint",
+        "right_shoulder_roll_joint",
+        "right_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "left_shoulder_yaw_joint",
+        "right_shoulder_yaw_joint",
+        "right_ankle_roll_joint",
+        "left_elbow_pitch_joint",
+        "right_elbow_pitch_joint",
+        "left_elbow_yaw_joint",
+        "right_elbow_yaw_joint",
+        "left_wrist_pitch_joint",
+        "right_wrist_pitch_joint",
+        "left_wrist_roll_joint",
+        "right_wrist_roll_joint"
+      ],
+      "mujoco_version": "3.12.0",
+      "duration_s": 12.0,
+      "settle_s": 0.0,
+      "survived_steps": 151,
+      "survived_s": 3.02,
+      "mean_vxy_err": 0.2765119795905398,
+      "mean_yaw_err": 0.2798059870499518,
+      "distance_m": 2.2648834134390605,
+      "final_base_z": 0.493178224459652,
+      "fell": true
+    },
+    "identified": {
+      "ckpt": "/Users/yumx/code/F1/motion_control/module/control_module/policy/x1_amp_v70b_m16000_50hz.onnx",
+      "cmd": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "policy_joint_order": [
+        "left_hip_pitch_joint",
+        "lumbar_yaw_joint",
+        "right_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "lumbar_roll_joint",
+        "right_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "lumbar_pitch_joint",
+        "right_hip_yaw_joint",
+        "left_knee_pitch_joint",
+        "left_shoulder_pitch_joint",
+        "right_shoulder_pitch_joint",
+        "right_knee_pitch_joint",
+        "left_ankle_pitch_joint",
+        "left_shoulder_roll_joint",
+        "right_shoulder_roll_joint",
+        "right_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "left_shoulder_yaw_joint",
+        "right_shoulder_yaw_joint",
+        "right_ankle_roll_joint",
+        "left_elbow_pitch_joint",
+        "right_elbow_pitch_joint",
+        "left_elbow_yaw_joint",
+        "right_elbow_yaw_joint",
+        "left_wrist_pitch_joint",
+        "right_wrist_pitch_joint",
+        "left_wrist_roll_joint",
+        "right_wrist_roll_joint"
+      ],
+      "mujoco_version": "3.12.0",
+      "duration_s": 12.0,
+      "settle_s": 0.0,
+      "survived_steps": 154,
+      "survived_s": 3.08,
+      "mean_vxy_err": 0.2684450650236843,
+      "mean_yaw_err": 0.30103529394162504,
+      "distance_m": 2.3460955845704206,
+      "final_base_z": 0.5124508024951248,
+      "fell": true
+    },
+    "identified_anklecap": {
+      "ckpt": "/Users/yumx/code/F1/motion_control/module/control_module/policy/x1_amp_v70b_m16000_50hz.onnx",
+      "cmd": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "policy_joint_order": [
+        "left_hip_pitch_joint",
+        "lumbar_yaw_joint",
+        "right_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "lumbar_roll_joint",
+        "right_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "lumbar_pitch_joint",
+        "right_hip_yaw_joint",
+        "left_knee_pitch_joint",
+        "left_shoulder_pitch_joint",
+        "right_shoulder_pitch_joint",
+        "right_knee_pitch_joint",
+        "left_ankle_pitch_joint",
+        "left_shoulder_roll_joint",
+        "right_shoulder_roll_joint",
+        "right_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "left_shoulder_yaw_joint",
+        "right_shoulder_yaw_joint",
+        "right_ankle_roll_joint",
+        "left_elbow_pitch_joint",
+        "right_elbow_pitch_joint",
+        "left_elbow_yaw_joint",
+        "right_elbow_yaw_joint",
+        "left_wrist_pitch_joint",
+        "right_wrist_pitch_joint",
+        "left_wrist_roll_joint",
+        "right_wrist_roll_joint"
+      ],
+      "mujoco_version": "3.12.0",
+      "duration_s": 12.0,
+      "settle_s": 0.0,
+      "survived_steps": 600,
+      "survived_s": 12.0,
+      "mean_vxy_err": 0.10694430022656808,
+      "mean_yaw_err": 0.19726482849626858,
+      "distance_m": 10.742126954271173,
+      "final_base_z": 0.6172512977715819,
+      "fell": false
+    },
+    "identified_traincap": {
+      "ckpt": "/Users/yumx/code/F1/motion_control/module/control_module/policy/x1_amp_v70b_m16000_50hz.onnx",
+      "cmd": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "policy_joint_order": [
+        "left_hip_pitch_joint",
+        "lumbar_yaw_joint",
+        "right_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "lumbar_roll_joint",
+        "right_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "lumbar_pitch_joint",
+        "right_hip_yaw_joint",
+        "left_knee_pitch_joint",
+        "left_shoulder_pitch_joint",
+        "right_shoulder_pitch_joint",
+        "right_knee_pitch_joint",
+        "left_ankle_pitch_joint",
+        "left_shoulder_roll_joint",
+        "right_shoulder_roll_joint",
+        "right_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "left_shoulder_yaw_joint",
+        "right_shoulder_yaw_joint",
+        "right_ankle_roll_joint",
+        "left_elbow_pitch_joint",
+        "right_elbow_pitch_joint",
+        "left_elbow_yaw_joint",
+        "right_elbow_yaw_joint",
+        "left_wrist_pitch_joint",
+        "right_wrist_pitch_joint",
+        "left_wrist_roll_joint",
+        "right_wrist_roll_joint"
+      ],
+      "mujoco_version": "3.12.0",
+      "duration_s": 12.0,
+      "settle_s": 0.0,
+      "survived_steps": 600,
+      "survived_s": 12.0,
+      "mean_vxy_err": 0.10694430022656808,
+      "mean_yaw_err": 0.19726482849626858,
+      "distance_m": 10.742126954271173,
+      "final_base_z": 0.6172512977715819,
+      "fell": false
+    }
+  },
+  "verification": {
+    "deployment_guard": "6/6 PASS",
+    "training_v68_parameter_check": "PASS",
+    "mit_encoding": "PASS",
+    "run_amp_real_bash_syntax": "PASS"
+  }
+}
