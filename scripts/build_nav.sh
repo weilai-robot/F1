@@ -87,6 +87,12 @@ if [ ! -x "${ODOM_BRIDGE_EXE}" ]; then
     echo -e "\033[0;31m[ERROR] odom_bridge.py 未正确安装: ${ODOM_BRIDGE_EXE}\033[0m"
     exit 1
 fi
+NAV_STATE_EXE="${HUMANOID_SIM_PREFIX}/lib/humanoid_sim/nav_state_manager.py"
+if [ ! -x "${NAV_STATE_EXE}" ]; then
+    echo -e "\033[0;31m[ERROR] nav_state_manager.py 未正确安装: ${NAV_STATE_EXE}\033[0m"
+    echo -e "\033[0;31m        （P0 看门狗可执行文件，缺装=真机 launch 起不来）\033[0m"
+    exit 1
+fi
 
 echo -e "\033[0;32m✓ Navigation ROS2 packages 构建成功\033[0m"
 

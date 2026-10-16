@@ -126,7 +126,13 @@ safe_stand() {
   echo -e "${YELLOW}[safe] → stand_mode（导航结束/中断，先站立）${NC}"
   "${SWITCH_MODE}" stand || true
 }
+# HUP 兜 SSH 断线。真兜底还是 nav_state 看门狗：HUP 单列 trap 是因为
+# 断线时 pty 已死，safe_stand 里的 echo 会写 EIO → set -e 提前退出、
+# stand 发不出（pty 实测复现）；先 exec 重定向掉全部输出再跑，
+# switch_x1_mode.sh 会继承重定向、同样免 EIO（tmux 内跑则根本收不到
+# HUP，此 trap 只盖非 tmux 直连场景）
 trap safe_stand EXIT INT TERM
+trap 'exec >/dev/null 2>&1; safe_stand' HUP
 
 # ── 切模式 ──
 if [ "${DO_READY}" = true ]; then

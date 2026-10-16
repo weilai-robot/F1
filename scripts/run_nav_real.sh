@@ -8,7 +8,7 @@
 #   [1] fastlio      — FastLIO2 (F1_real_mid360.yaml)
 #   [2] nav2         — navigation_real (odom_bridge + open3d_loc + Nav2)
 #   [record]         — rosbag / 监控提示（手动启动）
-#   nav_state_manager — 已禁用，真机首次请手柄/手动 topic 切模式
+#   [nav_state]      — nav_state_manager 安全看门狗（默认启用，--no-nav-state 关闭）
 #
 # 小脑 AimRT 请另开终端手动启动（避免 tmux 里 sudo setcap 卡密码）:
 #   cd <aimrt_dir>   # 通常 F1/build 或 motion_control/install/linux/bin
@@ -16,8 +16,8 @@
 #   bash ./run.sh
 #
 # 用法:
-#   ./run_nav_real.sh                 # 导航大脑（不含 AimRT / nav_state）
-#   ./run_nav_real.sh                 # 导航大脑（FastLIO 默认弹 RViz）
+#   ./run_nav_real.sh                 # 导航大脑 + nav_state 看门狗（不含 AimRT）
+#   ./run_nav_real.sh --no-nav-state  # 不拉 nav_state 看门狗（调试用）
 #   ./run_nav_real.sh --no-rviz       # FastLIO 不弹 RViz
 #
 # 前置:
@@ -56,7 +56,7 @@ RVIZ_ARG="rviz:=true"
 for arg in "$@"; do
   case "$arg" in
     --no-aimrt) ;;       # 兼容旧参数：小脑已默认不启
-    --no-nav-state) ;;   # 兼容旧参数：nav_state 已默认不启
+    --no-nav-state) NO_NAV_STATE=1 ;;   # 关闭 nav_state 看门狗（默认启用）
     --no-rviz) RVIZ_ARG="rviz:=false" ;;
     --rviz) RVIZ_ARG="rviz:=true" ;;
     -h|--help)
@@ -70,8 +70,8 @@ for arg in "$@"; do
   esac
 done
 
-echo -e "${GREEN}[run_nav_real] 启动真机导航大脑（不含 AimRT / nav_state）...${NC}"
-echo -e "${YELLOW}  请确认小脑已在另一终端用 run.sh 启动；模式请手柄/手动切换${NC}"
+echo -e "${GREEN}[run_nav_real] 启动真机导航大脑 + nav_state 看门狗（不含 AimRT）...${NC}"
+echo -e "${YELLOW}  请确认小脑已在另一终端用 run.sh 启动；模式请手柄/手动切换（看门狗只兜底不切模式）${NC}"
 
 # ── ROS2 setup（优先 scripts/ros2_source.sh，再回退探测）──
 if [ -f "${SCRIPT_DIR}/ros2_source.sh" ]; then
@@ -219,14 +219,51 @@ tmux send-keys -t "${SESSION_NAME}:nav2" \
 echo -e "${YELLOW}  等待 Nav2 / ICP (5s)...${NC}"
 sleep 5
 
-# --- nav_state_manager（已禁用：真机首次请人手切模式）---
-# if true; then
-#   tmux new-window -t "${SESSION_NAME}" -n "nav_state"
-#   echo -e "${GREEN}  [nav_state] nav_state_manager${NC}"
-#   tmux send-keys -t "${SESSION_NAME}:nav_state" "${TMUX_SOURCE}" Enter
-#   tmux send-keys -t "${SESSION_NAME}:nav_state" \
-#     "ros2 launch humanoid_sim nav_state_manager.launch.py startup_delay_s:=3.0 stand_hold_s:=3.0 cmd_vel_timeout_s:=3.0" Enter
-# fi
+# --- nav_state_manager 安全看门狗（默认启用；--no-nav-state 关闭）---
+# 窗内额外 source AimRT ros2_setup.sh：模式 topic 须 AimRT 环境链，否则
+# /stand_mode 发得出、小脑收不到（switch_x1_mode.sh:1-5 既有约定）。
+# ros2_setup.sh 内部用相对路径 → 必须 pushd 进 AimRT 目录再 source。
+# AimRT 目录定位照抄 switch_x1_mode.sh 候选（可用 AIMRT_DIR 覆盖）。
+AIMRT_CANDIDATES=(
+  "${AIMRT_DIR:-}"
+  "${BUILD_DIR}"
+  "${ROOT_DIR}/motion_control/install/linux/bin"
+)
+NAV_STATE_AIMRT_BIN=""
+for d in "${AIMRT_CANDIDATES[@]}"; do
+  [ -z "${d}" ] && continue
+  if [ -f "${d}/ros2_setup.sh" ]; then
+    NAV_STATE_AIMRT_BIN="${d}"
+    break
+  fi
+done
+
+if [ -z "${NO_NAV_STATE:-}" ]; then
+  tmux new-window -t "${SESSION_NAME}" -n "nav_state"
+  echo -e "${GREEN}  [nav_state] nav_state_manager 看门狗${NC}"
+  tmux send-keys -t "${SESSION_NAME}:nav_state" "${TMUX_SOURCE}" Enter
+  if [ -n "${NAV_STATE_AIMRT_BIN}" ]; then
+    tmux send-keys -t "${SESSION_NAME}:nav_state" \
+      "pushd ${NAV_STATE_AIMRT_BIN} >/dev/null && source ./ros2_setup.sh && popd >/dev/null" Enter
+  else
+    echo -e "${YELLOW}[WARN] 未找到 AimRT ros2_setup.sh（${BUILD_DIR} / motion_control/install/linux/bin）${NC}"
+    echo -e "${YELLOW}       /stand_mode 可能到不了小脑（看门狗输出侧静默失效）——可 export AIMRT_DIR 指定后重跑${NC}"
+  fi
+  tmux send-keys -t "${SESSION_NAME}:nav_state" \
+    "ros2 launch humanoid_sim nav_state_manager.launch.py cmd_vel_timeout_s:=3.0" Enter
+  # liveness 自检（后台不阻塞启动流）：可执行文件缺装时 ros2 launch 只在
+  # nav_state 窗里报错、主控台看不到——看门狗静默缺失比报错更危险
+  # （P0 审查 2026-10-16 补；CMakeLists 已加装，防的是"忘 rebuild"回退）。
+  # 模式收紧到"安装树可执行/launch 命令"，防 vim 编辑源文件误报 OK；
+  # sleep 10 盖冷启动 source+launch 慢启动，防假 WARN
+  (
+    sleep 10
+    if ! pgrep -f "lib/humanoid_sim/nav_state_manager.py|ros2 launch humanoid_sim nav_state_manager" >/dev/null 2>&1; then
+      echo -e "${RED}[WARN] nav_state_manager 看门狗未见存活——查 ${SESSION_NAME}:nav_state 窗${NC}"
+      echo -e "${YELLOW}       最常见原因：改后未重建（./build_nav.sh --packages-select humanoid_sim）${NC}"
+    fi
+  ) &
+fi
 
 # --- record 提示窗 ---
 tmux new-window -t "${SESSION_NAME}" -n "record"
@@ -237,7 +274,7 @@ tmux send-keys -t "${SESSION_NAME}:record" \
   TF:   ros2 run tf2_ros tf2_echo map odom
         ros2 run tf2_ros tf2_echo odom base_footprint
   LIO:  ros2 topic hz /Odometry
-  Mode: ros2 topic info /stand_mode -v
+  Mode: ros2 topic info /stand_mode -v   # 订阅者须含 x1_rl_ctrl_node（nav_state 自己也订阅，勿只数个数）
   手动切模式 (须 source AimRT ros2_setup，用本仓库脚本):
     ./switch_x1_mode.sh stand
     ./switch_x1_mode.sh walk
@@ -250,13 +287,14 @@ tmux send-keys -t "${SESSION_NAME}:record" \
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN} 真机导航大脑已启动${NC}"
-echo -e "${GREEN} （AimRT / nav_state 需手动，未自动拉起）${NC}"
+echo -e "${GREEN} （AimRT 需手动；nav_state 看门狗已自动拉起）${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 echo " tmux 窗口:"
 echo "   livox     - Livox MID-360"
 echo "   fastlio   - FastLIO2 (F1_real_mid360.yaml)"
 echo "   nav2      - odom_bridge + open3d_loc + Nav2"
+echo "   nav_state - nav_state_manager 安全看门狗（--no-nav-state 可关）"
 echo "   record    - 检查 / 录包提示"
 echo ""
 echo " 附加: tmux attach -t ${SESSION_NAME}"
