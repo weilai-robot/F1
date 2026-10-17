@@ -90,14 +90,17 @@ check run.sh
 check run_with_recording.sh
 check cfg/x1_cfg.yaml
 check cfg/control_module/rl_x1.yaml
-check cfg/control_module/policy/rl_walk_leg.onnx
-check cfg/control_module/policy/rl_walk_leg_shoulder.onnx
+check cfg/control_module/policy/rl_walk_leg_20260901_step7500.onnx
+check cfg/control_module/policy/archive/rl_walk_leg_shoulder.onnx
 check cfg/dcu_driver_module/dcu_x1.yaml
 check cfg/x1_cfg_real_nav.yaml
 check run_real_nav.sh
 check cfg/x1_cfg_dance.yaml
 check run_dance.sh
-check cfg/control_module/policy/dance_x1_4999.bin
+check cfg/control_module/rl_x1_dance.yaml
+check cfg/joy_stick_module/joy_x1_dance.yaml
+check cfg/control_module/policy/dance_x1_v11_4999.json
+check cfg/control_module/policy/dance_x1_v11_4999.bin
 check cfg/control_module/policy/dance_x1_motion.bin
 
 if [ "$MISSING" -gt 0 ]; then

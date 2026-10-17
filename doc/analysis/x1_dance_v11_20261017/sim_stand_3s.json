@@ -1,0 +1,18 @@
+{
+  "implementation": "Python numerical probe; Ubuntu C++/ROS/DCU not executed",
+  "mujoco_version": "3.14.0",
+  "stand_hold_s": 3.0,
+  "yaw_rad": 0.0,
+  "completed": true,
+  "fault": null,
+  "policy_steps": 647,
+  "physics_ticks": 12940,
+  "min_base_z_m": 0.5178187731423326,
+  "max_tilt_deg": 28.511985765766852,
+  "mean_anchor_error_m": 0.165202751067171,
+  "max_anchor_error_m": 0.4028751464354536,
+  "max_target_error_rad": 1.096423443189633,
+  "max_action": 12.800871849060059,
+  "max_measured_limit_violation_rad": 0.0004151610960011312,
+  "clipped_target_components": 638
+}

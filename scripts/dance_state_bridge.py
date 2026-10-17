@@ -65,14 +65,15 @@ class DanceStateBridge(Node):
             return
         try:
             anchor = self.buffer.lookup_transform(
-                self.odom_frame, self.anchor_frame, Time(), timeout=Duration(seconds=0.005)
+                self.odom_frame, self.anchor_frame, Time.from_msg(self.last_odom.header.stamp),
+                timeout=Duration(seconds=0.005)
             )
         except TransformException:
             return
         anchor_age = age_seconds(now, anchor.header.stamp)
         if anchor_age < -0.02 or anchor_age > self.max_age:
             return
-        if abs(anchor_age - odom_age) > 0.05:
+        if abs(anchor_age - odom_age) > 0.001:
             return
         transform = anchor.transform
         numbers = (transform.translation.x, transform.translation.y, transform.translation.z,

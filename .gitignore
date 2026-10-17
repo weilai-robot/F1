@@ -17,7 +17,12 @@ __pycache__/
 _deps/
 build/
 build_local/
+build_simtest/
 cmake-build*/
+
+# --- Local simulation/session and transfer artifacts ---
+/:memory:.ses
+/doc/analysis/amp_20261015/artifacts/*.bundle
 
 # --- AI tooling state (not project code) ---
 .oma/

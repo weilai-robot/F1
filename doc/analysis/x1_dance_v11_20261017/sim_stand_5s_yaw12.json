@@ -1,0 +1,18 @@
+{
+  "implementation": "Python numerical probe; Ubuntu C++/ROS/DCU not executed",
+  "mujoco_version": "3.14.0",
+  "stand_hold_s": 5.0,
+  "yaw_rad": -1.2,
+  "completed": false,
+  "fault": "anchor tracking error",
+  "policy_steps": 187,
+  "physics_ticks": 3721,
+  "min_base_z_m": 0.5800608611858685,
+  "max_tilt_deg": 20.440307599743168,
+  "mean_anchor_error_m": 0.33022493859804547,
+  "max_anchor_error_m": 0.6005870640805054,
+  "max_target_error_rad": 1.233444965190296,
+  "max_action": 12.919883728027344,
+  "max_measured_limit_violation_rad": 0.00041309979786944667,
+  "clipped_target_components": 399
+}

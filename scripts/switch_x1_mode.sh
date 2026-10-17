@@ -5,9 +5,13 @@
 # 否则真机上 topic 发得出、小脑却收不到（DOMAIN / plugin_proto 环境不一致）。
 #
 # 用法:
-#   ./switch_x1_mode.sh zero     # 阻尼 / 复位
+#   ./switch_x1_mode.sh zero     # 舞蹈 A：进入零位并保持
 #   ./switch_x1_mode.sh stand    # 站立（导航结束也用这个，先于 cmd_vel 归零）
 #   ./switch_x1_mode.sh walk     # 进入行走（可收 /cmd_vel_limiter）
+#   ./switch_x1_mode.sh dance    # 等价于 dance-start
+#   ./switch_x1_mode.sh dance-start # Guide：stand -> 准备位 -> 自动播放
+#   ./switch_x1_mode.sh keep     # 保持当前实测姿态
+#   ./switch_x1_mode.sh idle     # 退出控制
 #   ./switch_x1_mode.sh ready    # zero → stand → walk（带 hold，首次联调）
 #
 # 前提:
@@ -15,8 +19,7 @@
 #   2. x1_cfg.yaml 已打开 mode topic 的 ros2 后端
 #
 # 注意:
-#   不用 ros2 topic pub --once（DDS 发现未完成消息常丢）。
-#   与 send_nav_goal.sh 一样持续发 ~2s。
+#   普通模式持续发 ~2s；dance-start 等待 DDS 订阅匹配后只发一次。
 # ============================================================
 set -e
 
@@ -43,7 +46,7 @@ usage() {
 
 case "${MODE}" in
   -h|--help) usage 0 ;;
-  zero|stand|walk|ready) ;;
+  idle|keep|zero|stand|walk|dance|dance-start|ready) ;;
   "" )
     echo -e "${RED}[ERROR] 缺少模式参数${NC}"
     usage 1
@@ -141,7 +144,26 @@ do_zero()  { pub_mode /zero_mode  1.0 "zero_mode"; }
 do_stand() { pub_mode /stand_mode 1.0 "stand_mode"; }
 do_walk()  { pub_mode /walk_mode  0.0 "walk_mode"; }
 
+pub_guide() {
+  echo -e "${GREEN}→ Guide: ready pose then automatic playback; run after stand is reached${NC}"
+  # Humble ros2topic supports waiting for a matching subscriber with --once.
+  # Volatile durability prevents a late subscriber from receiving an old Guide.
+  # Never retry a rejected early start until the operator runs this again.
+  timeout 10s ros2 topic pub --once --wait-matching-subscriptions 1 \
+    --qos-durability volatile --keep-alive 1.0 \
+    /dance_start std_msgs/msg/Float32 '{data: 1.0}'
+}
+
 case "${MODE}" in
+  idle)
+    pub_mode /idle_mode 1.0 "idle_mode"
+    ;;
+  keep)
+    pub_mode /keep_mode 1.0 "keep_mode"
+    ;;
+  dance|dance-start)
+    pub_guide
+    ;;
   zero)
     do_zero
     echo -e "${GREEN}完成: zero_mode${NC}"

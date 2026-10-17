@@ -1,0 +1,17 @@
+{
+  "implementation": "Python numerical probe; Ubuntu C++/ROS/DCU not executed",
+  "workflow": "stand -> dance_ready -> Guide -> dance_x1",
+  "mujoco_version": "3.14.0",
+  "stand_hold_s": 3,
+  "dance_hold_s": 1,
+  "yaw_rad": 0,
+  "completed": false,
+  "phase": "Guide entry",
+  "fault": "start pose or speed",
+  "max_start_pose_error_rad": 2.000586185282854,
+  "start_speed_m_s": 0.00730614275698583,
+  "policy_steps": 0,
+  "min_base_z_m": 0.5975653877157705,
+  "max_tilt_deg": 5.134906395892946,
+  "diagnostic_preparation_pose": "training default_q; production YAML unchanged"
+}
