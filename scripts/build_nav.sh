@@ -93,6 +93,16 @@ if [ ! -x "${NAV_STATE_EXE}" ]; then
     echo -e "\033[0;31m        （P0 看门狗可执行文件，缺装=真机 launch 起不来）\033[0m"
     exit 1
 fi
+# P1 自定义 BT 断言（C5）：缺装+新 yaml=激活失败（可见）；install yaml 陈旧无参数=静默回默认 BT（含 Spin）。
+# 收窄构建不含 humanoid_sim 时跳过，防对陈旧 install 树误报。
+if [[ "$*" != *--packages-select* || "$*" == *humanoid_sim* ]]; then
+    BT_XML="${HUMANOID_SIM_PREFIX}/share/humanoid_sim/behavior_trees/nav_no_spin_w_replanning.xml"
+    if [ ! -f "${BT_XML}" ]; then
+        echo -e "\033[0;31m[ERROR] P1 自定义 BT 未安装: ${BT_XML}\033[0m"
+        echo -e "\033[0;31m        （P1 方案 C5：缺装+新 yaml=激活失败可见；yaml 陈旧无参数=静默回默认含 Spin）\033[0m"
+        exit 1
+    fi
+fi
 
 echo -e "\033[0;32m✓ Navigation ROS2 packages 构建成功\033[0m"
 
