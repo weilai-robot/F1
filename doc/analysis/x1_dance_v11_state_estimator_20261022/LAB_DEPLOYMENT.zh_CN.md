@@ -1,21 +1,19 @@
 # X1 v11 实验室部署步骤
 
-本轮本体估计改动仍在工作区，尚未提交或推送，单独 `git pull` 无法获取。同步包是基于下列版本的源码覆盖包，不含 Linux 编译产物，也不包含 DCU 网卡/传动配置：
-
-- F1 基线：`f6bc0200324353f165c21a1be36e04bbd82d2097`
-- motion_control 基线：`5d66c33737f3ba084cdff22d12cf4531d90cdac6`
-- 分支：`feat/x1-beyondminic-dance-deploy` / `feat/x1-dance-v11-deploy`
+本体估计代码位于 `motion_control` 子模块的 `feat/x1-dance-v11-deploy` 分支，F1 的 `feat/x1-beyondminic-dance-deploy` 分支固定对应子模块提交。在线部署应更新主仓库和子模块；只更新 F1 而不检出子模块会漏掉控制器代码。
 
 ## 1. 同步和构建
 
-将 `x1_dance_v11_lab_20261022.tar.gz` 拷到实验室 Ubuntu 主机。使用单独的舞蹈工作副本，保留已跑通的 AMP 版本。先保存当地未提交修改和实机参数，再在对应基线的 F1 根目录解包。
+使用单独的舞蹈工作副本，保留已跑通的 AMP 版本。先保存当地未提交修改和实机参数，再在 F1 根目录更新：
 
 ```bash
 cd /path/to/F1
-git rev-parse HEAD
-git -C motion_control rev-parse HEAD
-# 确认以上基线相符，且本地修改已保存，再覆盖源码：
-tar -xzf /tmp/x1_dance_v11_lab_20261022.tar.gz -C .
+git fetch origin
+git switch feat/x1-beyondminic-dance-deploy
+git pull --ff-only
+git submodule update --init --recursive motion_control
+git -C motion_control status --short
+# 正常应没有运动控制源码修改；子模块处于 detached HEAD 属正常情况。
 
 bash scripts/build.sh -DXYBER_X1_INFER_BUILD_TESTS=ON
 ctest --test-dir build --output-on-failure -R '(control_module|joy_stick_module)'
@@ -23,7 +21,7 @@ ctest --test-dir build --output-on-failure -R '(control_module|joy_stick_module)
 bash scripts/build.sh Release -DXYBER_X1_INFER_BUILD_TESTS=OFF
 ```
 
-不要在解包后执行 `git submodule update` 丢掉覆盖代码。基线不同则先对齐版本或人工合并，不能直接覆盖不同版本。包内 `lab_sync_manifest.json` 记录每个文件的 SHA256。
+此前的 `x1_dance_v11_lab_20261022.tar.gz` 是提交前生成的离线覆盖包，基线为 F1 `f6bc0200324353f165c21a1be36e04bbd82d2097`、motion_control `5d66c33737f3ba084cdff22d12cf4531d90cdac6`；`lab_sync_manifest.json` 仅记录该历史包的文件 hash。在线更新后无需再覆盖此旧包。
 
 若测试编译或 ctest 失败，保留输出并先处理失败，不进入电机测试。当前已运行 Mac 上的 C++ 估计核心检查，完整 ROS/Eigen/gtest 编译是本次实验室需要补做的检查。
 
@@ -33,7 +31,7 @@ bash scripts/build.sh Release -DXYBER_X1_INFER_BUILD_TESTS=OFF
 
 - `build/cfg/dcu_driver_module/dcu_x1.yaml`：沿用该机器已通过 AMP 的网卡、DCU 顺序、传动/方向配置。源码默认网卡 `enp2s0`、EtherCAT CPU 4，必须与机器一致。
 - `build/cfg/control_module/rl_x1_dance.yaml`：`use_sim_handles: false`，`initial_state: idle`，`state_source: proprioceptive`；控制 CPU 默认 6，机器应存在并可绑定该 CPU。
-- 舞蹈配置的 `joint_offset` 应与该机器人已验证的模型坐标校准一致；同步包会更新舞蹈 YAML，不能忽略当地校准值。不要二次反转腰 pitch。
+- 舞蹈配置的 `joint_offset` 应与该机器人已验证的模型坐标校准一致；代码更新会更新舞蹈 YAML，不能忽略当地校准值。不要二次反转腰 pitch。
 - `controllers.dance_x1.state_estimator`：下肢 DCU 的比力单位必须是 m/s²，静止模长约 9.81。确认其轴向与 base 一致；`imu_position_in_base` 当前为训练默认零，应填写已核实的实机安装偏置（base 坐标，米），不凭猜测修改。
 
 本轮不需要启动 FastLIO2、Nav2 或 `dance_state_bridge.py`。同一套电机上只运行一个控制进程。
