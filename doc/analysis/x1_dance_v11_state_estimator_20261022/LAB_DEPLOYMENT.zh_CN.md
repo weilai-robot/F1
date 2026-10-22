@@ -116,7 +116,7 @@ Guide 会授权整段“4 秒准备位过渡 → 连续就绪 4 秒 → 自动�
 
 下沉到准备位不能代表 policy 已运行。若出现 `Dance preparation:`，读其等待原因；若出现 `Dance fault:`，保留完整故障日志并按具体原因排查。
 
-现场反馈后的版本已移除播放阶段的 `dance joint tracking error or limit exceeded` 看门狗，实测关节越限或瞬时目标跟踪误差不再自动切 keep。启动前的关节限位检查、输出目标裁剪、踝力矩限幅、倾角/锚点/反馈超时退出及 Back/Start 遥控退出仍保留。此改动需要更新 `motion_control` 并重新编译，单改 YAML 或重启旧程序不会移除旧判断；旧 YAML 的 `max_tracking_error` 字段在新程序中不再生效。
+现场反馈后的版本已移除播放阶段的 `dance joint tracking error or limit exceeded` 和 `dance anchor tracking error exceeded limit` 看门狗，实测关节越限、瞬时目标跟踪误差或锚点位置偏差不再自动切 keep。锚点偏差仍输入 policy，参考只在播放开始时对齐一次。启动前的关节限位检查、输出目标裁剪、踝力矩限幅、倾角/反馈超时退出及 Back/Start 遥控退出仍保留。此改动需要更新 `motion_control` 并重新编译，单改 YAML 或重启旧程序不会移除旧判断；旧 YAML 的 `max_tracking_error`、`max_anchor_error` 字段在新程序中不再生效。
 
 ## 6. 退出与带回结果
 

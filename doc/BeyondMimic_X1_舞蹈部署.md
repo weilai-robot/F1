@@ -25,7 +25,7 @@ A、B、Guide 都是按下沿触发。提前按 B 或 Guide 会被拒绝，需�
 
 准备位候选比较与结果见 `doc/analysis/x1_dance_v11_20261017/preparation_recommendation.md`。`default_q` 在 1–30 秒保持测试中均未触发准备阶段保护，双脚持续接触；此前 6 组手动等待 configured 探针完成整段播放，但较短保持曾保护退出。当前自动接管按实际 `dance_ready_hold_s` 连续等待，就绪不合格会延长准备，不能用历史手动保持结果替代新流程验证。
 
-当前等待设为 **4 秒连续就绪**：最初 3 秒自动接管在 yaw=-1.2 时第 153 拍触发锚点保护；4 秒候选在 yaw=0/0.8/-1.2 三组均完成 647 拍，正式 YAML 的 yaw=-1.2 复核也完成 647 拍。保留原 0.6 m 锚点退出阈值，失败原始记录也保留；这些有限样本不能证明任意初始状态都能接管。
+当前等待设为 **4 秒连续就绪**：最初 3 秒自动接管在 yaw=-1.2 时第 153 拍触发锚点保护；4 秒候选在 yaw=0/0.8/-1.2 三组均完成 647 拍，正式 YAML 的 yaw=-1.2 复核也完成 647 拍。当时保留原 0.6 m 锚点退出阈值，后续根据现场反馈已移除该退出判断。失败原始记录保留；这些有限样本不能证明任意初始状态都能接管。
 
 ## 对 AMP 已通过链路的复用
 
@@ -49,8 +49,8 @@ A、B、Guide 都是按下沿触发。提前按 B 或 Guide 会被拒绝，需�
 3. 训练仓库的 `play_mujoco.py` 使用 `sqrt(var + 1e-6)`，与 RSL-RL 默认推理的 `_std + 0.01` 不同。部署现在使用 checkpoint 保存的 `_mean`、`_std` 和后者公式。该默认值及计算位置可见 [RSL-RL v2.3.3 EmpiricalNormalization](https://github.com/leggedrobotics/rsl_rl/blob/v2.3.3/rsl_rl/modules/normalizer.py)。训练云镜像没有随 checkpoint 保存依赖锁；Ubuntu 验收时仍应核对实际训练版本有无自定义 eps。没有修改训练仓库。
 4. 旧舞蹈配置额外对腰俯仰乘 -1。当前 AMP 基线已在 DCU 提交 `fb8cc78` 根据实测修正 `direction_right: -1`，`5c13694` 将模型关节限位统一为 `[-0.15, +0.45]`。舞蹈现在 29 个关节均直接使用模型坐标，不再二次反号；TF/FK 同样应直接使用修正后的 `/joint_states`。
 5. A 零位、B stand、Guide 启动准备并自动播放。准备阶段使用高增益 PD 做 4 秒过渡和连续就绪等待，不运行策略、不推进参考帧。内部切播放时在组装关节命令前重启策略并推理首帧，避免混合准备/播放命令。准备目标与模型 start_pose 逐关节核对，配置过期时拒绝启动。
-6. 根据现场实测反馈，已移除播放阶段的 `dance joint tracking error or limit exceeded` 看门狗：实测关节越限或瞬时 PD 跟踪误差不再使播放退出，`max_tracking_error` 配置已移除，旧 YAML 中同名字段不再生效。关节目标仍严格裁到全局限位，踝关节力矩仍限幅；启动前继续检查实测关节限位，允许 0.01 rad 容差。倾角、反馈超时、非有限输出、动作过大和锚点偏差仍会退出；Back/Start 的 keep/idle 遥控退出路径保留。
-7. 参考只对齐世界位置与 yaw，不以完整 3D 旋转消除真实躯干 pitch/roll 误差；锚点保护使用已施加动作对应的参考帧，消除提前一帧检查。单次播放完成正常切到 `keep`，不再记为模型故障或循环重置。
+6. 根据现场实测反馈，已移除播放阶段的 `dance joint tracking error or limit exceeded` 和 `dance anchor tracking error exceeded limit` 看门狗：实测关节越限、瞬时 PD 跟踪误差及锚点位置偏差不再使播放退出。`max_tracking_error`、`max_anchor_error` 配置已移除，旧 YAML 中同名字段不再生效。锚点位置偏差仍按原定义输入 policy，不重新对齐或清零。关节目标仍严格裁到全局限位，踝关节力矩仍限幅；启动前继续检查实测关节限位，允许 0.01 rad 容差。倾角、反馈超时、非有限输出和动作过大仍会退出；Back/Start 的 keep/idle 遥控退出路径保留。
+7. 参考只在播放开始时对齐世界位置与 yaw，不以完整 3D 旋转消除真实躯干 pitch/roll 误差。单次播放完成正常切到 `keep`，不再记为模型故障或循环重置。
 8. 旧 `run_dance.sh` 设置的配置变量被 `run_real_nav.sh` 忽略，实际会启动导航配置。现在正确传递配置路径；权限检查和设置同时保留 `cap_net_raw`、`cap_sys_nice`。故障/完成切入 keep 时当拍发布新捕获的保持指令。
 9. 外部反馈同时检查源时间戳、递增性和接收超时；旧样本重发不会续命。默认由 C++ 直接接收完整身体里程计，按其源时间插值腰部关节并计算锚点，无需独立 Python 或腰部 TF。准备阶段每 2 秒报告当前等待原因。脚本 `dance`/`dance-start` 等价于 Guide，等待 DDS 匹配后只发一次、使用 volatile durability，不重试提前请求。移除旧 `dance-ready` 和 `/dance_mode` 入口。相关 CLI 参数依据 [ROS 2 Humble ros2topic 实现](https://github.com/ros2/ros2cli/blob/humble/ros2topic/ros2topic/verb/pub.py)。既有 AMP 手柄配置与导航 `ready` 入口保持原意。
 
@@ -103,6 +103,7 @@ python motion_control/module/control_module/tools/export_beyondmimic_x1.py \
 - 当前自动接管探针记录在 `guide_auto_start/`，包含 3 秒等待的失败记录和 4 秒候选的三朝向通过记录。物理仿真从已站立状态开始，不涵盖冷启动零位和 B 进入 stand 的实际物理过程。旧 `three_button_flow/` 是历史 A→X→Guide 流程，已标记为历史记录。
 - 已补 Ubuntu C++ 回归测试：三键零位/stand/Guide 准备、准备后内部自动播放、重复 Guide 不重置、退出取消自动播放、全阶段急停和 29 关节 AMP 一致性。这组依赖 ROS/Eigen/gtest 的完整 C++ 单测未在 Mac 执行。
 - 关节看门狗移除后，新增 C++ 回归覆盖旧 `max_tracking_error` 字段不生效、播放中上下限越限继续推理且目标仍限幅、越限姿态仍不能启动；待 Ubuntu 执行。Mac 使用 NumPy float32 MLP/ELU 和生产 C++ 估计核心运行 MuJoCo 离线探针：正常播放及单拍注入左右髋滚转上下限外 0.02 rad 反馈均完成 647 帧；这不等于完整 C++ 控制器或真机验收。
+- 锚点看门狗移除后，新增 C++ 回归覆盖旧 `max_anchor_error` 字段不生效、锚点位置偏移 0.65 m 后仍继续推理、偏差仍影响 policy 输出且目标仍限幅；待 Ubuntu 执行。Mac 的 NumPy/MuJoCo 离线探针中，正常播放和在一次 actor 推理时注入世界 x 方向 0.65 m 偏移均完成 647 帧；注入场景的最大 policy 锚点误差为 0.6603 m，原退出判断对应的误差最大为 0.6457 m。该探针包含生产 C++ 估计核心，未运行完整 ROS/C++ 控制器。
 - C++ 原生状态接入的核心检查已在 Mac 用 Clang + AddressSanitizer/UndefinedBehaviorSanitizer 编译运行：腰部 FK 与训练 MJCF 的 70 组独立 MuJoCo `mj_forward` 结果一致，包含非零腰三轴及任意机身旋转；源时间插值、环形缓冲覆盖、缺样本、过大间隔和重复时间戳拒绝检查通过。独立期望值记录在 `motion_control/module/control_module/test/data/dance_x1_waist_fk.csv`，包含训练 XML SHA256。另补原生里程计/旧外部状态推理一致性、错误帧、同步等待、过期/无效输入及估计器冻结的 ROS 控制器测试，尚未在 Ubuntu 执行。核心检查不等于状态估计器或真机通过。
 - 先前的参考首帧准备位探针：stand 驻留 3 秒 → 高增益 4 秒准备 → 计划保持 1 秒 → Guide；准备开始后 4.451 秒触发 35° 倾角保护，`policy_steps=0`。此准备位已被 default_q 取代，历史报告为 `sim_stand_pose_guide.json`。
 - 最初的 default_q 诊断只检验保持，历史报告为 `sim_default_q_preparation_probe.json`。随后比较了 9 种候选与 18 组驻留/朝向组合，选择 default_q。旧手动保持配置的 6 组探针（3/5/10/30 秒、若干 yaw 组合）均完成 647 拍，记录在 `preparation_comparison/configured_*.json`，不作为当前自动接管的通过记录。
@@ -160,7 +161,7 @@ ctest --test-dir build --output-on-failure -R '(control_module|joy_stick_module)
 
 默认 `controllers.dance_x1.state_source: proprioceptive`：IMU 源时间与双腿位置/速度/力矩按 ≤10 ms 间隔插值配对；0.5 秒连续静止且脚承重后完成加速度偏置校准。用 IMU 预测、足端位置/零速度/平地高度约束更新卡尔曼滤波，保留 IMU 的完整姿态与 yaw。双腿几何和质量从 v11 训练 MJCF 导出；准静态关节载荷估计与足端速度一致性共同判断接触。该接触方法不是官方 G1 的完整广义动量观测器。默认 IMU 平移偏置为训练值 `[0,0,0]`，需核实实机下肢 DCU 的安装位置和轴向，必要时配置 `state_estimator.imu_position_in_base`。完全悬空或加速度单位错误时不会完成校准。超过 10 ms 的源时间缺口重新校准，可信接触丢失超过 0.35 秒使估计失效。仅依赖本体信息，无法独立校正持续滑移或 yaw 漂移。
 
-估计结果直接交给既有里程计/腰部 FK 路径，不经 DDS 回环。`DanceController` 使用训练模型的 base_link → lumbar_yaw → lumbar_roll → lumbar_pitch 三轴变换，按身体状态源时间查找腰部关节反馈，既有 80 ms 时效检查和 0.6 m 锚点保护保持不变；FK 不再二次反号。2026-10-22 三种 yaw 的估计反馈均完成 647 帧，播放期间位置 RMSE 约 1.8–2.1 cm、速度约 0.013 m/s；一组显式合成噪声探针也完成。实际生产估计核心参与仿真，但没有运行完整 ROS 控制器或 DCU。详见 [本体估计验证记录](analysis/x1_dance_v11_state_estimator_20261022/README.md)。
+估计结果直接交给既有里程计/腰部 FK 路径，不经 DDS 回环。`DanceController` 使用训练模型的 base_link → lumbar_yaw → lumbar_roll → lumbar_pitch 三轴变换，按身体状态源时间查找腰部关节反馈，既有 80 ms 时效检查保留；FK 不再二次反号。锚点位置偏差仍输入 policy，但播放阶段不再因偏差超过 0.6 m 退出。2026-10-22 首次验证的三种 yaw 估计反馈均完成 647 帧，播放期间位置 RMSE 约 1.8–2.1 cm、速度约 0.013 m/s；一组显式合成噪声探针也完成。实际生产估计核心参与仿真，但没有运行完整 ROS 控制器或 DCU。详见 [本体估计验证记录](analysis/x1_dance_v11_state_estimator_20261022/README.md)。
 
 仍可显式选择 `state_source: odometry`，由 `ControlModule` 订阅 `sub_dance_odometry_name`，默认 `/dance/odometry`；此模式不启用内置估计器。外部消息必须是完整身体状态且 twist 在 base_link，同 IMU 使用一致的世界 yaw 和源时钟。现有导航 `/odom` 使用 `base_footprint`、压平姿态并重写时间戳，且当前 FastLIO2 发布没有填写 twist，不能直接改名代用。自定义话题名还需同步修改顶层 ROS 订阅匹配规则。
 
