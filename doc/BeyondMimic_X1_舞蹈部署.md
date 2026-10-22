@@ -2,7 +2,7 @@
 
 2026-10-17。本版使用 `Beyondminic-Weilai-X1/trained_models/dance_x1_v11_model_4999.pt`，在 `motion_control` 的 AMP 部署基线 `ec29ebe` 上补入并修复舞蹈部署。主仓库分支为 `feat/x1-beyondminic-dance-deploy`，子模块的 v11 专用分支为 `feat/x1-dance-v11-deploy`；主仓库记录包含源码、配置与模型资产的子模块提交。既有 AMP 分支保持原提交。
 
-**Mac 已完成离线模型核对、Python 数值仿真及不依赖 ROS 的 C++ 就绪门控检查；Ubuntu C++/ROS 2 完整构建、完整 C++ 单测、状态估计接入及真机测试尚未执行。现有结果不能作为真机部署通过的结论。**
+**Mac 已完成离线模型核对、Python 数值仿真及不依赖 ROS 的 C++ 就绪门控检查。2026-10-22 已补 IMU/双腿本体估计器，并完成实际 C++ 核心的离线测试和估计反馈闭环；Ubuntu C++/ROS 2 完整构建、完整 C++ 单测、ROS 运行接入及真机测试尚未执行。现有结果不能作为真机部署通过的结论。**
 
 ## 当前按键流程
 
@@ -52,7 +52,7 @@ A、B、Guide 都是按下沿触发。提前按 B 或 Guide 会被拒绝，需�
 6. 旧 `0.8 rad` 瞬时目标跟踪误差保护会误判策略正常的 PD 目标跳变；默认关闭此项，与 AMP 一致。关节目标仍严格裁到全局限位；实测角度检查允许 0.01 rad 容差，避免约 0.4 mrad 的边界误差触发退出。倾角、反馈超时、非有限输出、动作过大和锚点偏差仍会退出。
 7. 参考只对齐世界位置与 yaw，不以完整 3D 旋转消除真实躯干 pitch/roll 误差；锚点保护使用已施加动作对应的参考帧，消除提前一帧检查。单次播放完成正常切到 `keep`，不再记为模型故障或循环重置。
 8. 旧 `run_dance.sh` 设置的配置变量被 `run_real_nav.sh` 忽略，实际会启动导航配置。现在正确传递配置路径；权限检查和设置同时保留 `cap_net_raw`、`cap_sys_nice`。故障/完成切入 keep 时当拍发布新捕获的保持指令。
-9. 外部反馈同时检查源时间戳、递增性和接收超时；旧样本重发不会续命。状态桥按 odom 的源时间查询同一时刻 TF。脚本 `dance`/`dance-start` 等价于 Guide，等待 DDS 匹配后只发一次、使用 volatile durability，不重试提前请求。移除旧 `dance-ready` 和 `/dance_mode` 入口。相关 CLI 参数依据 [ROS 2 Humble ros2topic 实现](https://github.com/ros2/ros2cli/blob/humble/ros2topic/ros2topic/verb/pub.py)。既有 AMP 手柄配置与导航 `ready` 入口保持原意。
+9. 外部反馈同时检查源时间戳、递增性和接收超时；旧样本重发不会续命。默认由 C++ 直接接收完整身体里程计，按其源时间插值腰部关节并计算锚点，无需独立 Python 或腰部 TF。准备阶段每 2 秒报告当前等待原因。脚本 `dance`/`dance-start` 等价于 Guide，等待 DDS 匹配后只发一次、使用 volatile durability，不重试提前请求。移除旧 `dance-ready` 和 `/dance_mode` 入口。相关 CLI 参数依据 [ROS 2 Humble ros2topic 实现](https://github.com/ros2/ros2cli/blob/humble/ros2topic/ros2topic/verb/pub.py)。既有 AMP 手柄配置与导航 `ready` 入口保持原意。
 
 ## 模型与参数
 
@@ -102,6 +102,7 @@ python motion_control/module/control_module/tools/export_beyondmimic_x1.py \
 - Mac 已编译运行实际 `DanceStartGate` 与 `ButtonTrigger` 头文件组成的独立检查：只产生一个 Guide 事件，连续 4 秒后就绪、不需要第二次按键，反馈不合格/超过 80 ms 重计时及退出复位均通过。脚本 Guide 使用 mock 命令验证为单次 volatile 事件，没有运行 ROS 或电机。
 - 当前自动接管探针记录在 `guide_auto_start/`，包含 3 秒等待的失败记录和 4 秒候选的三朝向通过记录。物理仿真从已站立状态开始，不涵盖冷启动零位和 B 进入 stand 的实际物理过程。旧 `three_button_flow/` 是历史 A→X→Guide 流程，已标记为历史记录。
 - 已补 Ubuntu C++ 回归测试：三键零位/stand/Guide 准备、准备后内部自动播放、重复 Guide 不重置、退出取消自动播放、全阶段急停和 29 关节 AMP 一致性。这组依赖 ROS/Eigen/gtest 的完整 C++ 单测未在 Mac 执行。
+- C++ 原生状态接入的核心检查已在 Mac 用 Clang + AddressSanitizer/UndefinedBehaviorSanitizer 编译运行：腰部 FK 与训练 MJCF 的 70 组独立 MuJoCo `mj_forward` 结果一致，包含非零腰三轴及任意机身旋转；源时间插值、环形缓冲覆盖、缺样本、过大间隔和重复时间戳拒绝检查通过。独立期望值记录在 `motion_control/module/control_module/test/data/dance_x1_waist_fk.csv`，包含训练 XML SHA256。另补原生里程计/旧外部状态推理一致性、错误帧、同步等待、过期/无效输入及估计器冻结的 ROS 控制器测试，尚未在 Ubuntu 执行。核心检查不等于状态估计器或真机通过。
 - 先前的参考首帧准备位探针：stand 驻留 3 秒 → 高增益 4 秒准备 → 计划保持 1 秒 → Guide；准备开始后 4.451 秒触发 35° 倾角保护，`policy_steps=0`。此准备位已被 default_q 取代，历史报告为 `sim_stand_pose_guide.json`。
 - 最初的 default_q 诊断只检验保持，历史报告为 `sim_default_q_preparation_probe.json`。随后比较了 9 种候选与 18 组驻留/朝向组合，选择 default_q。旧手动保持配置的 6 组探针（3/5/10/30 秒、若干 yaw 组合）均完成 647 拍，记录在 `preparation_comparison/configured_*.json`，不作为当前自动接管的通过记录。
 
@@ -146,18 +147,25 @@ ctest --test-dir build --output-on-failure -R '(control_module|joy_stick_module)
 
 构建脚本核对专用配置、启动脚本和两份二进制资产及 JSON。当前 `x1_cfg_dance.yaml` 使用 1000 Hz 实时控制线程，复用 DCU 配置，初始模式为 `idle`。先用 `enable_actuator: false` 和直接执行 `aimrt_main` 检查反馈，避免启动脚本使能颈部舵机；执行器使能与吊架验证沿用既有 AMP 流程。
 
-舞蹈比 AMP 额外需要真实状态估计：
+舞蹈比 AMP 额外需要身体位置和线速度。当前默认由内置本体估计器补齐，输入与输出如下：
 
 | 话题 | 类型 | 契约 |
 | --- | --- | --- |
-| `/dance/anchor_pose` | `geometry_msgs/msg/TransformStamped` | `odom → lumbar_pitch_link`，锚点位置和姿态 |
-| `/dance/base_velocity` | `geometry_msgs/msg/TwistStamped` | `frame_id=base_link`，body 坐标线速度 |
-| `/imu/data` | `sensor_msgs/msg/Imu` | body→world 四元数及 body 角速度 |
-| `/joint_states` | `sensor_msgs/msg/JointState` | 29 关节的模型坐标位置/速度，沿用 AMP 的 offset 和 DCU 方向 |
+| `/dance/odometry` | `nav_msgs/msg/Odometry` | 默认是 50 Hz 检查输出；完整 `odom → base_link` 位姿，twist 在 base_link，均对应机身原点；内部反馈随传感器更新 |
+| `/imu/data` | `sensor_msgs/msg/Imu` | 输入 body→world 四元数、body 角速度和含重力的比力，单位 m/s²；静止模长应约为 9.81 |
+| `/joint_states` | `sensor_msgs/msg/JointState` | 输入 29 关节模型坐标位置/速度/力矩；本体估计使用双腿 12 关节，沿用 AMP 的 offset 和 DCU 方向 |
 
-真机四种反馈必须有有效、递增的系统时钟源时间戳且在 80 ms 内更新；错误帧名、重复旧样本或断流都会使进入被拒绝或运行退出。`use_sim_handles: true` 仅离线仿真使用，跳过系统时钟年龄比较，仍检查源时间递增和接收超时。
+真机这三种反馈必须有有效、递增的系统时钟源时间戳且在 80 ms 内更新；错误帧名、重复旧样本或断流都会使播放进入被拒绝或运行退出。`use_sim_handles: true` 仅离线仿真使用，跳过系统时钟年龄比较，仍检查源时间递增和接收超时。
 
-`scripts/dance_state_bridge.py` 要求 `/odom` 是 `odom → base_link`，twist 已在 base_link，TF 提供同一 odom 时刻的 `odom → lumbar_pitch_link`。此桥不会生成缺失的里程计/FK，缺失状态也不会填零。必须核对 TF/IMU 的世界 yaw 约定、FK 关节坐标和源时间同步。
+默认 `controllers.dance_x1.state_source: proprioceptive`：IMU 源时间与双腿位置/速度/力矩按 ≤10 ms 间隔插值配对；0.5 秒连续静止且脚承重后完成加速度偏置校准。用 IMU 预测、足端位置/零速度/平地高度约束更新卡尔曼滤波，保留 IMU 的完整姿态与 yaw。双腿几何和质量从 v11 训练 MJCF 导出；准静态关节载荷估计与足端速度一致性共同判断接触。该接触方法不是官方 G1 的完整广义动量观测器。默认 IMU 平移偏置为训练值 `[0,0,0]`，需核实实机下肢 DCU 的安装位置和轴向，必要时配置 `state_estimator.imu_position_in_base`。完全悬空或加速度单位错误时不会完成校准。超过 10 ms 的源时间缺口重新校准，可信接触丢失超过 0.35 秒使估计失效。仅依赖本体信息，无法独立校正持续滑移或 yaw 漂移。
+
+估计结果直接交给既有里程计/腰部 FK 路径，不经 DDS 回环。`DanceController` 使用训练模型的 base_link → lumbar_yaw → lumbar_roll → lumbar_pitch 三轴变换，按身体状态源时间查找腰部关节反馈，既有 80 ms 时效检查和 0.6 m 锚点保护保持不变；FK 不再二次反号。2026-10-22 三种 yaw 的估计反馈均完成 647 帧，播放期间位置 RMSE 约 1.8–2.1 cm、速度约 0.013 m/s；一组显式合成噪声探针也完成。实际生产估计核心参与仿真，但没有运行完整 ROS 控制器或 DCU。详见 [本体估计验证记录](analysis/x1_dance_v11_state_estimator_20261022/README.md)。
+
+仍可显式选择 `state_source: odometry`，由 `ControlModule` 订阅 `sub_dance_odometry_name`，默认 `/dance/odometry`；此模式不启用内置估计器。外部消息必须是完整身体状态且 twist 在 base_link，同 IMU 使用一致的世界 yaw 和源时钟。现有导航 `/odom` 使用 `base_footprint`、压平姿态并重写时间戳，且当前 FastLIO2 发布没有填写 twist，不能直接改名代用。自定义话题名还需同步修改顶层 ROS 订阅匹配规则。
+
+`/dance/odometry` 的 ROS 后端订阅显式使用 best_effort、volatile、keep_last/depth=5，支持传感器数据发布端；自定义话题名时也要同步修改这一 QoS 规则。字段位置依据 [AimRT ROS2 插件配置](https://docs.aimrt.org/v0.8.3/tutorials/plugins/ros2_plugin.html)。是否完成 DDS 匹配仍需在 Ubuntu 用 `ros2 topic info -v` 验证。
+
+保留兼容模式 `state_source: external_topics`：此时仍订阅 `/dance/anchor_pose` 和 `/dance/base_velocity`，可使用 `scripts/dance_state_bridge.py`。仅此模式需要外部同源时间的腰部 TF；默认原生路径不运行该脚本。
 
 Ubuntu 完成构建、准备位确认、状态估计接入和吊架验证后，启动和模式入口为：
 
@@ -169,8 +177,7 @@ bash ./run_dance.sh
 另一终端在仓库根目录、同 ROS domain 下：
 
 ```bash
-python3 scripts/dance_state_bridge.py
-# 另开终端切模式；对应手柄 A → B → Guide。
+# 默认由内置估计器生成 /dance/odometry；脚承重静止校准后再播放，对应 A → B → Guide。
 bash scripts/switch_x1_mode.sh zero        # A：零位并保持
 # 等待 Zero reached; press B for stand
 bash scripts/switch_x1_mode.sh stand       # B：stand 并保持
@@ -181,3 +188,25 @@ bash scripts/switch_x1_mode.sh keep
 ```
 
 脚本 `ready` 是原有导航的 zero → stand → walk，不用于舞蹈。舞蹈使用 `zero`、`stand`、`dance-start`；`dance` 是 `dance-start` 的别名，旧 `dance-ready` 已移除。入口禁止重入清状态；`keep/idle` 在整段流程退出均不受普通模式 1 秒节流阻塞。保留 `build/log/x1_rl_ctrl_dance.log` 和控制周期记录，核对零位/stand 到位、Guide 后自动接管、50 Hz 推理、锚点误差和故障切换。仍需 Ubuntu 原生测试及真机吊架验收。
+
+## Guide 后下沉但不播放的排查
+
+轻微下沉可能是已经进入 `dance_ready` 的 PD 准备位，不能据此判断策略已运行。控制日志应先出现 `Guide accepted`，连续就绪后才出现 `Ready hold complete; starting dance automatically from frame 0`。过渡完成后，真实关节姿态、IMU、锚点和速度须连续满足条件 4 秒；任一条件失效都会重计时。当前 C++ 控制日志每 2 秒输出一次 `Dance preparation: ...`，区分准备位过渡、无身体里程计、帧名/时间戳错误、腰部样本未覆盖源时间、速度/倾角和准备位误差等原因。
+
+机器人上另开终端，在 F1 根目录执行以下只读检查，无需再次按 Guide：
+
+```bash
+source scripts/ros2_source.sh
+tail -n 60 build/log/x1_rl_ctrl_dance.log
+timeout 6s ros2 topic echo /dance/odometry --once
+timeout 6s ros2 topic hz /dance/odometry
+ros2 topic info -v /dance/odometry
+```
+
+- 没有 `Guide accepted`：检查是否已在 stand 到位，或准备阶段是否已保护退出。
+- `/dance/odometry` 无持续数据：默认模式检查脚是否承重且静止、双腿力矩是否有效、加速度是否为 SI 比力、源时间是否连续；控制器会报告校准/等待原因。外部 `odometry` 模式则检查其发布节点。
+- `waist joint samples do not bracket ...`：核对估计器是否使用真实采样时间、与关节反馈是否同一系统时钟，以及关节反馈间隔是否足以覆盖源时间；不要将源时间改成发送时刻。
+- 有里程计仍不播放：检查 `Dance preparation` 原因、源时间递增和 QoS/订阅匹配，以及 29 关节准备位误差 ≤0.12 rad、关节限位、身体线速度 ≤0.2 m/s、倾角 ≤35° 及三种反馈年龄 ≤80 ms。话题频率正常不代表这些条件已满足。
+- 仅在兼容模式排查旧桥：两个 `/dance/*` 无数据时看 `Not publishing dance state: ...`，再检查 `/odom` 和同源时间腰部 TF。默认原生路径无需检查这两个旧话题或运行 Python 桥。
+
+控制器是否收到有效数据、是否连续就绪以控制侧检查为准。不要通过将 `use_sim_handles` 改为 `true`、放宽反馈超时或伪造状态让真机进入播放。

@@ -1,0 +1,19 @@
+{
+  "motion_control/module/control_module/include/control_module/dance_state_estimator.h": "0c76a9a4aaa819804dc9f53a86fc6789c14949c3d0f638712f88eb8d1fee8276",
+  "motion_control/module/control_module/include/control_module/dance_leg_model.h": "d262a16b67117d2898ffabcf171df3adfd2494860eff17bc298316e03b6fd04a",
+  "motion_control/module/control_module/include/control_module/dance_estimator_inputs.h": "0c256a2f3978e2be40daf871ab6c85c673470d81936940a4bbb6dacd4304c2db",
+  "motion_control/module/control_module/test/dance_state_estimator_capi.cc": "0872cd60891498a7a9aebf4c4270e8200c587a18927de29195bb7501a1680d30",
+  "motion_control/module/control_module/tools/sim_beyondmimic_x1.py": "34311927361c64dc1b4a4923032feee64adebc296152eb36abb1156cbcc3aee2",
+  "motion_control/module/control_module/tools/dance_estimator_probe.py": "d01c9ff215b09191a9d881f0f4a09e2c594581fca8630161f35f100c310e0550",
+  "motion_control/module/control_module/tools/check_dance_estimator.py": "e8a845f67defb9941cfae0b91c6f6d237f0e1ea454e7fa33a67be3af989a3bdf",
+  "motion_control/module/control_module/tools/export_x1_leg_kinematics.py": "d5062f89568948ee1016b695da26639e44109f2d3f3215186d88a88186f20b7e",
+  "motion_control/module/control_module/cfg/rl_x1_dance.yaml": "2aab466e3ec5ff6888758abf84f71471595e8ae1d71f3db2343b4fc9f2eeabce",
+  "motion_control/module/control_module/include/control_module/dance_controller.h": "1adc79ae4941852ca23a17e6f728263449c8650ef3159354d6e8e7141d231112",
+  "motion_control/module/control_module/src/dance_controller.cc": "bf8aef952773c0081ac30e3f211d00438d1268a1c26630ac2441d31410303f21",
+  "motion_control/module/control_module/include/control_module/control_module.h": "c8847767a57dd282c4834a307d2ffe7f05f4170f41fcdf4ecc8f8f6994a6cb41",
+  "motion_control/module/control_module/src/control_module.cc": "c6707eb5e688eb458d040117c74f0a70c87aa74d3291eaff0ae956ee33b492c9",
+  "motion_control/module/control_module/test/dance_state_estimator_check.cc": "645ef6b8b21f275d0fe3eba1d723c1891db7d5dccacc2a141da20c1cd7c06ff5",
+  "motion_control/module/control_module/test/data/dance_x1_estimator_static.csv": "327a042c5f672194256a515f8392df0dd92133e5eeffbb6a44af0c8e4a1354ef",
+  "motion_control/module/control_module/test/dance_controller_test.cc": "ebfc67b43e4385c48b8d930efcb31d740908b8a2de0145c5849ce38ddb48a858",
+  "motion_control/module/control_module/CMakeLists.txt": "26f3594a4ad6a9024361807c6f00a3684876790d3df6c50881cd756e7eeba21d"
+}
