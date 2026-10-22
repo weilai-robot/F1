@@ -49,7 +49,7 @@ A、B、Guide 都是按下沿触发。提前按 B 或 Guide 会被拒绝，需�
 3. 训练仓库的 `play_mujoco.py` 使用 `sqrt(var + 1e-6)`，与 RSL-RL 默认推理的 `_std + 0.01` 不同。部署现在使用 checkpoint 保存的 `_mean`、`_std` 和后者公式。该默认值及计算位置可见 [RSL-RL v2.3.3 EmpiricalNormalization](https://github.com/leggedrobotics/rsl_rl/blob/v2.3.3/rsl_rl/modules/normalizer.py)。训练云镜像没有随 checkpoint 保存依赖锁；Ubuntu 验收时仍应核对实际训练版本有无自定义 eps。没有修改训练仓库。
 4. 旧舞蹈配置额外对腰俯仰乘 -1。当前 AMP 基线已在 DCU 提交 `fb8cc78` 根据实测修正 `direction_right: -1`，`5c13694` 将模型关节限位统一为 `[-0.15, +0.45]`。舞蹈现在 29 个关节均直接使用模型坐标，不再二次反号；TF/FK 同样应直接使用修正后的 `/joint_states`。
 5. A 零位、B stand、Guide 启动准备并自动播放。准备阶段使用高增益 PD 做 4 秒过渡和连续就绪等待，不运行策略、不推进参考帧。内部切播放时在组装关节命令前重启策略并推理首帧，避免混合准备/播放命令。准备目标与模型 start_pose 逐关节核对，配置过期时拒绝启动。
-6. 旧 `0.8 rad` 瞬时目标跟踪误差保护会误判策略正常的 PD 目标跳变；默认关闭此项，与 AMP 一致。关节目标仍严格裁到全局限位；实测角度检查允许 0.01 rad 容差，避免约 0.4 mrad 的边界误差触发退出。倾角、反馈超时、非有限输出、动作过大和锚点偏差仍会退出。
+6. 根据现场实测反馈，已移除播放阶段的 `dance joint tracking error or limit exceeded` 看门狗：实测关节越限或瞬时 PD 跟踪误差不再使播放退出，`max_tracking_error` 配置已移除，旧 YAML 中同名字段不再生效。关节目标仍严格裁到全局限位，踝关节力矩仍限幅；启动前继续检查实测关节限位，允许 0.01 rad 容差。倾角、反馈超时、非有限输出、动作过大和锚点偏差仍会退出；Back/Start 的 keep/idle 遥控退出路径保留。
 7. 参考只对齐世界位置与 yaw，不以完整 3D 旋转消除真实躯干 pitch/roll 误差；锚点保护使用已施加动作对应的参考帧，消除提前一帧检查。单次播放完成正常切到 `keep`，不再记为模型故障或循环重置。
 8. 旧 `run_dance.sh` 设置的配置变量被 `run_real_nav.sh` 忽略，实际会启动导航配置。现在正确传递配置路径；权限检查和设置同时保留 `cap_net_raw`、`cap_sys_nice`。故障/完成切入 keep 时当拍发布新捕获的保持指令。
 9. 外部反馈同时检查源时间戳、递增性和接收超时；旧样本重发不会续命。默认由 C++ 直接接收完整身体里程计，按其源时间插值腰部关节并计算锚点，无需独立 Python 或腰部 TF。准备阶段每 2 秒报告当前等待原因。脚本 `dance`/`dance-start` 等价于 Guide，等待 DDS 匹配后只发一次、使用 volatile durability，不重试提前请求。移除旧 `dance-ready` 和 `/dance_mode` 入口。相关 CLI 参数依据 [ROS 2 Humble ros2topic 实现](https://github.com/ros2/ros2cli/blob/humble/ros2topic/ros2topic/verb/pub.py)。既有 AMP 手柄配置与导航 `ready` 入口保持原意。
@@ -102,6 +102,7 @@ python motion_control/module/control_module/tools/export_beyondmimic_x1.py \
 - Mac 已编译运行实际 `DanceStartGate` 与 `ButtonTrigger` 头文件组成的独立检查：只产生一个 Guide 事件，连续 4 秒后就绪、不需要第二次按键，反馈不合格/超过 80 ms 重计时及退出复位均通过。脚本 Guide 使用 mock 命令验证为单次 volatile 事件，没有运行 ROS 或电机。
 - 当前自动接管探针记录在 `guide_auto_start/`，包含 3 秒等待的失败记录和 4 秒候选的三朝向通过记录。物理仿真从已站立状态开始，不涵盖冷启动零位和 B 进入 stand 的实际物理过程。旧 `three_button_flow/` 是历史 A→X→Guide 流程，已标记为历史记录。
 - 已补 Ubuntu C++ 回归测试：三键零位/stand/Guide 准备、准备后内部自动播放、重复 Guide 不重置、退出取消自动播放、全阶段急停和 29 关节 AMP 一致性。这组依赖 ROS/Eigen/gtest 的完整 C++ 单测未在 Mac 执行。
+- 关节看门狗移除后，新增 C++ 回归覆盖旧 `max_tracking_error` 字段不生效、播放中上下限越限继续推理且目标仍限幅、越限姿态仍不能启动；待 Ubuntu 执行。Mac 使用 NumPy float32 MLP/ELU 和生产 C++ 估计核心运行 MuJoCo 离线探针：正常播放及单拍注入左右髋滚转上下限外 0.02 rad 反馈均完成 647 帧；这不等于完整 C++ 控制器或真机验收。
 - C++ 原生状态接入的核心检查已在 Mac 用 Clang + AddressSanitizer/UndefinedBehaviorSanitizer 编译运行：腰部 FK 与训练 MJCF 的 70 组独立 MuJoCo `mj_forward` 结果一致，包含非零腰三轴及任意机身旋转；源时间插值、环形缓冲覆盖、缺样本、过大间隔和重复时间戳拒绝检查通过。独立期望值记录在 `motion_control/module/control_module/test/data/dance_x1_waist_fk.csv`，包含训练 XML SHA256。另补原生里程计/旧外部状态推理一致性、错误帧、同步等待、过期/无效输入及估计器冻结的 ROS 控制器测试，尚未在 Ubuntu 执行。核心检查不等于状态估计器或真机通过。
 - 先前的参考首帧准备位探针：stand 驻留 3 秒 → 高增益 4 秒准备 → 计划保持 1 秒 → Guide；准备开始后 4.451 秒触发 35° 倾角保护，`policy_steps=0`。此准备位已被 default_q 取代，历史报告为 `sim_stand_pose_guide.json`。
 - 最初的 default_q 诊断只检验保持，历史报告为 `sim_default_q_preparation_probe.json`。随后比较了 9 种候选与 18 组驻留/朝向组合，选择 default_q。旧手动保持配置的 6 组探针（3/5/10/30 秒、若干 yaw 组合）均完成 647 拍，记录在 `preparation_comparison/configured_*.json`，不作为当前自动接管的通过记录。
