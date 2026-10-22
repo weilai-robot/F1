@@ -151,6 +151,8 @@ ctest --test-dir build --output-on-failure -R '(control_module|joy_stick_module)
 
 舞蹈比 AMP 额外需要身体位置和线速度。当前默认由内置本体估计器补齐，输入与输出如下：
 
+默认启用独立的 50 Hz 舞蹈诊断：`build/test_logs/data_csv/dance_diag_<Unix纳秒>.csv`，并保存对应 `.csv.yaml` 配置快照。按演示编号/动作帧记录 policy 实际使用的归一化前后输入、估计偏置/方差、足端接触/载荷、关节反馈、候选 action 和生成的关节命令；准备阶段也采样，独立线程默认每 100 ms flush。详细字段、采样边界和多次演示对比方法见 [舞蹈诊断日志](analysis/x1_dance_v11_state_estimator_20261022/DANCE_DIAGNOSTICS.zh_CN.md)。旧 `ctrl_period_*.csv` 继续用于主线程时序分析。
+
 | 话题 | 类型 | 契约 |
 | --- | --- | --- |
 | `/dance/odometry` | `nav_msgs/msg/Odometry` | 默认是 50 Hz 检查输出；完整 `odom → base_link` 位姿，twist 在 base_link，均对应机身原点；内部反馈随传感器更新 |
