@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-23",
+  "branch": "feat/x1-dance-v12-154-deploy",
+  "training_git_head": "d0b164620a14cba8917af64b9a9469f8279e5a18",
+  "training_task": "TASK_20261022_151",
+  "training_task_record_sha256": "b0a11d0d9c7dacc378471d9720ef7fa02a669115adc2f602fded717cfea0cd78",
+  "checkpoint_and_training_sources": {
+    "checkpoint": {
+      "file": "dance_x1_v12_model_4999.pt",
+      "sha256": "5ad235d7a57cfcde007ff7ddd7310faf62bb8698eb64445aeb500472492bf5da"
+    },
+    "motion": {
+      "file": "dance_x1_train.npz",
+      "sha256": "2f6e14cf4766a34bf88667f79092131bce12511ed1e701c6a4abb28c0e25fb27"
+    },
+    "robot_config": {
+      "file": "x1.py",
+      "sha256": "edf0172cf5b1f5311d463af34ae92e1de38be685102d512f0a4b410bb506f703"
+    },
+    "env_config": {
+      "file": "flat_env_cfg.py",
+      "sha256": "0ec8396deb8ff3342f15ef2b965ce2d6db869cfe5b4be0494ae34483b34530cf"
+    }
+  },
+  "asset_hashes": {
+    "dance_x1_v12_154_4999.bin": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+    "dance_x1_motion.bin": "dd3376f615ee86daf6df4f1b13972942376d5a2275e904c4efb1674691bf884d"
+  },
+  "actor_max_abs_error": 1.9073486328125e-05,
+  "passed": [
+    "129 serialized NumPy/PyTorch inference comparisons",
+    "export rejects mismatched layout before writing",
+    "independent MuJoCo/PyTorch golden fixture regeneration",
+    "ASan/UBSan native 154/160 diagnostics schema and queue checks",
+    "ASan/UBSan 70 independent MuJoCo FK cases and source-time history checks",
+    "deployment YAML/model/asset contract",
+    "binary reference equals all NPZ simulation inputs",
+    "legacy v11 re-export model and motion are byte-identical",
+    "Python compilation and shell syntax",
+    "git diff --check"
+  ],
+  "not_run": [
+    "Ubuntu full C++/ROS 2 build",
+    "ROS/Eigen/gtest dance_controller_test.cc suite (including new 154-input cases)",
+    "EtherCAT/DCU hardware and real robot"
+  ],
+  "normalizer_note": "Deployment keeps saved _std + 0.01. Training checkout playback uses sqrt(_var + 1e-6). Cloud normalizer eps is not saved in checkpoint.",
+  "simulations": {
+    "imu_yaw0.json": {
+      "completed": true,
+      "policy_steps": 647,
+      "observation_dim": 154,
+      "model_sha256": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+      "max_tilt_deg": 29.75192039964552,
+      "mean_true_anchor_error_m": 0.8271198006349618
+    },
+    "imu_yaw0p8.json": {
+      "completed": true,
+      "policy_steps": 647,
+      "observation_dim": 154,
+      "model_sha256": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+      "max_tilt_deg": 29.740467156828625,
+      "mean_true_anchor_error_m": 0.8991004420589106
+    },
+    "imu_yawm1p2.json": {
+      "completed": true,
+      "policy_steps": 647,
+      "observation_dim": 154,
+      "model_sha256": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+      "max_tilt_deg": 29.752545829064285,
+      "mean_true_anchor_error_m": 0.8941461685737859
+    },
+    "legacy_v11_yaw0.json": {
+      "completed": true,
+      "policy_steps": 647,
+      "observation_dim": 160,
+      "model_sha256": "4b146822e4e37dfc1c73e35b5712d8893aacfcd82d5fb82e59d47f66b070d239",
+      "max_tilt_deg": 28.18987920258283,
+      "mean_true_anchor_error_m": 0.13326542568428026
+    }
+  },
+  "source_sha256": {
+    "motion_control/module/control_module/src/dance_controller.cc": "a6e74f1b4e478d1d9ec5f3d0bd0698038de9b4262e36d2e106a1af4d94f64830",
+    "motion_control/module/control_module/include/control_module/dance_controller.h": "65987b649066cc1ec2e8ec6577f512a4fddccfd521de0bdb4d1fed3c2e809a69",
+    "motion_control/module/control_module/include/control_module/dance_diagnostics.h": "f103963a8c622b0139f2bcb163ec6aabc6db17d7fa9efbaba5e2d0ade6e0a5bf",
+    "motion_control/module/control_module/include/control_module/dance_state_adapter.h": "30d220dc5447f53466e04c4ff78332b47659440eaf8634aef36a59c2a23b7320",
+    "motion_control/module/control_module/cfg/rl_x1_dance.yaml": "39603b2504520935a8105a102d1558894eceaf7e842a46b3de8f4ddf4fd3f89a",
+    "motion_control/module/control_module/tools/export_beyondmimic_x1.py": "ee56358a02f0fbe4d041d5e472e1b88b2fda39d42b51420e0492080215c51fca",
+    "motion_control/module/control_module/tools/sim_beyondmimic_x1.py": "3bbb4e78fc65f1b96ec13123e1f918067adfbecec3810dd9cfd51a0f3a356346",
+    "motion_control/module/control_module/tools/check_beyondmimic_x1_154.py": "16dc088d56731f269b6f9b9c07b96f6edcff6352824256f916daa53e6aa7db42",
+    "motion_control/module/control_module/test/dance_controller_test.cc": "08974289810be1c60052643ee5365ceccec203eb5bbd50308bcc7464e39eb05a",
+    "motion_control/module/control_module/test/dance_diagnostics_check.cc": "b6f29f27e575c894c2b60d6cbc7a49c84b71d7c45b7aa49dda570ab0a09cff37",
+    "motion_control/module/control_module/test/dance_state_adapter_capi.cc": "5e88b0abd3554289773cc3a1cd46e700696b9dd0575aa33f08c3392b2bdcbf59",
+    "motion_control/module/control_module/test/data/dance_x1_v12_154_first_frame.csv": "c90aac69c89813fc57af17f711512c79382adc9623b3d4760ff5cce899b04b1a",
+    "motion_control/module/control_module/test/data/dance_x1_v12_154_observation.csv": "8278558ed1a4035124483256fe91ac4b3d2d05ed453485bd4eb752b985b80565"
+  },
+  "motion_control_commit": "64220c532d11dc46e80ea573c9dd604f2d8bff29",
+  "f1_base_commit": "5da5dbf1dc324a04b7d6307078c626cbf01fff9b"
+}

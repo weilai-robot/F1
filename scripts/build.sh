@@ -101,6 +101,8 @@ check cfg/control_module/rl_x1_dance.yaml
 check cfg/joy_stick_module/joy_x1_dance.yaml
 check cfg/control_module/policy/dance_x1_v11_4999.json
 check cfg/control_module/policy/dance_x1_v11_4999.bin
+check cfg/control_module/policy/dance_x1_v12_154_4999.json
+check cfg/control_module/policy/dance_x1_v12_154_4999.bin
 check cfg/control_module/policy/dance_x1_motion.bin
 
 if [ "$MISSING" -gt 0 ]; then
