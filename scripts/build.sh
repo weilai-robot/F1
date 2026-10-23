@@ -104,6 +104,7 @@ check cfg/control_module/policy/dance_x1_v11_4999.bin
 check cfg/control_module/policy/dance_x1_v12_154_4999.json
 check cfg/control_module/policy/dance_x1_v12_154_4999.bin
 check cfg/control_module/policy/dance_x1_motion.bin
+check cfg/control_module/policy/x1_amp_v70b_m16000_50hz.onnx
 
 if [ "$MISSING" -gt 0 ]; then
     echo ""

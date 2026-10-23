@@ -1,0 +1,208 @@
+{
+  "preparation_candidate": "configured",
+  "configured_start_pose": "default_q",
+  "experimental_candidate_entry_gate": false,
+  "hold_min_com_margin_m": 0.05842207125758,
+  "hold_max_tilt_deg": 3.2409160887454953,
+  "hold_max_speed_m_s": 0.01968598773526492,
+  "hold_both_feet_contact_fraction": 1.0,
+  "handoff_pose_error_rad": 0.04062683323733152,
+  "handoff_speed_m_s": 0.006263848631372512,
+  "required_ready_hold_s": 4.0,
+  "continuous_ready_s": 4.0,
+  "guide_authorized_preparation": true,
+  "automatic_start": true,
+  "preparation_elapsed_s": 8.0,
+  "implementation": "Python numerical probe; Ubuntu C++/ROS/DCU not executed",
+  "workflow": "A zero -> B stand -> Guide -> dance_ready -> automatic dance_x1",
+  "phase": "playback",
+  "mujoco_version": "3.14.0",
+  "stand_hold_s": 3.0,
+  "yaw_rad": 0.0,
+  "ready_wait_timeout_s": 10.0,
+  "preparation_s": 4.0,
+  "completed": true,
+  "fault": null,
+  "policy_steps": 647,
+  "physics_ticks": 12940,
+  "min_base_z_m": 0.5082127253480927,
+  "max_tilt_deg": 29.75192039964552,
+  "mean_anchor_error_m": null,
+  "mean_true_anchor_error_m": 0.8271198006349618,
+  "max_true_anchor_error_m": 0.9832264209961372,
+  "max_anchor_error_m": null,
+  "max_target_error_rad": 1.480981887696966,
+  "max_action": 12.22883415222168,
+  "max_measured_limit_violation_rad": 0.0006878455659740657,
+  "clipped_target_components": 459,
+  "stop_audit": {
+    "method": "Audit extension of production Python probe; captures final measured q, immediately switches to YAML pd_keep gains, qd_des=0. Ideal effort-saturated joint PD; no ROS/DCU or actuator-level implementation.",
+    "requested_hold_s": 8.0,
+    "transition_s": 0.0,
+    "base_z_at_switch_m": 0.6244230180967784,
+    "base_tilt_at_switch_deg": 6.000169984855877,
+    "base_linear_speed_at_switch_m_s": 0.3561172254065756,
+    "base_gyro_at_switch_rad_s": [
+      0.12023149661290677,
+      0.17021831416773214,
+      -1.1837075984283953
+    ],
+    "base_angular_speed_at_switch_rad_s": 1.2019124618011927,
+    "max_joint_speed_at_switch_rad_s": 2.3346363410448405,
+    "com_support_margin_at_switch_m": -1.0,
+    "both_feet_touching_at_switch": false,
+    "max_initial_joint_torque_step_Nm": 38.96612185094756,
+    "first_tilt_above_35_deg_s": 0.689,
+    "first_tilt_above_60_deg_s": 0.867,
+    "first_base_z_below_0p35_m_s": 0.862,
+    "max_tilt_deg": 89.91448769869619,
+    "min_base_z_m": 0.13111670168324993,
+    "max_hold_pose_error_rad": 0.2910320578639197,
+    "samples": [
+      {
+        "t_s": 0.0,
+        "tilt_deg": 6.000169984855877,
+        "base_z_m": 0.6244230180967784,
+        "base_linear_speed_m_s": 0.3561172254065756,
+        "base_angular_speed_rad_s": 1.2019124618011927,
+        "max_joint_speed_rad_s": 2.3346363410448405
+      },
+      {
+        "t_s": 0.5,
+        "tilt_deg": 17.581989345998988,
+        "base_z_m": 0.6001613410931432,
+        "base_linear_speed_m_s": 0.6569233841865448,
+        "base_angular_speed_rad_s": 1.6748281746699596,
+        "max_joint_speed_rad_s": 0.29776716944514997
+      },
+      {
+        "t_s": 1.0,
+        "tilt_deg": 78.29756822161731,
+        "base_z_m": 0.142189213465927,
+        "base_linear_speed_m_s": 0.7449752561155247,
+        "base_angular_speed_rad_s": 3.2287667342885276,
+        "max_joint_speed_rad_s": 6.186223399353928
+      },
+      {
+        "t_s": 1.5,
+        "tilt_deg": 89.22753998031223,
+        "base_z_m": 0.13114247533481752,
+        "base_linear_speed_m_s": 0.16032231071915226,
+        "base_angular_speed_rad_s": 1.156960688509742,
+        "max_joint_speed_rad_s": 1.0125534936119391
+      },
+      {
+        "t_s": 2.0,
+        "tilt_deg": 88.72885413459211,
+        "base_z_m": 0.1371550388295955,
+        "base_linear_speed_m_s": 0.17691309828302038,
+        "base_angular_speed_rad_s": 1.2616052699032037,
+        "max_joint_speed_rad_s": 0.18435094299576257
+      },
+      {
+        "t_s": 2.5,
+        "tilt_deg": 83.55417486993043,
+        "base_z_m": 0.14153749515347214,
+        "base_linear_speed_m_s": 0.04377047365563732,
+        "base_angular_speed_rad_s": 0.3098040339815304,
+        "max_joint_speed_rad_s": 0.0998021597494375
+      },
+      {
+        "t_s": 3.0,
+        "tilt_deg": 88.64293137825494,
+        "base_z_m": 0.13611682909727915,
+        "base_linear_speed_m_s": 0.04879584360116555,
+        "base_angular_speed_rad_s": 0.33583876137026974,
+        "max_joint_speed_rad_s": 0.054065364525230836
+      },
+      {
+        "t_s": 3.5,
+        "tilt_deg": 88.23356539281377,
+        "base_z_m": 0.14082937812366378,
+        "base_linear_speed_m_s": 0.16318070462629486,
+        "base_angular_speed_rad_s": 1.1628423824875818,
+        "max_joint_speed_rad_s": 0.14463421635526602
+      },
+      {
+        "t_s": 4.0,
+        "tilt_deg": 87.76763884127824,
+        "base_z_m": 0.1415353528295287,
+        "base_linear_speed_m_s": 0.14368408622447532,
+        "base_angular_speed_rad_s": 1.0167133261042345,
+        "max_joint_speed_rad_s": 0.14033821742415853
+      },
+      {
+        "t_s": 4.5,
+        "tilt_deg": 87.84292024629939,
+        "base_z_m": 0.14145905893373092,
+        "base_linear_speed_m_s": 0.12576606044016822,
+        "base_angular_speed_rad_s": 1.0033734482446692,
+        "max_joint_speed_rad_s": 0.25882300607066117
+      },
+      {
+        "t_s": 5.0,
+        "tilt_deg": 87.8908761345238,
+        "base_z_m": 0.14128683716216733,
+        "base_linear_speed_m_s": 0.10555696641260388,
+        "base_angular_speed_rad_s": 0.7502419877138677,
+        "max_joint_speed_rad_s": 0.2851296870933564
+      },
+      {
+        "t_s": 5.5,
+        "tilt_deg": 87.40014956463484,
+        "base_z_m": 0.1417676469225671,
+        "base_linear_speed_m_s": 0.06476639763684504,
+        "base_angular_speed_rad_s": 0.4759327458024316,
+        "max_joint_speed_rad_s": 0.2676058787213986
+      },
+      {
+        "t_s": 6.0,
+        "tilt_deg": 87.85683451827164,
+        "base_z_m": 0.14128359169159072,
+        "base_linear_speed_m_s": 0.045532727897964725,
+        "base_angular_speed_rad_s": 0.32395381630729847,
+        "max_joint_speed_rad_s": 0.09236944417168197
+      },
+      {
+        "t_s": 6.5,
+        "tilt_deg": 87.73817329125059,
+        "base_z_m": 0.14149349685976237,
+        "base_linear_speed_m_s": 0.0003695097339436838,
+        "base_angular_speed_rad_s": 0.006431680955486373,
+        "max_joint_speed_rad_s": 0.04834354934595325
+      },
+      {
+        "t_s": 7.0,
+        "tilt_deg": 87.76366193416754,
+        "base_z_m": 0.14145550904087617,
+        "base_linear_speed_m_s": 0.0006994185888059103,
+        "base_angular_speed_rad_s": 0.0054966223062374265,
+        "max_joint_speed_rad_s": 0.0055179956071807435
+      },
+      {
+        "t_s": 7.5,
+        "tilt_deg": 87.77649322118066,
+        "base_z_m": 0.14145504835524378,
+        "base_linear_speed_m_s": 0.0003090580788070662,
+        "base_angular_speed_rad_s": 0.002504031151134711,
+        "max_joint_speed_rad_s": 0.003108349353437965
+      },
+      {
+        "t_s": 8.0,
+        "tilt_deg": 87.78303190853168,
+        "base_z_m": 0.14145121229982535,
+        "base_linear_speed_m_s": 7.663099135738411e-05,
+        "base_angular_speed_rad_s": 0.0008664961224764204,
+        "max_joint_speed_rad_s": 0.0010658029002522358
+      }
+    ]
+  },
+  "state_feedback": "imu",
+  "observation_dim": 154,
+  "observation_layout": "wo_state_estimation",
+  "model_sha256": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+  "max_fk_orientation_error": 1.1430445635548515e-15,
+  "estimator": null,
+  "audit_source_sha256": "3bbb4e78fc65f1b96ec13123e1f918067adfbecec3810dd9cfd51a0f3a356346",
+  "audit_script_sha256": "8cbf15370b3ca27d6715e0accf0b9d8343bd47b266811701f272ded35c54fed9"
+}

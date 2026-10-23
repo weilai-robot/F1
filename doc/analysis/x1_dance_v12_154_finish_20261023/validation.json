@@ -1,0 +1,178 @@
+{
+  "date": "2026-10-23",
+  "branch": "feat/x1-dance-v12-154-deploy",
+  "base_f1_commit": "0c41890b17d6c271c139a94f31388925458460ec",
+  "base_motion_control_commit": "64220c532d11dc46e80ea573c9dd604f2d8bff29",
+  "passed_cases": {
+    "yaw0": {
+      "passed": true,
+      "first_confirmed_s": 7.306,
+      "elapsed_s": 17.306,
+      "max_tilt_deg": 6.000169984855877,
+      "final_true_speed": 0.0015267211443278973,
+      "quiet_xy_drift_m": 0.0006155738643630733,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "yaw0p8": {
+      "passed": true,
+      "first_confirmed_s": 7.328,
+      "elapsed_s": 17.328,
+      "max_tilt_deg": 6.0637678568627225,
+      "final_true_speed": 0.0016940570675459256,
+      "quiet_xy_drift_m": 0.0009394460016514274,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "yawm1p2": {
+      "passed": true,
+      "first_confirmed_s": 8.43,
+      "elapsed_s": 18.43,
+      "max_tilt_deg": 5.9495967113108215,
+      "final_true_speed": 0.0002309330681590556,
+      "quiet_xy_drift_m": 0.001903580936218709,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "noise_seed23": {
+      "passed": true,
+      "first_confirmed_s": 7.613,
+      "elapsed_s": 17.613,
+      "max_tilt_deg": 6.000169984855877,
+      "final_true_speed": 0.0002257974025924911,
+      "quiet_xy_drift_m": 0.001957200253540269,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "noise_seed24": {
+      "passed": true,
+      "first_confirmed_s": 7.573,
+      "elapsed_s": 17.573,
+      "max_tilt_deg": 6.000169984855877,
+      "final_true_speed": 0.00033744884589422095,
+      "quiet_xy_drift_m": 0.001947518631252624,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "noise_seed25": {
+      "passed": true,
+      "first_confirmed_s": 7.54,
+      "elapsed_s": 17.54,
+      "max_tilt_deg": 6.000169984855877,
+      "final_true_speed": 0.0006313209220396347,
+      "quiet_xy_drift_m": 0.0011122050480866148,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "push_forward30N": {
+      "passed": true,
+      "first_confirmed_s": 7.306,
+      "elapsed_s": 26.545,
+      "max_tilt_deg": 6.4744581895782956,
+      "final_true_speed": 0.0024274380465938946,
+      "quiet_xy_drift_m": 0.0017941871289458523,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "push_backward30N": {
+      "passed": true,
+      "first_confirmed_s": 7.306,
+      "elapsed_s": 25.5,
+      "max_tilt_deg": 6.391826705678884,
+      "final_true_speed": 0.0023716790331833083,
+      "quiet_xy_drift_m": 0.0013815342073336264,
+      "recoveries": 0.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "push_forward60N": {
+      "passed": true,
+      "first_confirmed_s": 7.306,
+      "elapsed_s": 28.13,
+      "max_tilt_deg": 6.000169984855877,
+      "final_true_speed": 0.00012352948317471865,
+      "quiet_xy_drift_m": 0.0013847702142130603,
+      "recoveries": 1.0,
+      "continuous_verified_quiet_s": 10.0
+    },
+    "push_backward60N": {
+      "passed": true,
+      "first_confirmed_s": 7.306,
+      "elapsed_s": 27.052,
+      "max_tilt_deg": 8.236764037737444,
+      "final_true_speed": 0.0011035540000276622,
+      "quiet_xy_drift_m": 0.0008798826795890263,
+      "recoveries": 1.0,
+      "continuous_verified_quiet_s": 10.0
+    }
+  },
+  "parameters": {
+    "blend_s": 0.1,
+    "upper_delay_s": 1.0,
+    "upper_blend_s": 2.0,
+    "landing_min_s": 2.0,
+    "landing_hold_s": 0.75,
+    "stand_blend_s": 1.0,
+    "verify_s": 2.0,
+    "max_tilt_deg": 35.0,
+    "quiet_tilt_deg": 10.0,
+    "quiet_gyro": 0.1,
+    "quiet_joint_speed": 0.3,
+    "quiet_base_speed": 0.025,
+    "contact_on": 35.0,
+    "contact_off": 15.0,
+    "max_foot_height_delta": 0.03,
+    "max_foot_velocity_delta": 0.15,
+    "recovery_tilt_deg": 12.0,
+    "recovery_gyro": 0.3,
+    "recovery_speed": 0.12,
+    "recovery_delay_s": 0.05,
+    "upper_target_speed": 2.0,
+    "force_filter_s": 0.1
+  },
+  "passed_checks": [
+    "ASan/UBSan native production finishing core with independent MuJoCo loaded/unloaded fixture",
+    "ASan/UBSan diagnostics serialization including observation_dim 0/154/160",
+    "10 final-config native-core MuJoCo/ONNX closed loops with >=10s independent quiet-standing score and <=5cm XY drift",
+    "independent v12 MuJoCo/PyTorch golden fixture regeneration",
+    "binary model / finisher nominal PD / joint order / zero-command and internal state contracts",
+    "Python syntax, shell syntax, git diff --check"
+  ],
+  "not_run": [
+    "Full Ubuntu ROS 2 build",
+    "ROS/Eigen/gtest controller integration suite (new tests supplied)",
+    "DCU/EtherCAT/parallel-ankle/L28 hardware execution or real robot"
+  ],
+  "source_sha256": {
+    "include/control_module/dance_finish_core.h": "cfd091aa860ae4eea1a6556288c23a379681da1ba31e680bf3e9ca776f0817f7",
+    "include/control_module/dance_diagnostics.h": "b9c38327542cb2bc7a40d3d49ef87a8582246b68730f9e7fc61e9a11b26ae8d1",
+    "include/control_module/rl_controller.h": "288298a0bab201cf1691e2e6647704863c52a63beaea5162a6df37e81cba8d10",
+    "include/control_module/dance_controller.h": "027bbd0cba7dfa678ebef9905546309d374e790ff523130ce3cbfa37fd8c2fcb",
+    "src/control_module.cc": "0f4911ec544b9c863a5dbbc80ec430399f64687a93096398f09720a1c07c0f2f",
+    "src/rl_controller.cc": "da8462062a7054e80f7c993ec077246ccbb3cf9e3e8c25d8e0d8e16e9369b0d1",
+    "src/dance_controller.cc": "b39dfa77ca90e6375c2c2248522d9328abf1925719dacad52d2d732a929e80e0",
+    "cfg/rl_x1_dance.yaml": "9a2ab18835cc889997c6a229b038abd2a9b510fd7b01c14c3350275f9daa2491",
+    "test/dance_finish_capi.cc": "5442ec5a350110cb56ac627f359e3f680c714bbe1e60922ff082e3f529f8d5f7",
+    "test/dance_finish_check.cc": "98807b27c0f6f91acb9640be9f55b7e400106dff29526ff20d9916d9fed26d68",
+    "test/dance_controller_test.cc": "6096c44b159254187e7f444a600f1b9bde308f9f41261d20a95966ead7444835",
+    "test/dance_diagnostics_check.cc": "9c1a2f75bc429790fd5a26eb5ce8e325f290926767f095aba98aa74c679fffae",
+    "tools/sim_beyondmimic_x1.py": "fcaf49b799e3e6c015ba495e4451f83f9dab359f9fae9d2ee6980c70bda9c8d3",
+    "tools/sim_dance_finish_x1.py": "d943e57de74dd1748a36efc084e75dc3b18f0dda415a37881df05eb3e51daa77",
+    "policy/dance_x1_v12_154_4999.bin": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+    "policy/dance_x1_motion.bin": "dd3376f615ee86daf6df4f1b13972942376d5a2275e904c4efb1674691bf884d",
+    "policy/x1_amp_v70b_m16000_50hz.onnx": "93328d2ac25be6001e806c38f839ed0617c01e2cde41a833dfb2276467450b45"
+  },
+  "versions": {
+    "numpy": "2.5.3",
+    "torch": "2.14.0",
+    "mujoco": "3.14.0",
+    "onnxruntime": "1.29.0"
+  },
+  "noise_std": {
+    "joint_pos_rad": 0.0005,
+    "joint_vel_rad_s": 0.005,
+    "gyro_rad_s": 0.001,
+    "joint_torque_Nm": 0.3
+  },
+  "scoring": "MuJoCo truth used only for evaluation: 10 continuous seconds of two-foot contact, tilt<10deg, base speed<.05m/s, gyro<.2rad/s, all joint speeds<.5rad/s, XY drift<=.05m. Controller consumes IMU+joint q/qd/torque only; no simulator contacts/world state enter native core or actor.",
+  "motion_control_commit": "94b66e4fe97c27718c21fa43d0d111cdf65570ff"
+}

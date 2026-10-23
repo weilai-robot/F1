@@ -2,7 +2,7 @@
 
 2026-10-23。F1 主仓库与 `motion_control` 子模块分支均为 `feat/x1-dance-v12-154-deploy`。默认舞蹈入口已经切换到 `dance_x1_v12_model_4999.pt` 导出的 154 维 actor；训练仓库为 `~/code/Beyondminic-Weilai-X1`，任务记录为 `TASK_20261022_151` / `Tracking-Flat-X1-Wo-State-Estimation-v0`。
 
-本次完成代码、模型资产、数值仿真与本地独立 C++ 检查。**尚未完成 Ubuntu ROS 2 全量构建、控制器 gtest 或真机验收，也没有启动电机。**
+本次完成代码、模型资产、数值仿真与本地独立 C++ 检查。后续已加入[收尾与持续站稳](BeyondMimic_X1_154维收尾与站稳.md)：播放结束改为零速度平衡、落脚门控及监控站立，替代直接进入 keep。**尚未完成 Ubuntu ROS 2 全量构建、控制器 gtest 或真机验收，也没有启动电机。**
 
 ## 接口与运行行为
 
@@ -34,7 +34,7 @@ model_file: cfg/control_module/policy/dance_x1_v12_154_4999.bin
 
 按键保持 **A → B → Guide**：零位 → stand → 4 秒过渡到训练 default_q → 连续就绪 4 秒 → 自动从帧 0 播放。154 维准备阶段检查关节误差 ≤0.12 rad、关节速度 ≤0.5 rad/s、IMU 角速度模 ≤0.2 rad/s、倾角 ≤35°、启动关节限位与新鲜反馈；不再以不可用的机身线速度作为等待条件。角速度与关节速度门限仅用于准备就绪，不是播放退出条件。
 
-播放保持 1 kHz 控制、每 20 拍推理一次的 50 Hz / ZOH。动作缩放、default_q、kp/kd、effort、armature 和参考动作与 v11 相同。普通关节下发位置和 kp/kd，踝关节每 1 ms 用最新反馈计算软件 PD 并限幅 ±80 Nm。保留目标限位、35° 倾角、反馈超时、非有限观测/动作、过大 action 保护和 Back/Start 退出；未重新加入已移除的位置偏差或关节跟踪误差退出条件。647 帧播放结束进入 keep。
+播放保持 1 kHz 控制、每 20 拍推理一次的 50 Hz / ZOH。动作缩放、default_q、kp/kd、effort、armature 和参考动作与 v11 相同。普通关节下发位置和 kp/kd，踝关节每 1 ms 用最新反馈计算软件 PD 并限幅 ±80 Nm。保留目标限位、35° 倾角、反馈超时、非有限观测/动作、过大 action 保护和 Back/Start 退出；未重新加入已移除的位置偏差或关节跟踪误差退出条件。647 帧播放结束后进入专用零速度平衡收尾，连续验证站稳后保持 `dance_stand`。
 
 ## 已执行验证
 
@@ -49,7 +49,7 @@ model_file: cfg/control_module/policy/dance_x1_v12_154_4999.bin
 | 0.8 | 647 | 29.74° | 0.507 m | 0.899 m |
 | −1.2 | 647 | 29.75° | 0.508 m | 0.894 m |
 
-原始结果和来源校验见 [154 维验证记录](analysis/x1_dance_v12_154_20261023/README.md)。探针未运行完整 ROS 控制器、网络/DCU 或实际执行器，也未模拟冷启动 A/B 阶段。位置误差用仿真真值独立计量，没有反馈到 actor。154 维模型失去了直接的位置误差与线速度输入，整段完成并不证明跟随参考的全局路线；现场应单独评估实际位移。
+原始结果和来源校验见 [154 维验证记录](analysis/x1_dance_v12_154_20261023/README.md)。探针未运行完整 ROS 控制器、网络/DCU 或实际执行器，也未模拟冷启动 A/B 阶段。位置误差用仿真真值独立计量，没有反馈到 actor。154 维模型失去了直接的位置误差与线速度输入，整段完成并不证明跟随参考的全局路线；现场应单独评估实际位移。这批早期播放记录也不覆盖动作结束后的稳定性；收尾验收以[新增停止验证](analysis/x1_dance_v12_154_finish_20261023/README.md)为准。
 
 新增控制器 gtest 覆盖模型/布局/状态源组合拒绝、无 odometry/effort/加速度校准也可接管、154 维逐项独立 golden 输入及输出、静止门控、重复/过期反馈、源时间配对、20 拍目标保持与逐拍踝 PD。这些 ROS/Eigen/gtest 用例尚未在本机运行。
 
@@ -69,7 +69,7 @@ git submodule update --init --recursive motion_control
 ctest --test-dir build --output-on-failure -R '(control_module|joy_stick_module)'
 ```
 
-测试通过后，使用 Release 配置关闭测试覆盖率并重新构建，再启动舞蹈入口：
+测试通过后，使用 Release 配置关闭测试选项并重新构建，再启动舞蹈入口：
 
 ```bash
 ./scripts/build.sh -DXYBER_X1_INFER_BUILD_TESTS=OFF
@@ -77,7 +77,7 @@ cd build
 bash ./run_dance.sh
 ```
 
-先等每一步到位提示，再按 A、B、Guide。Guide 已授权准备后自动播放，重复 Guide 不会重置准备；结束进入 keep，下一次从 A 开始。诊断日志位于 `build/test_logs/data_csv/dance_diag_*.csv`，旁边的 `.csv.yaml` 保存实际配置。默认模式无需启动额外身体估计节点。
+先等每一步到位提示，再按 A、B、Guide。Guide 已授权准备后自动播放，重复 Guide 不会重置准备；结束后自动执行收尾，确认站稳进入 `dance_stand`，下一次从 A 开始。诊断日志位于 `build/test_logs/data_csv/dance_diag_*.csv`，旁边的 `.csv.yaml` 保存实际配置。默认模式无需启动额外身体估计节点；收尾的载荷判断和静态站姿确认需要有效双腿力矩反馈，缺失时保持零速度平衡等待。
 
 v11 模型与完整状态路径仍保留，旧 YAML 另存为 `cfg/control_module/rl_x1_dance_v11.yaml`；它需要原先的完整状态来源。模型维数、`observation_layout` 和 `state_source` 组合不匹配时初始化会拒绝。
 

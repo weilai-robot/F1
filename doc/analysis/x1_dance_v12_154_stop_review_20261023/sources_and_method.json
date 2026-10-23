@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-23",
+  "motion_frames": 647,
+  "policy_hz": 50,
+  "playback_duration_s": 12.94,
+  "reference_final_max_joint_speed_rad_s": 2.8570830821990967,
+  "verification": "The audit reuses the unmodified deployed-asset Python run() via AST insertion before its return. All original playback summary values equal previous reports exactly. Only an 8-second pd_keep postroll is appended.",
+  "limits": "Ideal effort-saturated joint PD; no full C++ ROS controller, DCU ankle transmission or real actuator loops. Failure is evidence against validated stable stopping, not a quantitative prediction of hardware fall time. com_support_margin=-1 means insufficient contact points, not a physical margin of -1 metre.",
+  "source_sha256": {
+    "motion_control/module/control_module/src/dance_controller.cc": "a6e74f1b4e478d1d9ec5f3d0bd0698038de9b4262e36d2e106a1af4d94f64830",
+    "motion_control/module/control_module/src/control_module.cc": "04ebd4413e6fb1314ef2d790e943963f580ee21797577aa6feb46c9792167ab6",
+    "motion_control/module/control_module/src/pd_controller.cc": "83082c480f46df1b6b9c72d3f18610837b969047f71531a728b663bdb25adefa",
+    "motion_control/module/control_module/cfg/rl_x1_dance.yaml": "39603b2504520935a8105a102d1558894eceaf7e842a46b3de8f4ddf4fd3f89a",
+    "motion_control/module/control_module/tools/sim_beyondmimic_x1.py": "3bbb4e78fc65f1b96ec13123e1f918067adfbecec3810dd9cfd51a0f3a356346",
+    "motion_control/module/control_module/policy/dance_x1_v12_154_4999.bin": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+    "motion_control/module/control_module/policy/dance_x1_motion.bin": "dd3376f615ee86daf6df4f1b13972942376d5a2275e904c4efb1674691bf884d",
+    "doc/analysis/x1_dance_v12_154_stop_review_20261023/stop_probe_snapshot.py": "8cbf15370b3ca27d6715e0accf0b9d8343bd47b266811701f272ded35c54fed9"
+  }
+}
