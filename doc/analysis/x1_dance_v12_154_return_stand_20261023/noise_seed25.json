@@ -1,0 +1,1163 @@
+{
+  "preparation_candidate": "configured",
+  "configured_start_pose": "default_q",
+  "experimental_candidate_entry_gate": false,
+  "hold_min_com_margin_m": 0.05842207125758,
+  "hold_max_tilt_deg": 3.2409160887454953,
+  "hold_max_speed_m_s": 0.01968598773526492,
+  "hold_both_feet_contact_fraction": 1.0,
+  "handoff_pose_error_rad": 0.04062683323733152,
+  "handoff_speed_m_s": 0.006263848631372512,
+  "required_ready_hold_s": 4.0,
+  "continuous_ready_s": 4.0,
+  "guide_authorized_preparation": true,
+  "automatic_start": true,
+  "preparation_elapsed_s": 8.0,
+  "implementation": "Python numerical probe; Ubuntu C++/ROS/DCU not executed",
+  "workflow": "A zero -> B stand -> Guide -> dance_ready -> automatic dance_x1",
+  "phase": "playback",
+  "mujoco_version": "3.14.0",
+  "stand_hold_s": 3.0,
+  "yaw_rad": 0.0,
+  "ready_wait_timeout_s": 10.0,
+  "preparation_s": 4.0,
+  "completed": true,
+  "fault": null,
+  "policy_steps": 647,
+  "physics_ticks": 12940,
+  "min_base_z_m": 0.5082127253480927,
+  "max_tilt_deg": 29.75192039964552,
+  "mean_anchor_error_m": null,
+  "mean_true_anchor_error_m": 0.8271198006349618,
+  "max_true_anchor_error_m": 0.9832264209961372,
+  "max_anchor_error_m": null,
+  "max_target_error_rad": 1.480981887696966,
+  "max_action": 12.22883415222168,
+  "max_measured_limit_violation_rad": 0.0006878455659740657,
+  "clipped_target_components": 459,
+  "postroll": {
+    "final_stand_pose_error_rad": 0.030195156645288934,
+    "stand_pose": [
+      0.4,
+      0.0,
+      -0.4,
+      0.05,
+      0.0,
+      -0.05,
+      -0.31,
+      0.0,
+      0.31,
+      0.49,
+      0.0,
+      0.0,
+      0.49,
+      -0.21,
+      0.0,
+      0.0,
+      -0.21,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "parameters": {
+      "blend_s": 0.1,
+      "upper_delay_s": 1.0,
+      "upper_blend_s": 2.0,
+      "landing_min_s": 2.0,
+      "landing_hold_s": 0.75,
+      "stand_blend_s": 4.0,
+      "verify_s": 2.0,
+      "max_tilt_deg": 35.0,
+      "quiet_tilt_deg": 10.0,
+      "quiet_gyro": 0.1,
+      "quiet_joint_speed": 0.3,
+      "quiet_base_speed": 0.025,
+      "contact_on": 35.0,
+      "contact_off": 15.0,
+      "max_foot_height_delta": 0.03,
+      "max_foot_velocity_delta": 0.15,
+      "recovery_tilt_deg": 12.0,
+      "recovery_gyro": 0.3,
+      "recovery_speed": 0.12,
+      "recovery_delay_s": 0.05,
+      "upper_target_speed": 2.0,
+      "force_filter_s": 0.1,
+      "max_stand_pose_error": 0.12
+    },
+    "source_sha256": {
+      "dance_finish_core.h": "6803f0a70523627ad98ab4be880838d4fa536a841b5983e7ed960819e88b285e",
+      "dance_finish_capi.cc": "0922c334ff3a44f661559d8f0e654edcfdb2bd798691fb7135ecc78cbd2d8049",
+      "x1_amp_v70b_m16000_50hz.onnx": "93328d2ac25be6001e806c38f839ed0617c01e2cde41a833dfb2276467450b45"
+    },
+    "versions": {
+      "numpy": "2.5.3",
+      "torch": "2.14.0",
+      "mujoco": "3.14.0",
+      "onnxruntime": "1.29.0"
+    },
+    "quiet_xy_drift_m": 0.001991577195661221,
+    "passed": true,
+    "yaw": 0.0,
+    "noise_seed": 25,
+    "push_N": 0,
+    "elapsed_s": 22.234,
+    "first_confirmed_s": 12.234,
+    "final_phase": 4,
+    "final_reason": "standing continuously verified; active monitoring remains on",
+    "max_tilt_deg": 6.854992214393431,
+    "min_z_m": 0.6091884582006144,
+    "final_true_speed": 0.0014648382032946643,
+    "final_true_gyro": 0.003735945273818643,
+    "final_max_joint_speed": 0.0018283354745910335,
+    "continuous_verified_quiet_s": 10.000000000000002,
+    "recoveries": 0.0,
+    "events": [
+      {
+        "t_s": 0.0,
+        "phase": 1,
+        "reason": "waiting for two consistent loaded feet",
+        "quiet_s": 0.0,
+        "force": [
+          -28.7502605088154,
+          70.09404815291565
+        ],
+        "contact": [
+          0.0,
+          1.0
+        ],
+        "est_velocity": [
+          0.06782248870905129,
+          -0.08287642598731806,
+          0.019606564049007187
+        ],
+        "true_speed": 0.3561172254065756,
+        "max_qd": 2.3346363410448405
+      },
+      {
+        "t_s": 0.1,
+        "phase": 2,
+        "reason": "waiting for two consistent loaded feet",
+        "quiet_s": 0.0,
+        "force": [
+          9.205625804015838,
+          69.98625833606988
+        ],
+        "contact": [
+          0.0,
+          1.0
+        ],
+        "est_velocity": [
+          0.02099955931071573,
+          0.200723327387549,
+          0.00836352383454739
+        ],
+        "true_speed": 0.26820092449755295,
+        "max_qd": 2.6994331513454943
+      },
+      {
+        "t_s": 4.539,
+        "phase": 3,
+        "reason": "continuous quiet support hold",
+        "quiet_s": 0.0,
+        "force": [
+          27.157210604188457,
+          32.85472491706761
+        ],
+        "contact": [
+          1.0,
+          1.0
+        ],
+        "est_velocity": [
+          0.0072003301883797124,
+          -0.005748694096931493,
+          -3.169824242738371e-05
+        ],
+        "true_speed": 0.0066997413609594875,
+        "max_qd": 0.02733066292292379
+      },
+      {
+        "t_s": 8.539,
+        "phase": 4,
+        "reason": "continuous quiet support hold",
+        "quiet_s": 0.0,
+        "force": [
+          78.59670253550858,
+          94.09603628006039
+        ],
+        "contact": [
+          1.0,
+          1.0
+        ],
+        "est_velocity": [
+          -0.0055686663166378105,
+          0.00575055882663909,
+          0.0002150787388898965
+        ],
+        "true_speed": 0.006569957717630294,
+        "max_qd": 0.01247454231328061
+      }
+    ],
+    "samples": [
+      {
+        "t_s": 0.0,
+        "phase": 1,
+        "confirmed": false,
+        "reason": "waiting for two consistent loaded feet",
+        "tilt_deg": 6.000169984855877,
+        "true_speed": 0.3561172254065756,
+        "true_gyro": 1.2019124618011927,
+        "max_qd": 2.3346363410448405,
+        "true_both_feet": false,
+        "force": [
+          -28.7502605088154,
+          70.09404815291565
+        ],
+        "estimated_velocity": [
+          0.06782248870905129,
+          -0.08287642598731806,
+          0.019606564049007187
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 0.5,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 1.9345961217179684,
+        "true_speed": 0.24846756915459042,
+        "true_gyro": 0.30289054964965445,
+        "max_qd": 1.880178322238866,
+        "true_both_feet": true,
+        "force": [
+          53.86287854676195,
+          247.11993322541448
+        ],
+        "estimated_velocity": [
+          -0.005638004980227422,
+          0.24070604059065231,
+          0.048731816588139965
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 1.0,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 3.252409471665869,
+        "true_speed": 0.0949471180222419,
+        "true_gyro": 0.3103456471814226,
+        "max_qd": 1.9082162626288042,
+        "true_both_feet": true,
+        "force": [
+          80.45217983185275,
+          243.152339766933
+        ],
+        "estimated_velocity": [
+          0.019044504797120065,
+          0.07762819800235762,
+          0.04102301293878634
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 1.5,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 0.8705972341469547,
+        "true_speed": 0.06954812647972203,
+        "true_gyro": 0.1211016923986713,
+        "max_qd": 1.3440083741112512,
+        "true_both_feet": true,
+        "force": [
+          79.80851303222852,
+          145.4253598523278
+        ],
+        "estimated_velocity": [
+          -0.017648665291977266,
+          -0.07032978641329754,
+          0.0022865975701814372
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 2.0,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 0.6145516649658692,
+        "true_speed": 0.05766606212123353,
+        "true_gyro": 0.03917711964058263,
+        "max_qd": 1.67299279706302,
+        "true_both_feet": true,
+        "force": [
+          45.68394298584148,
+          34.566266676177726
+        ],
+        "estimated_velocity": [
+          -0.060151999608417765,
+          0.02195761988816777,
+          0.004580277096934028
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 2.5,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 2.2116525246123,
+        "true_speed": 0.06009146318748476,
+        "true_gyro": 0.15031462650214794,
+        "max_qd": 0.3029925518875895,
+        "true_both_feet": true,
+        "force": [
+          37.217279895052215,
+          29.09180858434196
+        ],
+        "estimated_velocity": [
+          0.04575015506240597,
+          0.04444623809332683,
+          -0.00020718950758448723
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 3.0,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 3.7371407679559616,
+        "true_speed": 0.018508935471812534,
+        "true_gyro": 0.17133803175637502,
+        "max_qd": 0.20676776264660882,
+        "true_both_feet": true,
+        "force": [
+          20.663050879357893,
+          44.62727066866274
+        ],
+        "estimated_velocity": [
+          -0.018774071603686757,
+          0.015634899017229642,
+          0.00037497660959379895
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 3.5,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 3.5332867112974413,
+        "true_speed": 0.020793023589051524,
+        "true_gyro": 0.07034680319705125,
+        "max_qd": 0.07211624051474487,
+        "true_both_feet": true,
+        "force": [
+          23.50701380397273,
+          37.263839895755275
+        ],
+        "estimated_velocity": [
+          -0.007396497110322733,
+          0.022307129600117687,
+          -0.00022830299611096736
+        ],
+        "quiet_s": 0.036000000000000025
+      },
+      {
+        "t_s": 4.0,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 3.2819548265243537,
+        "true_speed": 0.010381903593815122,
+        "true_gyro": 0.041911814407376166,
+        "max_qd": 0.05856164553343733,
+        "true_both_feet": true,
+        "force": [
+          28.69778370884743,
+          36.707145271653395
+        ],
+        "estimated_velocity": [
+          -0.004350734171923863,
+          0.005116309420996361,
+          1.4694405716103608e-05
+        ],
+        "quiet_s": 0.21100000000000016
+      },
+      {
+        "t_s": 4.5,
+        "phase": 2,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 3.584679317391107,
+        "true_speed": 0.006574805676455873,
+        "true_gyro": 0.04279332449239366,
+        "max_qd": 0.028732724517805147,
+        "true_both_feet": true,
+        "force": [
+          28.770666735791142,
+          33.375386799520264
+        ],
+        "estimated_velocity": [
+          0.002750963048178198,
+          -0.004315984871617715,
+          -5.5509604586826376e-05
+        ],
+        "quiet_s": 0.7110000000000005
+      },
+      {
+        "t_s": 5.0,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 3.8820035584864323,
+        "true_speed": 0.0034577835913652865,
+        "true_gyro": 0.02889177170525724,
+        "max_qd": 0.04302537177475345,
+        "true_both_feet": true,
+        "force": [
+          29.729560328233614,
+          31.349314617715372
+        ],
+        "estimated_velocity": [
+          0.0015956440903660113,
+          -0.0005818574851807253,
+          1.0145925408461644e-05
+        ],
+        "quiet_s": 0.46100000000000035
+      },
+      {
+        "t_s": 5.5,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 3.7193696283278688,
+        "true_speed": 0.02942324588772981,
+        "true_gyro": 0.006435528260218892,
+        "max_qd": 0.14330583237582648,
+        "true_both_feet": true,
+        "force": [
+          33.59008584253573,
+          37.3989837693815
+        ],
+        "estimated_velocity": [
+          0.006469582459443072,
+          -0.027645111909041044,
+          -0.00013853224458174973
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 6.0,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 4.373531109251032,
+        "true_speed": 0.0505326393048802,
+        "true_gyro": 0.055495214625202904,
+        "max_qd": 0.18119650845766,
+        "true_both_feet": true,
+        "force": [
+          38.167309053069104,
+          56.13023341760016
+        ],
+        "estimated_velocity": [
+          0.01462116729885295,
+          -0.050539638647468306,
+          -0.005644332074427492
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 6.5,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 6.157194141511269,
+        "true_speed": 0.030828869123091334,
+        "true_gyro": 0.04727848867165655,
+        "max_qd": 0.16511250459374732,
+        "true_both_feet": true,
+        "force": [
+          87.72413410008407,
+          95.99403282527375
+        ],
+        "estimated_velocity": [
+          -0.0027552228601131342,
+          -0.027862521127155593,
+          -0.0075927286009095955
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 7.0,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 6.850875224196267,
+        "true_speed": 0.013110970008358126,
+        "true_gyro": 0.020711877663736875,
+        "max_qd": 0.15912759907344293,
+        "true_both_feet": true,
+        "force": [
+          145.8789914518882,
+          81.04094944841523
+        ],
+        "estimated_velocity": [
+          -0.007254099841811316,
+          -0.008176044578235432,
+          -0.007425571379124933
+        ],
+        "quiet_s": 0.3170000000000002
+      },
+      {
+        "t_s": 7.5,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 6.172485525724015,
+        "true_speed": 0.019551546907061,
+        "true_gyro": 0.06618045443298821,
+        "max_qd": 0.11915832306693977,
+        "true_both_feet": true,
+        "force": [
+          161.37449123481477,
+          81.81070963977803
+        ],
+        "estimated_velocity": [
+          0.001544884091624905,
+          0.01963453693945639,
+          -0.0020158128335706
+        ],
+        "quiet_s": 0.8170000000000006
+      },
+      {
+        "t_s": 8.0,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "waiting for low tilt and body/joint speeds",
+        "tilt_deg": 3.7076503126557983,
+        "true_speed": 0.03900760383959414,
+        "true_gyro": 0.10442647963194611,
+        "max_qd": 0.06926381991768318,
+        "true_both_feet": true,
+        "force": [
+          114.85212367648451,
+          71.57164614687893
+        ],
+        "estimated_velocity": [
+          -0.004238770908123897,
+          0.04132479853275098,
+          0.0020408512429904904
+        ],
+        "quiet_s": 0.0
+      },
+      {
+        "t_s": 8.5,
+        "phase": 3,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 1.540007706221931,
+        "true_speed": 0.010343980516836175,
+        "true_gyro": 0.031493228104745016,
+        "max_qd": 0.01702755070354093,
+        "true_both_feet": true,
+        "force": [
+          77.80743690029692,
+          91.94963986963343
+        ],
+        "estimated_velocity": [
+          -0.006876728381557936,
+          0.01291409526097783,
+          0.001372596145962085
+        ],
+        "quiet_s": 0.1230000000000001
+      },
+      {
+        "t_s": 9.0,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 2.238903924105481,
+        "true_speed": 0.026098959441950384,
+        "true_gyro": 0.06095724652501957,
+        "max_qd": 0.03622952751478697,
+        "true_both_feet": true,
+        "force": [
+          76.0134441126475,
+          81.00904070654038
+        ],
+        "estimated_velocity": [
+          0.005225057600376835,
+          -0.02263593502254469,
+          -0.0025321683360969
+        ],
+        "quiet_s": 0.001
+      },
+      {
+        "t_s": 9.5,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 3.5890105632173834,
+        "true_speed": 0.006537495703613734,
+        "true_gyro": 0.013364368526239014,
+        "max_qd": 0.011180464541880092,
+        "true_both_feet": true,
+        "force": [
+          94.37784669988355,
+          79.4997325058005
+        ],
+        "estimated_velocity": [
+          0.0014001812633538172,
+          -0.005403093945431297,
+          -0.0013179701566169207
+        ],
+        "quiet_s": 0.22200000000000017
+      },
+      {
+        "t_s": 10.0,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 2.723724975633964,
+        "true_speed": 0.023799797948064555,
+        "true_gyro": 0.06034605513732955,
+        "max_qd": 0.029923637708239775,
+        "true_both_feet": true,
+        "force": [
+          82.64028586260208,
+          77.38251114227133
+        ],
+        "estimated_velocity": [
+          -0.003995681978654766,
+          0.023589832469970876,
+          0.0013501990957735005
+        ],
+        "quiet_s": 0.002
+      },
+      {
+        "t_s": 10.5,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 1.2854560517573124,
+        "true_speed": 0.00846711531324134,
+        "true_gyro": 0.022833596654352944,
+        "max_qd": 0.01040026998554449,
+        "true_both_feet": true,
+        "force": [
+          78.74499102751439,
+          81.03688326122725
+        ],
+        "estimated_velocity": [
+          -0.00361298894809903,
+          0.01092338709888287,
+          0.0006770963423998438
+        ],
+        "quiet_s": 0.2670000000000002
+      },
+      {
+        "t_s": 11.0,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 1.6567635778089929,
+        "true_speed": 0.01684408503774589,
+        "true_gyro": 0.03863889640780629,
+        "max_qd": 0.021976094898252193,
+        "true_both_feet": true,
+        "force": [
+          77.913329289176,
+          77.64661193192275
+        ],
+        "estimated_velocity": [
+          0.004091298881379806,
+          -0.016987149771292013,
+          -0.0013953198074088092
+        ],
+        "quiet_s": 0.7670000000000006
+      },
+      {
+        "t_s": 11.5,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 2.565000170449685,
+        "true_speed": 0.005155516350142143,
+        "true_gyro": 0.010317611722123086,
+        "max_qd": 0.008150082971447526,
+        "true_both_feet": true,
+        "force": [
+          79.08433637679536,
+          73.3325357364777
+        ],
+        "estimated_velocity": [
+          0.0009914967792538742,
+          -0.004514691203924002,
+          0.00029669726802341115
+        ],
+        "quiet_s": 1.2669999999999713
+      },
+      {
+        "t_s": 12.0,
+        "phase": 4,
+        "confirmed": false,
+        "reason": "continuous quiet support hold",
+        "tilt_deg": 2.028245161747112,
+        "true_speed": 0.015642532514884275,
+        "true_gyro": 0.03982571442661868,
+        "max_qd": 0.019558201513865853,
+        "true_both_feet": true,
+        "force": [
+          77.79161277490189,
+          73.8207585765414
+        ],
+        "estimated_velocity": [
+          -0.0016023527325855994,
+          0.018517525100356837,
+          0.0003779914558917633
+        ],
+        "quiet_s": 1.7669999999999162
+      },
+      {
+        "t_s": 12.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.042931457822862,
+        "true_speed": 0.006336859274681689,
+        "true_gyro": 0.017041565699027802,
+        "max_qd": 0.007408999003167393,
+        "true_both_feet": true,
+        "force": [
+          76.61898380351839,
+          78.6457039814886
+        ],
+        "estimated_velocity": [
+          -0.001274620412913311,
+          0.0053344539565731205,
+          0.0001224018636636374
+        ],
+        "quiet_s": 2.2669999999998613
+      },
+      {
+        "t_s": 13.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.2435720178248562,
+        "true_speed": 0.010932473019100664,
+        "true_gyro": 0.02477317196946595,
+        "max_qd": 0.014229169890690134,
+        "true_both_feet": true,
+        "force": [
+          77.83340610794536,
+          78.28425635409609
+        ],
+        "estimated_velocity": [
+          -0.002040522627559556,
+          -0.008014247131566041,
+          -0.0019082570194257327
+        ],
+        "quiet_s": 2.7669999999998063
+      },
+      {
+        "t_s": 13.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.8455002708216461,
+        "true_speed": 0.0037593903714922714,
+        "true_gyro": 0.0073829793629293945,
+        "max_qd": 0.006454467067974029,
+        "true_both_feet": true,
+        "force": [
+          74.77496772940165,
+          73.5354641326675
+        ],
+        "estimated_velocity": [
+          0.0011820698665777007,
+          -0.005266126410708389,
+          -0.0004897620463105822
+        ],
+        "quiet_s": 3.266999999999751
+      },
+      {
+        "t_s": 14.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.4995190535867284,
+        "true_speed": 0.010373854494615439,
+        "true_gyro": 0.026529565919914438,
+        "max_qd": 0.012867938350557365,
+        "true_both_feet": true,
+        "force": [
+          74.93256061134227,
+          72.90198146347548
+        ],
+        "estimated_velocity": [
+          -0.0012125348405471656,
+          0.013821537895376745,
+          -0.0009087064316594362
+        ],
+        "quiet_s": 3.766999999999696
+      },
+      {
+        "t_s": 14.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.8276585371492644,
+        "true_speed": 0.004556730125307331,
+        "true_gyro": 0.012269094328629186,
+        "max_qd": 0.005501328348688979,
+        "true_both_feet": true,
+        "force": [
+          77.5686436568423,
+          79.28419236114574
+        ],
+        "estimated_velocity": [
+          -0.0006780128049533622,
+          0.006151188627834803,
+          4.278701292878846e-05
+        ],
+        "quiet_s": 4.26699999999976
+      },
+      {
+        "t_s": 15.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.9313341745229541,
+        "true_speed": 0.007362409516191383,
+        "true_gyro": 0.016114638798468084,
+        "max_qd": 0.009653517339052503,
+        "true_both_feet": true,
+        "force": [
+          77.93737004752158,
+          75.53999099012451
+        ],
+        "estimated_velocity": [
+          0.0019495980568880174,
+          -0.005610936360144991,
+          -0.0006123269146119269
+        ],
+        "quiet_s": 4.766999999999927
+      },
+      {
+        "t_s": 15.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.358775899764878,
+        "true_speed": 0.0029280183120474748,
+        "true_gyro": 0.006891301329516647,
+        "max_qd": 0.003814966361370343,
+        "true_both_feet": true,
+        "force": [
+          72.67994109807371,
+          71.73280997333703
+        ],
+        "estimated_velocity": [
+          -0.00102202334332716,
+          -0.0013354238243860606,
+          -0.0009286437654350051
+        ],
+        "quiet_s": 5.267000000000094
+      },
+      {
+        "t_s": 16.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.1931738660505211,
+        "true_speed": 0.0061763211819001,
+        "true_gyro": 0.01530434969932145,
+        "max_qd": 0.007857445506069729,
+        "true_both_feet": true,
+        "force": [
+          71.02054336347561,
+          70.49332939951574
+        ],
+        "estimated_velocity": [
+          0.002182722920760867,
+          0.006208504531333262,
+          0.0005665881309451955
+        ],
+        "quiet_s": 5.767000000000261
+      },
+      {
+        "t_s": 16.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.8072639813291856,
+        "true_speed": 0.0024087626338929317,
+        "true_gyro": 0.006361043750170138,
+        "max_qd": 0.0029877979881027497,
+        "true_both_feet": true,
+        "force": [
+          72.32565762859502,
+          71.39195681084756
+        ],
+        "estimated_velocity": [
+          -0.002344182686037026,
+          0.0030739056095521007,
+          -0.0002635882228217997
+        ],
+        "quiet_s": 6.267000000000428
+      },
+      {
+        "t_s": 17.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.9153844668282015,
+        "true_speed": 0.004811628090983803,
+        "true_gyro": 0.011144753271905568,
+        "max_qd": 0.006324347262472608,
+        "true_both_feet": true,
+        "force": [
+          70.7182090145276,
+          68.84156675389495
+        ],
+        "estimated_velocity": [
+          0.003680865091452583,
+          -0.005190946511236846,
+          -7.132883933714065e-06
+        ],
+        "quiet_s": 6.7670000000005945
+      },
+      {
+        "t_s": 17.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.1790980681998007,
+        "true_speed": 0.0014497646007405154,
+        "true_gyro": 0.0031249957483146283,
+        "max_qd": 0.0019445896489422763,
+        "true_both_feet": true,
+        "force": [
+          67.47504436988672,
+          66.44241044263175
+        ],
+        "estimated_velocity": [
+          -0.0008272696057613708,
+          -0.0017831706078088546,
+          0.00023614217348607143
+        ],
+        "quiet_s": 7.2670000000007615
+      },
+      {
+        "t_s": 18.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.0370584097809659,
+        "true_speed": 0.0042468514423410824,
+        "true_gyro": 0.010609519150830764,
+        "max_qd": 0.005397255379710063,
+        "true_both_feet": true,
+        "force": [
+          66.93591284757846,
+          66.32458936843943
+        ],
+        "estimated_velocity": [
+          0.0014379844897045631,
+          0.005156881744341674,
+          0.0005332492998820845
+        ],
+        "quiet_s": 7.7670000000009285
+      },
+      {
+        "t_s": 18.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.7909800230036624,
+        "true_speed": 0.0012128442813367378,
+        "true_gyro": 0.003330100210270434,
+        "max_qd": 0.0014347539603968287,
+        "true_both_feet": true,
+        "force": [
+          66.1872408949168,
+          66.01284452339281
+        ],
+        "estimated_velocity": [
+          0.0009314211447060311,
+          0.0022325850278371237,
+          -0.0001520967950347559
+        ],
+        "quiet_s": 8.267000000000857
+      },
+      {
+        "t_s": 19.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.8817705872968635,
+        "true_speed": 0.003272014250331528,
+        "true_gyro": 0.007536569877777294,
+        "max_qd": 0.004298270115574577,
+        "true_both_feet": true,
+        "force": [
+          66.00260337078265,
+          65.5313813704394
+        ],
+        "estimated_velocity": [
+          -0.0013880204510194974,
+          0.0004592202425049921,
+          3.8427867040834464e-05
+        ],
+        "quiet_s": 8.76700000000058
+      },
+      {
+        "t_s": 19.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 1.0428794542844713,
+        "true_speed": 0.0006052092952073474,
+        "true_gyro": 0.001188892059633166,
+        "max_qd": 0.0012351742391483295,
+        "true_both_feet": true,
+        "force": [
+          63.96506710641115,
+          63.19658308727374
+        ],
+        "estimated_velocity": [
+          -0.0019142749379640494,
+          -0.0038038175944241546,
+          7.373518523265746e-06
+        ],
+        "quiet_s": 9.267000000000303
+      },
+      {
+        "t_s": 20.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.9300708793871844,
+        "true_speed": 0.002878373977298261,
+        "true_gyro": 0.007208800740010928,
+        "max_qd": 0.003642434906802896,
+        "true_both_feet": true,
+        "force": [
+          63.83332124115904,
+          63.42606267390149
+        ],
+        "estimated_velocity": [
+          -0.0016549838698842866,
+          0.0003475116623007431,
+          0.0008373454509777049
+        ],
+        "quiet_s": 9.767000000000026
+      },
+      {
+        "t_s": 20.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.7766209117203478,
+        "true_speed": 0.0005252931070594138,
+        "true_gyro": 0.0015568903121676203,
+        "max_qd": 0.0009779965936729373,
+        "true_both_feet": true,
+        "force": [
+          64.6365394486129,
+          63.662709191211384
+        ],
+        "estimated_velocity": [
+          -0.0015267427131868132,
+          -0.001579037866610454,
+          -0.0001819692493355448
+        ],
+        "quiet_s": 10.266999999999749
+      },
+      {
+        "t_s": 21.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.8494137824803097,
+        "true_speed": 0.002191987839728896,
+        "true_gyro": 0.005036910213243738,
+        "max_qd": 0.002877429677848025,
+        "true_both_feet": true,
+        "force": [
+          62.94373686903684,
+          61.68374704563185
+        ],
+        "estimated_velocity": [
+          0.000503666027936856,
+          -0.0012766316639462787,
+          2.2990847613702447e-05
+        ],
+        "quiet_s": 10.766999999999472
+      },
+      {
+        "t_s": 21.5,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.9458477230608568,
+        "true_speed": 0.00016187742231408108,
+        "true_gyro": 0.00019737796962015835,
+        "max_qd": 0.0008795945661634723,
+        "true_both_feet": true,
+        "force": [
+          61.52602311972647,
+          60.379619105109754
+        ],
+        "estimated_velocity": [
+          0.0001796755001984365,
+          0.002933777811425532,
+          -0.0005886359743670922
+        ],
+        "quiet_s": 11.266999999999195
+      },
+      {
+        "t_s": 22.0,
+        "phase": 4,
+        "confirmed": true,
+        "reason": "standing continuously verified; active monitoring remains on",
+        "tilt_deg": 0.8597838801321923,
+        "true_speed": 0.001923689870128842,
+        "true_gyro": 0.004832661761731116,
+        "max_qd": 0.002430562540307828,
+        "true_both_feet": true,
+        "force": [
+          60.53197840852759,
+          59.30531097873555
+        ],
+        "estimated_velocity": [
+          -0.0019616823496843906,
+          0.0026324003452833002,
+          0.00014656227802902855
+        ],
+        "quiet_s": 11.766999999998918
+      }
+    ]
+  },
+  "state_feedback": "imu",
+  "observation_dim": 154,
+  "observation_layout": "wo_state_estimation",
+  "model_sha256": "1ca8cdec7dd9ee3c5a669fa84c6a8748f0fcecb0075e85c2e4ae037bee1e4add",
+  "max_fk_orientation_error": 1.1430445635548515e-15,
+  "estimator": null
+}
