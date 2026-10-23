@@ -57,7 +57,7 @@ model_file: cfg/control_module/policy/dance_x1_v12_154_4999.bin
 
 ## Ubuntu 构建与启动
 
-当前分支为本地分支；远端机器使用下列更新命令前，需要先发布 F1 与 motion_control 两个分支/提交。保留服务器本地修改后再更新：
+F1 与 motion_control 的同名部署分支均已推送到 origin；主仓库固定引用对应子模块提交。保留服务器本地修改后再更新：
 
 ```bash
 cd ~/code/F1
