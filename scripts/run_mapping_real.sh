@@ -30,7 +30,7 @@
 #   2. MID360 联网: ping 192.168.1.195（host eth1=.50，minipc_mid360_eth_static_ip.md）
 #   3. 吊架挂好、机器人吊稳；卷尺量好雷达离地 h
 #
-# 结束顺序（SOP §4 阶段 1）:
+# 结束顺序（SOP §4 阶段 1）: bag/pcd 的收尾都挂在 Ctrl+C 上——kill-session 只做最后清扫
 #   回起点静置 3s → [record] Ctrl+C → [fastlio] Ctrl+C 等 PCD save 打印 →
 #   [octomap] Ctrl+C → [tilt] 记「拆架前」读数（三时点对账 §6.3）→ kill-session
 # ============================================================
@@ -250,13 +250,20 @@ echo "   Ctrl+B w    窗口列表按名字选（推荐——序号有洞/某窗�
 echo "   Ctrl+B n/p  下一个/上一个窗"
 echo "   Ctrl+B 0-9  按序号直达（序号见上表）"
 echo "   未 attach 时查看: tmux list-windows -t ${SESSION_NAME}"
-echo " 关闭: tmux kill-session -t ${SESSION_NAME}"
+echo " 清扫: 四窗都 Ctrl+C 停完后 tmux kill-session -t ${SESSION_NAME}"
 echo ""
-echo -e "${YELLOW} 结束顺序:${NC}"
-echo "   1. 回起点静置 3s → [record] Ctrl+C 停录"
+echo -e "${YELLOW} 结束顺序（bag/pcd 的收尾都挂在 Ctrl+C 上，别用 kill-session 停）:${NC}"
+echo "   1. 回起点静置 3s → [record] Ctrl+C 停录（等收尾打印，才写 metadata.yaml）"
 echo "   2. [fastlio] Ctrl+C —— 等终端打出 PCD 保存完成再关窗（现场 pcd 是监控副产品）"
 echo "   3. [octomap] Ctrl+C（若有）"
 echo "   4. [tilt] 记「拆架前」读数（与调平读数对账，SOP §6.3 三时点）再 Ctrl+C"
+echo "   5. 四窗都停完 → tmux kill-session -t ${SESSION_NAME} 清扫"
+echo ""
+echo " ⚠ kill-session / Ctrl+B x 关窗发的是 SIGHUP，不触发收尾："
+echo "   bag 缺 metadata.yaml（ros2 bag info/play 报错）、fastlio 不存 PCD"
+echo "   未 attach 时远程停窗（等价进窗 Ctrl+C）:"
+echo "     tmux send-keys -t ${SESSION_NAME}:record C-c"
+echo "   收尾验证: ls ${BAG_DIR}/${MAP}/metadata.yaml && ros2 bag info ${BAG_DIR}/${MAP}"
 echo ""
 echo -e "${YELLOW} 现场产物传回 WSL（SOP §4 阶段 2，WSL 侧先 mkdir -p ~/humanoid_ws/rosbag/${MAP}）:${NC}"
 echo "   cd ${BAG_DIR}/${MAP}"
