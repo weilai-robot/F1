@@ -13,6 +13,7 @@
 #   [fastlio] — FastLIO2 现场监控（F1_mapping_mid360.yaml；pcd 运行时 patch → ~/bags/<MAP>_field.pcd）
 #   [octomap] — 倒装 z 窗 live 2D 投影监控（h = 雷达离地高）
 #   [record]  — ros2 bag record /livox/lidar /livox/imu → ~/bags/<MAP>
+#   切窗（attach 后，默认前缀 Ctrl+B）: Ctrl+B w 列表选窗 · n/p 下/上窗 · 0-9 按序号
 #
 # ⚠ 顺序约束: fastlio 必须在调平后启动——camera_init = 启动时 IMU 系（FAST-LIO 无重力
 #   对齐），倾斜状态下启动会把吊挂倾角 β 焊进地图 z 轴（SOP §6.2）。脚本用交互闸门强制。
@@ -233,16 +234,22 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN} 真机建图已启动（MAP=${MAP}）${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo " tmux 窗口:"
-echo "   tilt    - 倾角读数（保持运行：结束时记「拆架前」读数）"
-echo "   livox   - Livox MID-360"
-echo "   fastlio - FastLIO2 现场监控（Ctrl+C 退出时存 ${FIELD_PCD}）"
+echo " tmux 窗口（实时序号 · 名字）:"
+tmux list-windows -t "${SESSION_NAME}" -F '   #{window_index}  #{window_name}'
+echo "     tilt    = 倾角读数（保持运行：结束时记「拆架前」读数）"
+echo "     livox   = Livox MID-360 驱动"
+echo "     fastlio = FastLIO2 现场监控（Ctrl+C 退出时存 ${FIELD_PCD}）"
 if [ -z "${NO_OCTOMAP:-}" ]; then
-  echo "   octomap - 倒装 z 窗 2D 投影监控"
+  echo "     octomap = 倒装 z 窗 2D 投影监控"
 fi
-echo "   record  - bag 录制 → ${BAG_DIR}/${MAP}/"
+echo "     record  = bag 录制 → ${BAG_DIR}/${MAP}/"
 echo ""
 echo " 附加: tmux attach -t ${SESSION_NAME}"
+echo " 切窗（attach 后，默认前缀 Ctrl+B）:"
+echo "   Ctrl+B w    窗口列表按名字选（推荐——序号有洞/某窗崩了也不怕）"
+echo "   Ctrl+B n/p  下一个/上一个窗"
+echo "   Ctrl+B 0-9  按序号直达（序号见上表）"
+echo "   未 attach 时查看: tmux list-windows -t ${SESSION_NAME}"
 echo " 关闭: tmux kill-session -t ${SESSION_NAME}"
 echo ""
 echo -e "${YELLOW} 结束顺序:${NC}"
