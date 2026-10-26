@@ -14,6 +14,7 @@
 #   [octomap] — 倒装 z 窗 live 2D 投影监控（h = 雷达离地高）
 #   [record]  — ros2 bag record /livox/lidar /livox/imu → ~/bags/<MAP>
 #   切窗（attach 后，默认前缀 Ctrl+B）: Ctrl+B w 列表选窗 · n/p 下/上窗 · 0-9 按序号
+#   进窗: tmux attach -t f1_mapping_real · 脱离回终端: Ctrl+B d（窗内进程继续跑）
 #
 # ⚠ 顺序约束: fastlio 必须在调平后启动——camera_init = 启动时 IMU 系（FAST-LIO 无重力
 #   对齐），倾斜状态下启动会把吊挂倾角 β 焊进地图 z 轴（SOP §6.2）。脚本用交互闸门强制。
@@ -195,6 +196,8 @@ tmux send-keys -t "${SESSION_NAME}:tilt" "python3 ${SCRIPT_DIR}/imu_tilt_check.p
 if [ -z "${YES:-}" ]; then
   echo ""
   echo -e "${YELLOW}→ 在 tmux 窗 [tilt] 读数并调平（θ<0.3°）：只动吊带/挂点，勿动 mount 垫片（β/δ 混淆，SOP §6.2）${NC}"
+  echo -e "${YELLOW}  进窗看读数: 另开终端（第二个 ssh）跑 tmux attach -t ${SESSION_NAME}，Ctrl+B w 选 [tilt]${NC}"
+  echo -e "${YELLOW}  看完 Ctrl+B d 脱离回终端、窗内进程不受影响；本终端留着等下面回车放行${NC}"
   echo -e "${YELLOW}  [tilt] 长时间无读数 → 查 [livox] 窗驱动报错${NC}"
   read -r -p "调平完成后回车，启动 fastlio + octomap + 录包（Ctrl+C 放弃）: " || echo "(非交互终端，直接继续)"
 fi
@@ -244,7 +247,8 @@ if [ -z "${NO_OCTOMAP:-}" ]; then
 fi
 echo "     record  = bag 录制 → ${BAG_DIR}/${MAP}/"
 echo ""
-echo " 附加: tmux attach -t ${SESSION_NAME}"
+echo " 进窗查看/操控: tmux attach -t ${SESSION_NAME}（脚本结束后退回原终端，五窗在后台继续跑）"
+echo " 脱离回终端: Ctrl+B d —— 进程不受影响，随时可再 attach；收尾按下面结束顺序逐窗 Ctrl+C"
 echo " 切窗（attach 后，默认前缀 Ctrl+B）:"
 echo "   Ctrl+B w    窗口列表按名字选（推荐——序号有洞/某窗崩了也不怕）"
 echo "   Ctrl+B n/p  下一个/上一个窗"
