@@ -32,7 +32,8 @@
 #   3. 吊架挂好、机器人吊稳；卷尺量好雷达离地 h
 #
 # 结束顺序（SOP §4 阶段 1）: bag/pcd 的收尾都挂在 Ctrl+C 上——kill-session 只做最后清扫
-#   回起点静置 3s → [record] Ctrl+C → [fastlio] Ctrl+C 等 PCD save 打印 →
+#   回起点静置 3s → （可选）map_saver 存 2D 快照（须趁 livox/fastlio/octomap 都活着，见下）→
+#   [record] Ctrl+C → [fastlio] Ctrl+C 等 PCD save 打印 →
 #   [octomap] Ctrl+C → [tilt] 记「拆架前」读数（三时点对账 §6.3）→ kill-session
 # ============================================================
 set -e
@@ -216,6 +217,12 @@ if [ -z "${NO_OCTOMAP:-}" ]; then
   echo -e "${GREEN}  [octomap] octomap_robot_mapping.launch.py h:=${H}${NC}"
   tmux send-keys -t "${SESSION_NAME}:octomap" "${TMUX_SOURCE}" Enter
   tmux send-keys -t "${SESSION_NAME}:octomap" \
+    "echo '=== 现场存 2D 快照（可选）——趁本窗和 [livox]/[fastlio] 都活着时跑:
+  本窗被 launch 占用，Ctrl+B c 开新窗粘贴（或第二个 ssh 终端，source 同款环境）:
+    ros2 run nav2_map_server map_saver_cli -t /projected_map -f ${BAG_DIR}/${MAP}_field_2d
+  ⚠ fastlio 一停 /cloud_registered 断流，/projected_map(latch=False) 不再重发，map_saver 只会等超时
+  （现场图带吊架倾角指纹，权威 2D 以 WSL 离线重放为准——SOP §4 阶段 3）'" Enter
+  tmux send-keys -t "${SESSION_NAME}:octomap" \
     "ros2 launch humanoid_sim octomap_robot_mapping.launch.py h:=${H}" Enter
   sleep 2
 fi
@@ -243,25 +250,28 @@ echo "     tilt    = 倾角读数（保持运行：结束时记「拆架前」�
 echo "     livox   = Livox MID-360 驱动"
 echo "     fastlio = FastLIO2 现场监控（Ctrl+C 退出时存 ${FIELD_PCD}）"
 if [ -z "${NO_OCTOMAP:-}" ]; then
-  echo "     octomap = 倒装 z 窗 2D 投影监控"
+  echo "     octomap = 倒装 z 窗 2D 投影监控（可现场存 2D 快照：窗内提示有整条命令）"
 fi
 echo "     record  = bag 录制 → ${BAG_DIR}/${MAP}/"
 echo ""
-echo " 进窗查看/操控: tmux attach -t ${SESSION_NAME}（脚本结束后退回原终端，五窗在后台继续跑）"
+echo " 进窗查看/操控: tmux attach -t ${SESSION_NAME}（脚本结束后退回原终端，各窗在后台继续跑）"
 echo " 脱离回终端: Ctrl+B d —— 进程不受影响，随时可再 attach；收尾按下面结束顺序逐窗 Ctrl+C"
 echo " 切窗（attach 后，默认前缀 Ctrl+B）:"
 echo "   Ctrl+B w    窗口列表按名字选（推荐——序号有洞/某窗崩了也不怕）"
 echo "   Ctrl+B n/p  下一个/上一个窗"
 echo "   Ctrl+B 0-9  按序号直达（序号见上表）"
 echo "   未 attach 时查看: tmux list-windows -t ${SESSION_NAME}"
-echo " 清扫: 四窗都 Ctrl+C 停完后 tmux kill-session -t ${SESSION_NAME}"
+echo " 清扫: 各窗都 Ctrl+C 停完后 tmux kill-session -t ${SESSION_NAME}"
 echo ""
 echo -e "${YELLOW} 结束顺序（bag/pcd 的收尾都挂在 Ctrl+C 上，别用 kill-session 停）:${NC}"
-echo "   1. 回起点静置 3s → [record] Ctrl+C 停录（等收尾打印，才写 metadata.yaml）"
-echo "   2. [fastlio] Ctrl+C —— 等终端打出 PCD 保存完成再关窗（现场 pcd 是监控副产品）"
-echo "   3. [octomap] Ctrl+C（若有）"
-echo "   4. [tilt] 记「拆架前」读数（与调平读数对账，SOP §6.3 三时点）再 Ctrl+C"
-echo "   5. 四窗都停完 → tmux kill-session -t ${SESSION_NAME} 清扫"
+echo "   1. 回起点静置 3s →（可选）存 2D 快照: Ctrl+B c 开新窗粘贴（3D 不用管，第 3 步自动存）:"
+echo "        ros2 run nav2_map_server map_saver_cli -t /projected_map -f ${BAG_DIR}/${MAP}_field_2d"
+echo "        ⚠ 须趁 livox/fastlio/octomap 都活着——fastlio 一停投影就断流（latch=False），存不了"
+echo "   2. [record] Ctrl+C 停录（等收尾打印，才写 metadata.yaml）"
+echo "   3. [fastlio] Ctrl+C —— 等终端打出 PCD 保存完成再关窗（现场 pcd 是监控副产品）"
+echo "   4. [octomap] Ctrl+C（若有）"
+echo "   5. [tilt] 记「拆架前」读数（与调平读数对账，SOP §6.3 三时点）再 Ctrl+C"
+echo "   6. 全部停完 → tmux kill-session -t ${SESSION_NAME} 清扫"
 echo ""
 echo " ⚠ kill-session / Ctrl+B x 关窗发的是 SIGHUP，不触发收尾："
 echo "   bag 缺 metadata.yaml（ros2 bag info/play 报错）、fastlio 不存 PCD"
@@ -273,6 +283,7 @@ echo -e "${YELLOW} 现场产物传回 WSL（SOP §4 阶段 2，WSL 侧先 mkdir 
 echo "   cd ${BAG_DIR}/${MAP}"
 echo "   zstd -k ${MAP}_0.db3"
 echo "   scp ${MAP}_0.db3.zst metadata.yaml hmj@<WSL_IP>:/home/hmj/humanoid_ws/rosbag/${MAP}/"
-echo "   （${MAP}_field.pcd 为监控副产品，可一并传回复核；权威产物以 WSL 离线重放为准）"
+echo "   （${BAG_DIR}/ 下监控副产品: ${MAP}_field.pcd、${MAP}_field_2d.pgm/.yaml(若存)——可一并传回复核；"
+echo "     权威产物以 WSL 离线重放为准）"
 echo ""
 echo " SOP: docs/sim2real/真机建图SOP-机器人吊架native-2026-10-26.md"
