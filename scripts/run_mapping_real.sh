@@ -10,7 +10,9 @@
 # tmux 窗口:
 #   [tilt]    — imu_tilt_check.py 倾角读数（调平 θ<0.3°；结束时复用作「拆架前」读数）
 #   [livox]   — Livox MID-360 驱动
-#   [fastlio] — FastLIO2 现场监控（F1_mapping_mid360.yaml；pcd 运行时 patch → ~/bags/<MAP>_field.pcd）
+#   [fastlio] — FastLIO2 现场监控（F1_mapping_mid360.yaml；pcd 落点运行时 patch → ~/bags/<MAP>_field.pcd）
+#               ⚠ pcd 存档走 map_save 服务（std_srvs/Trigger）——现行源码 Ctrl+C 不存 pcd
+#               （laserMapping.cpp:516 帧累积块被注释、flg_exit 无人消费）
 #   [octomap] — 倒装 z 窗 live 2D 投影监控（h = 雷达离地高）
 #   [record]  — ros2 bag record /livox/lidar /livox/imu → ~/bags/<MAP>
 #   切窗（attach 后，默认前缀 Ctrl+B）: Ctrl+B w 列表选窗 · n/p 下/上窗 · 0-9 按序号
@@ -31,9 +33,9 @@
 #   2. MID360 联网: ping 192.168.1.195（host eth1=.50，minipc_mid360_eth_static_ip.md）
 #   3. 吊架挂好、机器人吊稳；卷尺量好雷达离地 h
 #
-# 结束顺序（SOP §4 阶段 1）: bag/pcd 的收尾都挂在 Ctrl+C 上——kill-session 只做最后清扫
+# 结束顺序（SOP §4 阶段 1）: bag 收尾挂 Ctrl+C、pcd 收尾挂 map_save 服务（Ctrl+C 不存）——kill-session 只做最后清扫
 #   回起点静置 3s → （可选）map_saver 存 2D 快照（须趁 livox/fastlio/octomap 都活着，见下）→
-#   [record] Ctrl+C → [fastlio] Ctrl+C 等 PCD save 打印 →
+#   [record] Ctrl+C → [fastlio] 调 /map_save 存 pcd（等 "Map saved." 响应）→ Ctrl+C →
 #   [octomap] Ctrl+C → [tilt] 记「拆架前」读数（三时点对账 §6.3）→ kill-session
 # ============================================================
 set -e
@@ -205,8 +207,13 @@ fi
 
 # --- [fastlio] 现场监控（起始静置段完成 IMU init；bag 同段开录，离线重放同口径）---
 tmux new-window -t "${SESSION_NAME}" -n "fastlio"
-echo -e "${GREEN}  [fastlio] FastLIO2 建图监控（${MAPPING_CFG_NAME}，pcd → ${FIELD_PCD}）${NC}"
+echo -e "${GREEN}  [fastlio] FastLIO2 建图监控（${MAPPING_CFG_NAME}，pcd → ${FIELD_PCD}，经 /map_save 服务存）${NC}"
 tmux send-keys -t "${SESSION_NAME}:fastlio" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:fastlio" \
+  "echo '=== 现场存 3D pcd —— 现行源码 Ctrl+C 不存（自动存是死代码），只能靠本条服务命令:
+  收尾回起点静置后、停 fastlio 前，Ctrl+B c 开新窗粘贴（或第二个 ssh 终端，source 同款环境）:
+    ros2 service call /map_save std_srvs/srv/Trigger \"{}\"
+  等响应 \"Map saved.\" → 写 ${FIELD_PCD}（可反复调、后存覆盖；存盘瞬间点云处理暂停，静置时调）'" Enter
 tmux send-keys -t "${SESSION_NAME}:fastlio" \
   "ros2 launch fast_lio mapping_real.launch.py config_path:=${RUNTIME_CFG_DIR} config_file:=${MAPPING_CFG_NAME} ${RVIZ_ARG}" Enter
 sleep 3
@@ -248,7 +255,7 @@ echo " tmux 窗口（实时序号 · 名字）:"
 tmux list-windows -t "${SESSION_NAME}" -F '   #{window_index}  #{window_name}'
 echo "     tilt    = 倾角读数（保持运行：结束时记「拆架前」读数）"
 echo "     livox   = Livox MID-360 驱动"
-echo "     fastlio = FastLIO2 现场监控（Ctrl+C 退出时存 ${FIELD_PCD}）"
+echo "     fastlio = FastLIO2 现场监控（存 pcd 调 /map_save 服务 → ${FIELD_PCD}；Ctrl+C 不存）"
 if [ -z "${NO_OCTOMAP:-}" ]; then
   echo "     octomap = 倒装 z 窗 2D 投影监控（可现场存 2D 快照：窗内提示有整条命令）"
 fi
@@ -263,21 +270,23 @@ echo "   Ctrl+B 0-9  按序号直达（序号见上表）"
 echo "   未 attach 时查看: tmux list-windows -t ${SESSION_NAME}"
 echo " 清扫: 各窗都 Ctrl+C 停完后 tmux kill-session -t ${SESSION_NAME}"
 echo ""
-echo -e "${YELLOW} 结束顺序（bag/pcd 的收尾都挂在 Ctrl+C 上，别用 kill-session 停）:${NC}"
-echo "   1. 回起点静置 3s →（可选）存 2D 快照: Ctrl+B c 开新窗粘贴（3D 不用管，第 3 步自动存）:"
+echo -e "${YELLOW} 结束顺序（bag 收尾挂 Ctrl+C；pcd 收尾挂 map_save 服务——Ctrl+C 不存 pcd，别用 kill-session 停）:${NC}"
+echo "   1. 回起点静置 3s →（可选）存 2D 快照: Ctrl+B c 开新窗粘贴（3D 见第 3 步——同窗粘贴即可）:"
 echo "        ros2 run nav2_map_server map_saver_cli -t /projected_map -f ${BAG_DIR}/${MAP}_field_2d"
 echo "        ⚠ 须趁 livox/fastlio/octomap 都活着——fastlio 一停投影就断流（latch=False），存不了"
 echo "   2. [record] Ctrl+C 停录（等收尾打印，才写 metadata.yaml）"
-echo "   3. [fastlio] Ctrl+C —— 等终端打出 PCD 保存完成再关窗（现场 pcd 是监控副产品）"
+echo "   3. [fastlio] 先存 pcd 再停（Ctrl+C 不存——现行源码自动存是死代码），Ctrl+B c 开新窗粘贴:"
+echo "        ros2 service call /map_save std_srvs/srv/Trigger \"{}\""
+echo "        等响应 \"Map saved.\"（写 ${FIELD_PCD}，可反复调覆盖）→ 回 [fastlio] Ctrl+C 关窗"
 echo "   4. [octomap] Ctrl+C（若有）"
 echo "   5. [tilt] 记「拆架前」读数（与调平读数对账，SOP §6.3 三时点）再 Ctrl+C"
 echo "   6. 全部停完 → tmux kill-session -t ${SESSION_NAME} 清扫"
 echo ""
 echo " ⚠ kill-session / Ctrl+B x 关窗发的是 SIGHUP，不触发收尾："
-echo "   bag 缺 metadata.yaml（ros2 bag info/play 报错）、fastlio 不存 PCD"
+echo "   bag 缺 metadata.yaml（ros2 bag info/play 报错）；pcd 只认 map_save 服务（SIGHUP/Ctrl+C 都不存，见第 3 步）"
 echo "   未 attach 时远程停窗（等价进窗 Ctrl+C）:"
 echo "     tmux send-keys -t ${SESSION_NAME}:record C-c"
-echo "   收尾验证: ls ${BAG_DIR}/${MAP}/metadata.yaml && ros2 bag info ${BAG_DIR}/${MAP}"
+echo "   收尾验证: ls ${BAG_DIR}/${MAP}/metadata.yaml ${FIELD_PCD} && ros2 bag info ${BAG_DIR}/${MAP}"
 echo ""
 echo -e "${YELLOW} 现场产物传回 WSL（SOP §4 阶段 2，WSL 侧先 mkdir -p ~/humanoid_ws/rosbag/${MAP}）:${NC}"
 echo "   cd ${BAG_DIR}/${MAP}"
