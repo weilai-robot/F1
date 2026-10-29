@@ -2,7 +2,7 @@
 
 2026-10-17。本版使用 `Beyondminic-Weilai-X1/trained_models/dance_x1_v11_model_4999.pt`，在 `motion_control` 的 AMP 部署基线 `ec29ebe` 上补入并修复舞蹈部署。主仓库分支为 `feat/x1-beyondminic-dance-deploy`，子模块的 v11 专用分支为 `feat/x1-dance-v11-deploy`；主仓库记录包含源码、配置与模型资产的子模块提交。既有 AMP 分支保持原提交。
 
-**Mac 已完成离线模型核对、Python 数值仿真及不依赖 ROS 的 C++ 就绪门控检查。2026-10-22 已补 IMU/双腿本体估计器，并完成实际 C++ 核心的离线测试和估计反馈闭环；Ubuntu C++/ROS 2 完整构建、完整 C++ 单测、ROS 运行接入及真机测试尚未执行。现有结果不能作为真机部署通过的结论。**
+**Mac 已完成离线模型核对、Python 数值仿真及不依赖 ROS 的 C++ 就绪门控检查。2026-10-22 已补 IMU/双腿本体估计器，并完成实际 C++ 核心的离线测试和估计反馈闭环。用户已在现场试跳，反馈多次演示不一致；完整 Ubuntu C++/ROS 2 构建、完整 C++ 单测及系统验收结果尚未在本记录中核验。现有结果不能作为真机部署通过的结论。**
 
 ## 当前按键流程
 
@@ -84,6 +84,8 @@ A、B、Guide 都是按下沿触发。提前按 B 或 Guide 会被拒绝，需�
 | `policy/dance_x1_motion.bin` | `dd3376f615ee86daf6df4f1b13972942376d5a2275e904c4efb1674691bf884d` |
 
 `policy/dance_x1_v11_4999.json` 保存 checkpoint、训练配置、参考动作的来源 hash 和所有逐关节参数。导出时 129 组输入的序列化模型与独立 PyTorch 推理比较，最大动作绝对误差为 `2.29e-5`。
+
+2026-10-22 并行进展：用户正在训练 154 维观测模型。本地 `WoStateEstimation` 配置从 actor 去掉锚点位置误差 3 维和机身线速度 3 维，仍保留相对姿态等输入；实际训练配置及结果待核验。当前导出器、控制器和诊断仍固定为 160 维，154 维模型不能直接替换现有资产。输入精度改进路线、两种模型的观测索引和后续适配/对照计划见[输入精度与 154 维模型计划](analysis/x1_dance_v11_state_estimator_20261022/INPUT_ACCURACY_PLAN.zh_CN.md)。
 
 重新导出可在 Mac 已有 Python 环境离线进行：
 
