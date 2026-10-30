@@ -202,6 +202,9 @@ if [ -z "${YES:-}" ]; then
   echo -e "${YELLOW}  进窗看读数: 另开终端（第二个 ssh）跑 tmux attach -t ${SESSION_NAME}，Ctrl+B w 选 [tilt]${NC}"
   echo -e "${YELLOW}  看完 Ctrl+B d 脱离回终端、窗内进程不受影响；本终端留着等下面回车放行${NC}"
   echo -e "${YELLOW}  [tilt] 长时间无读数 → 查 [livox] 窗驱动报错${NC}"
+  echo -e "${YELLOW}  ⚠ 此刻 attach 进去只有 [livox]+[tilt] 两窗是刻意的——fastlio 必须调平后启动${NC}"
+  echo -e "${YELLOW}    （camera_init=启动时 IMU 系，歪着启动=吊挂倾角焊进地图 z 轴）；回车放行后才开 [fastlio]/[octomap]/[record]${NC}"
+  echo -e "${YELLOW}  放弃本次: 本终端 Ctrl+C 中断脚本，然后 tmux kill-session -t ${SESSION_NAME} 清掉已开的窗${NC}"
   read -r -p "调平完成后回车，启动 fastlio + octomap + 录包（Ctrl+C 放弃）: " || echo "(非交互终端，直接继续)"
 fi
 
@@ -241,7 +244,9 @@ tmux send-keys -t "${SESSION_NAME}:record" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:record" \
   "echo '=== 建图录包（SOP §4 阶段 1）===
   开录后仍静置 5~10s 再推行；慢匀速 0.3~0.5 m/s、转大弯；
-  死角/重要区域多扫两遍；闭环收尾：回起点、朝向对齐、静置 3s 再 Ctrl+C 停录'" Enter
+  死角/重要区域多扫两遍；闭环收尾：回起点、朝向对齐、静置 3s 再 Ctrl+C 停录；
+  停录后逐窗 Ctrl+C（[fastlio] 先调 /map_save 存 pcd——整条命令在它窗内提示），
+  全部停完后 tmux kill-session -t ${SESSION_NAME} 清扫'" Enter
 tmux send-keys -t "${SESSION_NAME}:record" \
   "cd ${BAG_DIR} && ros2 bag record /livox/lidar /livox/imu -o ${MAP}" Enter
 
@@ -263,12 +268,12 @@ echo "     record  = bag 录制 → ${BAG_DIR}/${MAP}/"
 echo ""
 echo " 进窗查看/操控: tmux attach -t ${SESSION_NAME}（脚本结束后退回原终端，各窗在后台继续跑）"
 echo " 脱离回终端: Ctrl+B d —— 进程不受影响，随时可再 attach；收尾按下面结束顺序逐窗 Ctrl+C"
+echo " 清扫/关闭: tmux kill-session -t ${SESSION_NAME}   ⚠ 须各窗 Ctrl+C 停完后再用（SIGHUP 不触发 bag/pcd 收尾）"
 echo " 切窗（attach 后，默认前缀 Ctrl+B）:"
 echo "   Ctrl+B w    窗口列表按名字选（推荐——序号有洞/某窗崩了也不怕）"
 echo "   Ctrl+B n/p  下一个/上一个窗"
 echo "   Ctrl+B 0-9  按序号直达（序号见上表）"
 echo "   未 attach 时查看: tmux list-windows -t ${SESSION_NAME}"
-echo " 清扫: 各窗都 Ctrl+C 停完后 tmux kill-session -t ${SESSION_NAME}"
 echo ""
 echo -e "${YELLOW} 结束顺序（bag 收尾挂 Ctrl+C；pcd 收尾挂 map_save 服务——Ctrl+C 不存 pcd，别用 kill-session 停）:${NC}"
 echo "   1. 回起点静置 3s →（可选）存 2D 快照: Ctrl+B c 开新窗粘贴（3D 见第 3 步——同窗粘贴即可）:"
