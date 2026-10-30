@@ -20,13 +20,16 @@
 #
 # ⚠ 顺序约束: fastlio 必须在调平后启动——camera_init = 启动时 IMU 系（FAST-LIO 无重力
 #   对齐），倾斜状态下启动会把吊挂倾角 β 焊进地图 z 轴（SOP §6.2）。脚本用交互闸门强制。
+# ⚠ 录包闸门: fastlio/octomap 起后暂停——先观察状态再回车开录（bag 起始静置段在开录之后，
+#   观察期不计入 bag）；--no-record = 完全手动开录；--yes 跳过两道闸门。
 #
 # 用法:
 #   ./run_mapping_real.sh                    # MAP=robot_lab_<今日>，h=1.25
 #   ./run_mapping_real.sh mylab --h 1.22     # 自定义地图名 + 卷尺实测雷达离地高
 #   ./run_mapping_real.sh --no-rviz          # MiniPC 减负（不起 fastlio RViz）
 #   ./run_mapping_real.sh --no-octomap       # 不起 octomap 监控
-#   ./run_mapping_real.sh --yes              # 跳过调平交互确认（不建议）
+#   ./run_mapping_real.sh --no-record        # 不自动开录：观察 fastlio 后自行粘贴录包命令（完成提示里有整条）
+#   ./run_mapping_real.sh --yes              # 跳过调平/录包两道交互闸门（不建议）
 #
 # 前置:
 #   1. ./build_nav.sh（navigation workspace，含 fast_lio / humanoid_sim）
@@ -76,6 +79,7 @@ while [ $# -gt 0 ]; do
     --yes) YES=1; shift ;;
     --no-rviz) RVIZ_ARG="rviz:=false"; shift ;;
     --no-octomap) NO_OCTOMAP=1; shift ;;
+    --no-record) NO_RECORD=1; shift ;;
     -h|--help) awk 'NR>1 && /^set -e/{exit} NR>1' "$0"; exit 0 ;;  # 头部注释即帮助
     -*) echo -e "${RED}[ERROR] 未知参数: ${1}${NC}"; exit 1 ;;
     *)
@@ -205,7 +209,11 @@ if [ -z "${YES:-}" ]; then
   echo -e "${YELLOW}  ⚠ 此刻 attach 进去只有 [livox]+[tilt] 两窗是刻意的——fastlio 必须调平后启动${NC}"
   echo -e "${YELLOW}    （camera_init=启动时 IMU 系，歪着启动=吊挂倾角焊进地图 z 轴）；回车放行后才开 [fastlio]/[octomap]/[record]${NC}"
   echo -e "${YELLOW}  放弃本次: 本终端 Ctrl+C 中断脚本，然后 tmux kill-session -t ${SESSION_NAME} 清掉已开的窗${NC}"
-  read -r -p "调平完成后回车，启动 fastlio + octomap + 录包（Ctrl+C 放弃）: " || echo "(非交互终端，直接继续)"
+  if [ -z "${NO_RECORD:-}" ]; then
+    read -r -p "调平完成后回车，启动 fastlio + octomap（录包在下一道观察闸门后开；Ctrl+C 放弃）: " || echo "(非交互终端，直接继续)"
+  else
+    read -r -p "调平完成后回车，启动 fastlio + octomap（--no-record：录包命令稍后自行粘贴；Ctrl+C 放弃）: " || echo "(非交互终端，直接继续)"
+  fi
 fi
 
 # --- [fastlio] 现场监控（起始静置段完成 IMU init；bag 同段开录，离线重放同口径）---
@@ -237,7 +245,22 @@ if [ -z "${NO_OCTOMAP:-}" ]; then
   sleep 2
 fi
 
+# --- 录包观察闸门（fastlio/octomap 已起、开录前：先看状态再放行；--yes/--no-record 跳过）---
+if [ -z "${YES:-}" ] && [ -z "${NO_RECORD:-}" ]; then
+  echo ""
+  echo -e "${YELLOW}→ 录包前观察闸门：进窗确认 fastlio 状态（这是先观察再开录的窗口期）${NC}"
+  echo -e "${YELLOW}  进窗: 另开终端（第二个 ssh）跑 tmux attach -t ${SESSION_NAME}，Ctrl+B w 按名字选${NC}"
+  echo -e "${YELLOW}    [fastlio] 日志无报错、RViz 点云成形不飘（--no-rviz 时看窗内日志即可）${NC}"
+  echo -e "${YELLOW}    [octomap] 若在跑: 2D 投影已出现（RViz /projected_map）${NC}"
+  echo -e "${YELLOW}  看完 Ctrl+B d 脱离回终端；本终端留着等下面回车放行${NC}"
+  echo -e "${YELLOW}  ⚠ 观察期不计入 bag——bag 起始静置段在开录之后；开录后仍要静置 5~10s 再推行${NC}"
+  echo -e "${YELLOW}    （起始静置段是离线重放时 FAST-LIO IMU init 的口粮，必须在 bag 里）${NC}"
+  echo -e "${YELLOW}  放弃本次: 本终端 Ctrl+C 中断脚本，然后 tmux kill-session -t ${SESSION_NAME} 清掉已开的窗${NC}"
+  read -r -p "观察完成后回车开录（Ctrl+C 放弃）: " || echo "(非交互终端，直接继续)"
+fi
+
 # --- [record] bag（含起始静置段：离线重放的 FAST-LIO IMU init 靠它）---
+# --no-record: 仍建窗占号（Ctrl+B 序号稳定），录包命令留窗内自行粘贴
 tmux new-window -t "${SESSION_NAME}" -n "record"
 echo -e "${GREEN}  [record] ros2 bag record → ${BAG_DIR}/${MAP}${NC}"
 tmux send-keys -t "${SESSION_NAME}:record" "${TMUX_SOURCE}" Enter
@@ -247,8 +270,15 @@ tmux send-keys -t "${SESSION_NAME}:record" \
   死角/重要区域多扫两遍；闭环收尾：回起点、朝向对齐、静置 3s 再 Ctrl+C 停录；
   停录后逐窗 Ctrl+C（[fastlio] 先调 /map_save 存 pcd——整条命令在它窗内提示），
   全部停完后 tmux kill-session -t ${SESSION_NAME} 清扫'" Enter
-tmux send-keys -t "${SESSION_NAME}:record" \
-  "cd ${BAG_DIR} && ros2 bag record /livox/lidar /livox/imu -o ${MAP}" Enter
+if [ -z "${NO_RECORD:-}" ]; then
+  tmux send-keys -t "${SESSION_NAME}:record" \
+    "cd ${BAG_DIR} && ros2 bag record /livox/lidar /livox/imu -o ${MAP}" Enter
+else
+  tmux send-keys -t "${SESSION_NAME}:record" \
+    "echo '=== 手动开录（--no-record）：整条命令如下，观察 fastlio 状态后自行粘贴回车 ===
+  cd ${BAG_DIR} && ros2 bag record /livox/lidar /livox/imu -o ${MAP}
+  ⚠ 开录后仍静置 5~10s 再推行（起始静置段=离线重放 FAST-LIO IMU init 的口粮）'" Enter
+fi
 
 # --- 完成 ---
 echo ""
@@ -264,7 +294,11 @@ echo "     fastlio = FastLIO2 现场监控（存 pcd 调 /map_save 服务 → ${
 if [ -z "${NO_OCTOMAP:-}" ]; then
   echo "     octomap = 倒装 z 窗 2D 投影监控（可现场存 2D 快照：窗内提示有整条命令）"
 fi
-echo "     record  = bag 录制 → ${BAG_DIR}/${MAP}/"
+if [ -z "${NO_RECORD:-}" ]; then
+  echo "     record  = bag 录制（观察闸门放行后已开）→ ${BAG_DIR}/${MAP}/"
+else
+  echo "     record  = 空窗待录（--no-record）：观察 fastlio 后粘贴窗内整条命令开录 → ${BAG_DIR}/${MAP}/"
+fi
 echo ""
 echo " 进窗查看/操控: tmux attach -t ${SESSION_NAME}（脚本结束后退回原终端，各窗在后台继续跑）"
 echo " 脱离回终端: Ctrl+B d —— 进程不受影响，随时可再 attach；收尾按下面结束顺序逐窗 Ctrl+C"
