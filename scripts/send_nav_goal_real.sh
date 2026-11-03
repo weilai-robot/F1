@@ -154,7 +154,7 @@ $(python3 -c "import math,sys; y=float(sys.argv[1]); print(math.sin(y/2.0), math
 EOF
 
 echo -e "${GREEN}[2/2] 发送导航目标: map=(${GOAL_X}, ${GOAL_Y}, yaw=${YAW_DEG}°) timeout=${TIMEOUT}s${NC}"
-echo -e "${YELLOW}      确认目标在 car30_real_fastlio 地图自由区；人在旁护着${NC}"
+echo -e "${YELLOW}      确认目标在 robot_lab_20261030 地图自由区；人在旁护着${NC}"
 
 # 粗查 navigate_to_pose 是否在线
 if ! ros2 action list 2>/dev/null | grep -q '/navigate_to_pose'; then
@@ -173,7 +173,11 @@ GOAL_YAML="{
 }"
 
 set +e
-timeout --signal=INT "${TIMEOUT}" \
+# --foreground 必须：timeout 默认把自己和子命令搬进新进程组，Ctrl+C 的 INT 只发
+# 前台进程组=只达本脚本 bash，而 bash trap 延迟到前台子进程退出才执行 ⇒ timeout
+# 永远收不到 INT、Ctrl+C 静默失效直到定时器到点（2026-11-03 minipc 实测定谳）。
+# --foreground 让 timeout+ros2 留在本组，INT 直达秒停；ros2 CLI 不读 stdin 无副作用。
+timeout --foreground --signal=INT --kill-after=5 "${TIMEOUT}" \
   ros2 action send_goal --feedback /navigate_to_pose nav2_msgs/action/NavigateToPose \
   "${GOAL_YAML}"
 RC=$?
