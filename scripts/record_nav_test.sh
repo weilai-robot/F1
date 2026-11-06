@@ -9,7 +9,11 @@
 #   ./record_nav_test.sh                    # 录到 Ctrl+C
 #   ./record_nav_test.sh -d 60              # 录 60 秒
 #   ./record_nav_test.sh -d 30 pickup       # 带标签 pickup
-#   ./record_nav_test.sh --nav -d 120 walk  # 含 /cmd_vel，走 Nav2 测试
+#   ./record_nav_test.sh --nav -d 120 walk  # 含 cmd_vel/plan/action status，走 Nav2 测试
+#   ./record_nav_test.sh --nav --full -d 0 push  # --full 另加 livox 原始数据+costmap（体积大）
+#
+# 指标提取（录完离线跑，零 ROS 依赖）:
+#   python3 scripts/bag_analyze.py <bag目录> --goal X Y YAW
 #
 # 输出:
 #   F1/reports/nav_test_record/<timestamp>_<label>/
@@ -34,6 +38,7 @@ NC='\033[0m'
 DURATION=0          # 0 = until Ctrl+C
 LABEL=""
 WITH_NAV=false
+WITH_FULL=false
 
 usage() {
   sed -n '2,22p' "$0"
@@ -48,6 +53,7 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     --nav) WITH_NAV=true; shift ;;
+    --full) WITH_FULL=true; shift ;;
     --*)
       echo -e "${RED}[ERROR] 未知选项: $1${NC}" >&2
       usage 1
@@ -79,7 +85,14 @@ TOPICS=(
   /localization_3d_confidence
 )
 if [ "${WITH_NAV}" = true ]; then
-  TOPICS+=(/cmd_vel)
+  # 指标分析集：bag_analyze.py 的输入（成功率/路径比/速度/终点差距/wz 统计/mode 事件）
+  TOPICS+=(/cmd_vel /cmd_vel_limiter /plan
+           /navigate_to_pose/_action/status /navigate_to_pose/_action/feedback
+           /stand_mode /walk_mode)
+fi
+if [ "${WITH_FULL}" = true ]; then
+  # 原始数据集：复盘/PlotJuggler 用（体积大，回放慢，仅需要时开）
+  TOPICS+=(/livox/imu /livox/lidar /local_costmap/costmap /global_costmap/costmap)
 fi
 
 mkdir -p "${SNAP_DIR}" "${BAG_DIR}"
@@ -149,13 +162,16 @@ cat >"${RUN_DIR}/notes.md" <<EOF
 - **目录**: \`${RUN_DIR}\`
 - **录包时长**: $([ "${DURATION}" -gt 0 ] && echo "${DURATION}s" || echo "手动停止 (Ctrl+C)")
 - **标签**: ${LABEL:-（无）}
-- **含 Nav2 cmd_vel**: ${WITH_NAV}
+- **含 Nav2 分析集**: ${WITH_NAV} / **--full 原始数据**: ${WITH_FULL}
+- **goal (map 系 x y yaw)**: ___
+- **场景/轮次**: ___（例: 堵路 wait 第 2 轮）
 
 ## 环境与安装
 
-- [ ] 雷达安装: 小推车 / 已上机器人（高度、倒装角: ___）
-- [ ] FastLIO 配置: F1_real_mid360.yaml / car_30_mid360_real.yaml
-- [ ] 地图: car30_real_fastlio.yaml + car_30_real_map.pcd
+- [ ] 雷达安装: 机器人头部倒装（出光面朝向: 左 / 右）
+- [ ] FastLIO 配置: F1_real_mid360.yaml（导航）/ F1_mapping_mid360.yaml（建图）
+- [ ] 地图: robot_lab_20261030.yaml + robot_lab_20261030.pcd（native 倒装 z-down）
+- [ ] odom_bridge: mount_rpy=[0,0,-90] / invert_cmd_vel_yz=___（`ros2 param get /odom_bridge`）
 - [ ] 场地: ___
 
 ## 测试内容
@@ -190,6 +206,12 @@ ros2 topic echo /localization_3d_confidence
 | \`/Odometry\` 静止时位移 | < 几 cm | LIO 在跟踪传感器运动或发散 |
 | \`/odom2map\` | 缓慢变化 | 突然跳 = ICP 误匹配 |
 | \`localization_3d_confidence\` | > 0.7 | 低分 = ICP 不可靠 |
+
+## 指标提取（离线）
+
+\`\`\`bash
+python3 scripts/bag_analyze.py ${BAG_NAME} --goal <X> <Y> <YAW>
+\`\`\`
 EOF
 
 echo -e "${YELLOW}[record] topics (${#TOPICS[@]}):${NC}"
