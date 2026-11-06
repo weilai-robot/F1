@@ -10,7 +10,7 @@
 #
 # 前提:
 #   1. AimRT: bash run.sh（另开终端）
-#   2. 大脑: ./run_nav_real.sh（livox + fastlio + nav2）
+#   2. 大脑: ./run_nav_real.sh（livox + fastlio + icp + nav2）
 #   3. TF map→odom→base_footprint 已通；ICP 已锁定
 #
 # 用法:
