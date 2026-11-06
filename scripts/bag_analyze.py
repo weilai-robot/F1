@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ============================================================
-# bag_analyze.py — rosbag2 离线导航指标提取（v0，零 ROS 依赖）
+# bag_analyze.py — rosbag2 离线导航指标提取（v1，零 ROS 依赖）
 #
 # 直接读 .db3（sqlite3）+ 手解 CDR，不需要 ros2 环境——
 # WSL（desk 开发）/ 81（sim bag）/ minipc（real bag）三处均可跑。
@@ -10,11 +10,19 @@
 #   路径长度比（有 /plan 时）/ cmd_vel 统计（含 wz 饱和占比，尾段旋转归因用）
 #   /stand_mode /walk_mode 事件时间线（P0 验收用）
 #
+# v1 指标（2026-11-06，11-03 Run2 停步窗口问题的直接判别器）：
+#   exec_vx/vy/wz — 命令-响应对照：最小二乘增益 slope + 反号/无响应占比
+#     （gain≈1 健康；≈0 = 小脑执行塌缩；负 = 符号链问题——invert 验证旁证）
+#   stall_* — 停走/脱节窗口：主导轴 |响应| < 0.3×|命令| 持续 ≥1.5s 的窗口
+#     （回答「nav2 发近零命令 vs 小脑收非零不执行」二选一）
+#
 # 用法:
 #   python3 bag_analyze.py BAG [BAG ...] [--goal X Y YAW]
 #       [--xy-tol 0.5] [--yaw-tol 0.5] [--wz-sat 0.35]
-#       [--csv out.csv] [--json out.json] [--dump-timeline out.csv]
+#       [--exec-ratio 0.3] [--stall-min-dur 1.5]
+#       [--csv out.csv] [--json out.json] [--dump-timeline out_dir]
 #   BAG = .db3 文件，或 rosbag2 目录（含 .db3，支持多分片）
+#   --dump-timeline 接目录名，每个 bag 写 <bag名>_timeline.csv 进去
 # ============================================================
 import argparse
 import glob
@@ -278,6 +286,109 @@ def smooth_xy(tl, win_s):
     return out
 
 
+# ---------------- v1：命令-响应对照 / 停走窗口 ----------------
+
+def timeline_vel(tl, s_tl):
+    """时间线速度（base 系）：xy 用平滑轨迹压步频噪声，yaw 用原始值。
+    返回 [(t_mid, vbx, vby, wz)]；跳变点（>5m/s 或 |wz|>3rad/s）丢弃。"""
+    out = []
+    for i in range(1, len(s_tl)):
+        ta, _, _, ya = tl[i - 1]
+        tb, _, _, yb = tl[i]
+        dt = min(max(tb - ta, 1e-3), 0.5)
+        dx = (s_tl[i][1] - s_tl[i - 1][1]) / dt
+        dy = (s_tl[i][2] - s_tl[i - 1][2]) / dt
+        wz = wrap(tl[i][3] - tl[i - 1][3]) / dt
+        if math.hypot(dx, dy) > 5.0 or abs(wz) > 3.0:
+            continue
+        ym = ya + wrap(yb - ya) / 2.0
+        cy, sy = math.cos(ym), math.sin(ym)
+        out.append(((ta + tb) / 2.0, cy * dx + sy * dy, -sy * dx + cy * dy, wz))
+    return out
+
+
+def match_seqs(a_seq, b_seq, max_gap=0.15):
+    """最近邻时间匹配：a_seq 每项配 b_seq 最近项（|Δt|<=max_gap）。
+    返回 (t, *a_vals, *b_vals)。"""
+    if not b_seq:
+        return []
+    out, j = [], 0
+    for row in a_seq:
+        t = row[0]
+        while j + 1 < len(b_seq) and abs(b_seq[j + 1][0] - t) <= abs(b_seq[j][0] - t):
+            j += 1
+        if abs(b_seq[j][0] - t) <= max_gap:
+            out.append((t, *row[1:], *b_seq[j][1:]))
+    return out
+
+
+def cmd_exec_analysis(cv_seq, vel_seq, r):
+    """逐轴命令-响应：slope（响应=斜率×命令 的最小二乘增益）、
+    反号占比、无响应占比（|resp|<=0.02）。样本按 |cmd|>0.05 过滤。"""
+    m = match_seqs(cv_seq, vel_seq)
+    if len(m) < 20:
+        return
+    for ax, ci in (("vx", 1), ("vy", 2), ("wz", 3)):
+        xs = [(s[ci], s[ci + 3]) for s in m if abs(s[ci]) > 0.05]
+        if len(xs) < 20:
+            continue
+        n = len(xs)
+        mc = sum(c for c, _ in xs) / n
+        mr = sum(p for _, p in xs) / n
+        var = sum((c - mc) ** 2 for c, _ in xs)
+        slope = (sum((c - mc) * (p - mr) for c, p in xs) / var) if var > 1e-6 else None
+        flip = sum(1 for c, p in xs if c * p < -0.02) / n
+        no_r = sum(1 for c, p in xs if abs(p) <= 0.02) / n
+        r[f"exec_{ax}_slope"] = round(slope, 2) if slope is not None else "n/a"
+        r[f"exec_{ax}_flip"] = round(flip, 3)
+        r[f"exec_{ax}_noresp"] = round(no_r, 3)
+
+
+def stall_windows(cv_seq, vel_seq, r, args):
+    """脱节窗口：主导轴（|命令|最大者）|响应| < exec_ratio×|命令| 的连续段。
+    回答 11-03 Run2 二选一：nav2 发近零（无此窗口、cmd 也小）vs 小脑不执行
+    （窗口内 |cmd| 显著而 |resp|≈0）。"""
+    m = match_seqs(cv_seq, vel_seq)
+    if len(m) < 20:
+        return
+    events = []
+    for s in m:
+        t, cvx, cvy, cwz, rvx, rvy, rwz = s[0], s[1], s[2], s[3], s[4], s[5], s[6]
+        cmax, rmax = max((abs(cvx), abs(rvx)), (abs(cvy), abs(rvy)),
+                         (abs(cwz), abs(rwz)))
+        if cmax < 0.1:
+            continue
+        events.append((t, rmax < args.exec_ratio * cmax, cmax, rmax))
+    if not events:
+        r["stall_n"] = 0
+        return
+    wins, cur = [], None
+    for t, stall, cmax, rmax in events:
+        if stall:
+            if cur and t - cur[1] <= 0.3:
+                cur[1], cur[2], cur[3] = t, cur[2] + [cmax], cur[3] + [rmax]
+                continue
+            if cur and cur[1] - cur[0] >= args.stall_min_dur:
+                wins.append(cur)
+            cur = [t, t, [cmax], [rmax]]
+        elif cur and cur[1] - cur[0] >= args.stall_min_dur:
+            wins.append(cur)
+            cur = None
+        else:
+            cur = None
+    if cur and cur[1] - cur[0] >= args.stall_min_dur:
+        wins.append(cur)
+    stall_s = sum(w[1] - w[0] for w in wins)
+    span = events[-1][0] - events[0][0]
+    r["stall_n"] = len(wins)
+    r["stall_total_s"] = round(stall_s, 1)
+    r["stall_frac"] = round(stall_s / span, 3) if span > 0 else None
+    r["stall_windows"] = [
+        {"t0_rel": round(w[0] - m[0][0], 1), "dur_s": round(w[1] - w[0], 1),
+         "cmd_max": round(max(w[2]), 2), "resp_max": round(max(w[3]), 2)}
+        for w in wins[:8]]
+
+
 # ---------------- 主分析 ----------------
 
 def analyze(bag, args):
@@ -335,11 +446,12 @@ def analyze(bag, args):
             r["path_ratio"] = round(plen / pl, 2)
 
     # cmd_vel 统计
-    cv = None
+    cv, cv_name, cv_stamped = None, None, False
     for name in ("/cmd_vel_limiter", "/cmd_vel"):
         if name in msgs and msgs[name][1]:
-            stamped = "TwistStamped" in msgs[name][0]
-            cv = [dec_twist(b, stamped) for _, b in msgs[name][1]]
+            cv_stamped = "TwistStamped" in msgs[name][0]
+            cv = [dec_twist(b, cv_stamped) for _, b in msgs[name][1]]
+            cv_name = name
             r["cmd_vel_topic"] = name
             break
     if cv:
@@ -348,6 +460,16 @@ def analyze(bag, args):
         r["v_max_cmd"] = round(max(math.hypot(vx, vy) for vx, vy, _ in cv), 3)
         r["wz_max_cmd"] = round(max(wz), 3)
         r["wz_sat_frac"] = round(sum(w > args.wz_sat for w in wz) / len(wz), 3)
+
+    # v1：命令-响应对照 + 停走窗口（时间线可用时）
+    if cv and cv_name:
+        cv_seq = [(t, *dec_twist(b, cv_stamped)) for t, b in msgs[cv_name][1]]
+        vel_seq = timeline_vel(tl, s_tl)
+        if len(vel_seq) >= 20:
+            cmd_exec_analysis(cv_seq, vel_seq, r)
+            stall_windows(cv_seq, vel_seq, r, args)
+        else:
+            r["notes"].append("时间线太短，命令-响应对照跳过")
 
     # mode 事件（P0：stand 先于 cmd_vel 归零）
     for name in ("/stand_mode", "/walk_mode"):
@@ -369,6 +491,10 @@ def main():
     ap.add_argument("--yaw-tol", type=float, default=0.5)
     ap.add_argument("--timeout", type=float, default=120.0)
     ap.add_argument("--wz-sat", type=float, default=0.35)
+    ap.add_argument("--exec-ratio", type=float, default=0.3,
+                    help="脱节判定阈值：主导轴 |响应|/|命令| 低于它计脱节")
+    ap.add_argument("--stall-min-dur", type=float, default=1.5,
+                    help="脱节窗口最短时长（秒），滤瞬时抖动")
     ap.add_argument("--smooth-s", type=float, default=0.4,
                     help="路径低通时间窗（秒，步频侧摆滤除）；0=关闭")
     ap.add_argument("--csv")
