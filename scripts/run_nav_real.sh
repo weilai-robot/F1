@@ -1,14 +1,19 @@
 #!/bin/bash
 # ============================================================
-# 真机导航一键启动 — run_nav_real.sh（仅大脑）
+# 真机导航一键启动 — run_nav_real.sh（仅大脑；ICP/Nav2 拆窗版）
+# 2026-11-06 转正：原单 nav2 窗版拆出 [2] icp + [3] nav2 两窗
+#（ICP 逐帧匹配日志不再淹没 nav2 控制器/规划器输出），实测稳定后拆窗版
+# 改回本名；旧版备份 docs/sim2real/备份-run_nav_real-单nav2窗版-2026-11-06/。
+# nav_state 看门狗已含 P0 改造（2026-10-16）。
 # 对齐 docs/x1_real_nav_first_bringup.md + run_mujoco_nav.sh 结构
 #
 # tmux 窗口:
 #   [0] livox        — Livox MID-360 驱动
 #   [1] fastlio      — FastLIO2 (F1_real_mid360.yaml)
-#   [2] nav2         — navigation_real (odom_bridge + open3d_loc + Nav2)
-#   [record]         — rosbag / 监控提示（手动启动）
-#   [nav_state]      — nav_state_manager 安全看门狗（默认启用，--no-nav-state 关闭）
+#   [2] icp          — open3d_loc ICP (对齐仿真 run_mujoco_nav.sh [4] icp；真机用 _real 变体)
+#   [3] nav2         — nav2_real (tf_bridge + nav2_bringup，对齐仿真 navigation.launch.py)
+#   [4] record       — rosbag / 监控提示（手动启动）
+#   [nav_state]    — nav_state_manager 安全看门狗（默认启用，--no-nav-state 关闭）
 #
 # 小脑 AimRT 请另开终端手动启动（避免 tmux 里 sudo setcap 卡密码）:
 #   cd <aimrt_dir>   # 通常 F1/build 或 motion_control/install/linux/bin
@@ -56,11 +61,11 @@ RVIZ_ARG="rviz:=true"
 for arg in "$@"; do
   case "$arg" in
     --no-aimrt) ;;       # 兼容旧参数：小脑已默认不启
-    --no-nav-state) NO_NAV_STATE=1 ;;   # 关闭 nav_state 看门狗（默认启用）
+    --no-nav-state) NO_NAV_STATE=1 ;;   # 不拉 nav_state 看门狗（默认启用）
     --no-rviz) RVIZ_ARG="rviz:=false" ;;
     --rviz) RVIZ_ARG="rviz:=true" ;;
     -h|--help)
-      sed -n '2,28p' "$0"
+      sed -n '2,32p' "$0"
       exit 0
       ;;
     *)
@@ -210,20 +215,28 @@ tmux send-keys -t "${SESSION_NAME}:fastlio" \
 echo -e "${YELLOW}  等待 LIO 收敛 (5s)...${NC}"
 sleep 5
 
-# --- Nav2 real (含 odom_bridge + open3d_loc) ---
+# --- [2] ICP 全局定位 (open3d_loc，对齐仿真 run_mujoco_nav.sh [4] icp；真机用 _real 变体) ---
+tmux new-window -t "${SESSION_NAME}" -n "icp"
+echo -e "${GREEN}  [icp] open3d_loc ICP (open3d_loc_x1_real.launch.py)${NC}"
+tmux send-keys -t "${SESSION_NAME}:icp" "${TMUX_SOURCE}" Enter
+tmux send-keys -t "${SESSION_NAME}:icp" \
+  "ros2 launch open3d_loc open3d_loc_x1_real.launch.py" Enter
+echo -e "${YELLOW}  等待 ICP 锁定 + map→odom TF (5s)...${NC}"
+sleep 5
+
+# --- [3] Nav2 (tf_bridge_real + nav2_bringup；对齐仿真，日志独立可见) ---
 tmux new-window -t "${SESSION_NAME}" -n "nav2"
-echo -e "${GREEN}  [nav2] navigation_real.launch.py${NC}"
+echo -e "${GREEN}  [nav2] nav2_real.launch.py (tf_bridge + nav2_bringup)${NC}"
 tmux send-keys -t "${SESSION_NAME}:nav2" "${TMUX_SOURCE}" Enter
 tmux send-keys -t "${SESSION_NAME}:nav2" \
-  "ros2 launch humanoid_sim navigation_real.launch.py" Enter
-echo -e "${YELLOW}  等待 Nav2 / ICP (5s)...${NC}"
+  "ros2 launch humanoid_sim nav2_real.launch.py" Enter
+echo -e "${YELLOW}  等待 Nav2 lifecycle active (5s)...${NC}"
 sleep 5
 
 # --- nav_state_manager 安全看门狗（默认启用；--no-nav-state 关闭）---
-# 窗内额外 source AimRT ros2_setup.sh：模式 topic 须 AimRT 环境链，否则
-# /stand_mode 发得出、小脑收不到（switch_x1_mode.sh:1-5 既有约定）。
+# P0 纯看门狗改造（2026-10-16，自原单窗版同步）：窗内额外 source AimRT
+# ros2_setup.sh，否则 /stand_mode 发得出、小脑收不到（switch_x1_mode.sh 既有约定）。
 # ros2_setup.sh 内部用相对路径 → 必须 pushd 进 AimRT 目录再 source。
-# AimRT 目录定位照抄 switch_x1_mode.sh 候选（可用 AIMRT_DIR 覆盖）。
 AIMRT_CANDIDATES=(
   "${AIMRT_DIR:-}"
   "${BUILD_DIR}"
@@ -293,7 +306,8 @@ echo ""
 echo " tmux 窗口:"
 echo "   livox     - Livox MID-360"
 echo "   fastlio   - FastLIO2 (F1_real_mid360.yaml)"
-echo "   nav2      - odom_bridge + open3d_loc + Nav2"
+echo "   icp       - open3d_loc ICP (对齐仿真)"
+echo "   nav2      - nav2_real (tf_bridge + nav2_bringup)"
 echo "   nav_state - nav_state_manager 安全看门狗（--no-nav-state 可关）"
 echo "   record    - 检查 / 录包提示"
 echo ""
