@@ -63,16 +63,19 @@ done
 LABEL="${LABEL//[^a-zA-Z0-9_-]/_}"
 
 # 远端文件选择命令（对 minipc 执行，全部只读）
+# 分组 { ...; } 必须包住所有 find 再统一 sort：否则 `a && b | sort` 的优先级
+# 会把前段 find 输出裸漏进 stdout 污染 tar 流（11-06 --bag 实测踩坑）
 FIND_SETS=".ros/log Robot_github/F1/build/log Robot_github/F1/build/test_logs/data_csv Robot_github/F1/navigation/localization/fast_lio2/Log"
-REMOTE_FIND="cd /home/robot && find ${FIND_SETS} -type f -mmin -${SINCE} 2>/dev/null | sort"
+REMOTE_FIND="cd /home/robot && { find ${FIND_SETS} -type f -mmin -${SINCE} 2>/dev/null"
 
 # --bag 路径相对 minipc /home/robot；record_nav_test.sh 的产物在
 # Robot_github/F1/reports/nav_test_record/<stamp>_<label>/bag
 # （无引号拼接：路径经两跳单引号包装，词法安全依赖 stamp_label 命名约定）
 for b in "${BAGS[@]:-}"; do
   [ -n "$b" ] || continue
-  REMOTE_FIND="${REMOTE_FIND} && find ${b} -type f 2>/dev/null | sort"
+  REMOTE_FIND="${REMOTE_FIND}; find ${b} -type f 2>/dev/null"
 done
+REMOTE_FIND="${REMOTE_FIND}; } | sort"
 
 echo -e "${YELLOW}[archive] 远端候选（minipc:/home/robot，mtime -${SINCE}min）:${NC}"
 if ! ssh ${SSH_OPTS} "${HOP1}" "ssh ${SSH_OPTS} ${HOP2} '${REMOTE_FIND} | xargs -r ls -la 2>/dev/null | tail -40'"; then
@@ -97,8 +100,9 @@ RUN_DIR="${OUT_ROOT}/${STAMP}_${LABEL}"
 mkdir -p "${RUN_DIR}"
 
 echo -e "${YELLOW}[archive] 拉取中 → ${RUN_DIR}/pull.tgz${NC}"
-# tar czf - 经双跳管道回 WSL；--warning=no-file-changed 忽略拉取瞬间还在写的日志
-if ! ssh ${SSH_OPTS} "${HOP1}" "ssh ${SSH_OPTS} ${HOP2} '${REMOTE_FIND} | tar czf - -T - --warning=no-file-changed'" > "${RUN_DIR}/pull.tgz"; then
+# tar czf - 经双跳管道回 WSL；--warning=no-file-changed 忽略拉取瞬间还在写的日志；
+# 该情形 tar 仍退出 1（≠致命 2），故 `test $? -le 1` 放行（11-06 RViz 日志在写实测踩坑）
+if ! ssh ${SSH_OPTS} "${HOP1}" "ssh ${SSH_OPTS} ${HOP2} '${REMOTE_FIND} | tar czf - -T - --warning=no-file-changed; test \$? -le 1'" > "${RUN_DIR}/pull.tgz"; then
   echo -e "${RED}[ERROR] tar 流拉取失败${NC}" >&2
   exit 1
 fi

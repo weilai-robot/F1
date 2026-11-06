@@ -99,12 +99,15 @@ mkdir -p "${SNAP_DIR}" "${BAG_DIR}"
 
 echo -e "${GREEN}[record] 输出目录:${NC} ${RUN_DIR}"
 
+# colcon 生成的 setup.bash 引用未定义变量（COLCON_TRACE 等），set -u 下必炸（11-06 minipc 实测）：临时关 -u
+set +u
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/ros2_source.sh"
 if [ -f "${NAV_DIR}/install/setup.bash" ]; then
   # shellcheck source=/dev/null
   source "${NAV_DIR}/install/setup.bash"
 fi
+set -u
 
 if ! command -v ros2 >/dev/null 2>&1; then
   echo -e "${RED}[ERROR] ros2 未找到，请先 source ROS2 环境${NC}" >&2
